@@ -3686,7 +3686,8 @@ function syncEB(para){
   if(!para)return;
   const align=para.align||'left';
   document.querySelectorAll('#eb-scroll .eb-abtn').forEach(b=>b.classList.toggle('active',b.dataset.align===align));
-  $.eb_size_val.textContent=para.size||state.settings.fontSize;
+  const size = para.size != null ? para.size : state.settings.fontSize;
+  $.eb_size_val.textContent = size;
   updateEbColorBtn(para.color||state.settings.lastColor);
 }
 
@@ -3728,11 +3729,12 @@ function ebSizeDelta(d){
   if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
   _redoStack.length = 0;
   const p=state.pages[pi].paras[qi];
-  p.size=Math.min(40,Math.max(10,(p.size||state.settings.fontSize)+d));
+  const baseSize = p.size != null ? p.size : state.settings.fontSize;
+  p.size = Math.min(40, Math.max(10, baseSize + d));
   state.ui.selPara={pi,qi};
-  $.eb_size_val.textContent=p.size;
   const el=getContent(pi,qi);
-  if(el)el.style.fontSize=p.size+'px';
+  if(el) el.style.fontSize=p.size+'px';
+  syncEB(p);
   debouncedSave();
 }
 
