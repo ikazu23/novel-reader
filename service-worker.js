@@ -1,6 +1,6 @@
 // 小説リーダー Service Worker
 // 更新時はこのバージョン番号を上げる
-const CACHE_VERSION = 'v38';
+const CACHE_VERSION = 'v41';
 const CACHE_NAME = `novel-reader-${CACHE_VERSION}`;
 
 // 完全オフライン用にキャッシュするリソース

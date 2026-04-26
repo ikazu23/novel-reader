@@ -362,6 +362,8 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 }
 #eb-scroll::-webkit-scrollbar{display:none;}
 
+
+
 .eb-sep{width:1px;height:20px;background:#c8c8c8;margin:0 2px;flex-shrink:0;}
 
 .eb-btn{
@@ -1368,11 +1370,11 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
 
     <!-- サイズ -->
     <div class="eb-stepper">
-      <button class="eb-step" id="eb-size-minus" ontouchstart="event.preventDefault();ebSizeDelta(-1);" onclick="ebSizeDelta(-1);">
+      <button class="eb-step" id="eb-size-minus" onclick="ebSizeDelta(-1);">
         <svg width="14" height="14" viewBox="0 0 18 18"><text x="0" y="13" font-size="14" fill="#333" font-family="serif">A</text><text x="10" y="15" font-size="12" fill="#333" font-family="sans-serif">－</text></svg>
       </button>
       <span class="eb-sizeval" id="eb-size-val">15</span>
-      <button class="eb-step" id="eb-size-plus" ontouchstart="event.preventDefault();ebSizeDelta(+1);" onclick="ebSizeDelta(+1);">
+      <button class="eb-step" id="eb-size-plus" onclick="ebSizeDelta(+1);">
         <svg width="14" height="14" viewBox="0 0 18 18"><text x="2" y="15" font-size="18" fill="#333" font-family="serif">A</text><text x="10" y="12" font-size="12" fill="#333" font-family="sans-serif">＋</text></svg>
       </button>
     </div>
@@ -1387,16 +1389,16 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
     <div class="eb-sep"></div>
 
     <!-- テキスト装飾：太字/斜体/下線/取り消し線 -->
-    <button class="eb-btn eb-fmt-btn" data-fmt="bold" ontouchstart="event.preventDefault();ebToggleFmt('bold');" onclick="ebToggleFmt('bold');" title="太字">
+    <button class="eb-btn eb-fmt-btn" data-fmt="bold" onclick="ebToggleFmt('bold');" title="太字">
       <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z"/></svg>
     </button>
-    <button class="eb-btn eb-fmt-btn" data-fmt="italic" ontouchstart="event.preventDefault();ebToggleFmt('italic');" onclick="ebToggleFmt('italic');" title="斜体">
+    <button class="eb-btn eb-fmt-btn" data-fmt="italic" onclick="ebToggleFmt('italic');" title="斜体">
       <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
     </button>
-    <button class="eb-btn eb-fmt-btn" data-fmt="underline" ontouchstart="event.preventDefault();ebToggleFmt('underline');" onclick="ebToggleFmt('underline');" title="下線">
+    <button class="eb-btn eb-fmt-btn" data-fmt="underline" onclick="ebToggleFmt('underline');" title="下線">
       <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v8a6 6 0 0 0 12 0V3"/><line x1="4" y1="21" x2="20" y2="21"/></svg>
     </button>
-    <button class="eb-btn eb-fmt-btn" data-fmt="strikethrough" ontouchstart="event.preventDefault();ebToggleFmt('strikethrough');" onclick="ebToggleFmt('strikethrough');" title="取り消し線">
+    <button class="eb-btn eb-fmt-btn" data-fmt="strikethrough" onclick="ebToggleFmt('strikethrough');" title="取り消し線">
       <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4H9a3 3 0 0 0-2.83 4M14 12a4 4 0 0 1 0 8H6"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
     </button>
 
@@ -5232,6 +5234,43 @@ function setupGlobalListeners(){
       }
       if(e.target.tagName!=='INPUT')e.preventDefault();
     });
+  }
+
+  /* ── 編集バー横スクロール時の誤タップ防止 ── */
+  // touchstart で位置記録、touchmoveで移動量がしきい値超えたらフラグON
+  // touchend / click 時にフラグONなら preventDefault でアイコン発火を阻止
+  const ebScroll = document.getElementById('eb-scroll');
+  if(ebScroll){
+    let _ebStartX = 0, _ebStartY = 0, _ebMoved = false;
+    const MOVE_THRESHOLD = 8; // px
+    ebScroll.addEventListener('touchstart', e=>{
+      if(e.touches.length !== 1) return;
+      _ebStartX = e.touches[0].clientX;
+      _ebStartY = e.touches[0].clientY;
+      _ebMoved = false;
+    }, {passive:true});
+    ebScroll.addEventListener('touchmove', e=>{
+      if(_ebMoved) return;
+      if(e.touches.length !== 1) return;
+      const dx = Math.abs(e.touches[0].clientX - _ebStartX);
+      const dy = Math.abs(e.touches[0].clientY - _ebStartY);
+      if(dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) _ebMoved = true;
+    }, {passive:true});
+    // touchend: 移動していればイベント停止（後続のclickも止める）
+    ebScroll.addEventListener('touchend', e=>{
+      if(_ebMoved){
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    }, {capture:true});
+    // click: 上記でstopPropagation/preventDefaultしてもAndroidで稀に届くので二重防衛
+    ebScroll.addEventListener('click', e=>{
+      if(_ebMoved){
+        e.stopPropagation();
+        e.preventDefault();
+        _ebMoved = false; // クリックを1度キャンセルしたらリセット
+      }
+    }, {capture:true});
   }
 
   /* ── 自動保存（離脱・バックグラウンド・定期） ── */
