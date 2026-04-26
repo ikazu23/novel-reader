@@ -2005,6 +2005,23 @@ function debouncedSave(){
   _saveTimer=setTimeout(()=>save(),300);
 }
 
+// 即時保存：保留中のデバウンスをフラッシュして同期的にDBへ書き込み開始
+// ページ離脱時など、確実に最新を保存する必要がある場面で使用
+function flushSave(){
+  clearTimeout(_saveTimer);
+  _saveTimer = null;
+  if(state.editMode && state.curPage != null){
+    try{ syncEditorToState(state.curPage); }catch(_){}
+  }
+  try{
+    syncCurrentEpisode();
+    state.novel.updatedAt = new Date().toISOString();
+    const idx = state.library.findIndex(n=>n.id===state.currentNovelId);
+    if(idx>=0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+    libDbPut(state.novel).catch(e=>console.warn('flushSave failed:',e));
+  }catch(e){ console.warn('flushSave error:',e); }
+}
+
 async function resetAllData(){
   if(!confirm('この小説のデータをリセットしますか？\nエピソード・タイトル・カバー画像がすべて削除されます。'))return;
   try{
@@ -4980,6 +4997,22 @@ function setupGlobalListeners(){
       if(e.target.tagName!=='INPUT')e.preventDefault();
     });
   }
+
+  /* ── 自動保存（離脱・バックグラウンド・定期） ── */
+  // ページを閉じる/タブを切る時：最終手段の保存
+  window.addEventListener('beforeunload', ()=>{ flushSave(); });
+  // モバイルでは pagehide の方が確実に呼ばれる
+  window.addEventListener('pagehide', ()=>{ flushSave(); });
+  // バックグラウンドへ移動した時（アプリ切り替え等）
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState === 'hidden') flushSave();
+  });
+  // ウィンドウからフォーカスが外れた時（編集中なら保存）
+  window.addEventListener('blur', ()=>{ if(state.editMode) flushSave(); });
+  // 30秒ごとの定期保存（編集中のみ、保留中の変更があれば書き込み）
+  setInterval(()=>{
+    if(state.editMode && _saveTimer != null) flushSave();
+  }, 30000);
 }
 
 /* ══════════════════════════════════════
