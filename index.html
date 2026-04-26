@@ -2121,6 +2121,13 @@ function renderLibrary(){
     if(_selectedNovelIds.has(novel.id)) card.classList.add('selected');
 
     card.onclick=(e)=>{
+      // 長押し直後のclickを無視（タップ離した瞬間に発火する偽click対策）
+      if(_suppressNextClick){
+        _suppressNextClick = false;
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       // 選択モード中はトグル
       if(_selectionMode){
         toggleNovelSelection(novel.id, card);
@@ -2139,6 +2146,7 @@ function renderLibrary(){
     let pressTimer=null;
     card.addEventListener('touchstart',()=>{
       pressTimer=setTimeout(()=>{
+        _suppressNextClick = true;
         if(!_selectionMode) enterSelectionMode();
         toggleNovelSelection(novel.id, card);
       },500);
@@ -2147,6 +2155,7 @@ function renderLibrary(){
     card.addEventListener('touchmove',()=>clearTimeout(pressTimer));
     card.addEventListener('contextmenu',e=>{
       e.preventDefault();
+      _suppressNextClick = true;
       if(!_selectionMode) enterSelectionMode();
       toggleNovelSelection(novel.id, card);
     });
@@ -2159,6 +2168,7 @@ function renderLibrary(){
 ══════════════════════════════════════ */
 let _selectionMode = false;
 let _selectedNovelIds = new Set();
+let _suppressNextClick = false;
 
 function enterSelectionMode(){
   _selectionMode = true;
