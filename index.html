@@ -2144,15 +2144,32 @@ function renderLibrary(){
     };
     // 長押しで選択モードへ
     let pressTimer=null;
-    card.addEventListener('touchstart',()=>{
+    let touchStartX=0, touchStartY=0;
+    card.addEventListener('touchstart',(e)=>{
+      const t = e.touches[0];
+      if(t){ touchStartX = t.clientX; touchStartY = t.clientY; }
       pressTimer=setTimeout(()=>{
         _suppressNextClick = true;
         if(!_selectionMode) enterSelectionMode();
         toggleNovelSelection(novel.id, card);
+        pressTimer = null;
       },500);
     },{passive:true});
-    card.addEventListener('touchend',()=>clearTimeout(pressTimer));
-    card.addEventListener('touchmove',()=>clearTimeout(pressTimer));
+    card.addEventListener('touchend',()=>{
+      if(pressTimer){ clearTimeout(pressTimer); pressTimer = null; }
+    });
+    card.addEventListener('touchmove',(e)=>{
+      if(!pressTimer) return;
+      const t = e.touches[0];
+      if(!t) return;
+      // 10px以上動いたらスクロール扱いでキャンセル
+      const dx = Math.abs(t.clientX - touchStartX);
+      const dy = Math.abs(t.clientY - touchStartY);
+      if(dx > 10 || dy > 10){
+        clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+    },{passive:true});
     card.addEventListener('contextmenu',e=>{
       e.preventDefault();
       _suppressNextClick = true;
