@@ -3866,7 +3866,8 @@ function applyColorToPara(hex){
   debouncedSaveSettings();
 
   // 編集バー操作でフォーカスが外れている場合は保存済みの選択範囲を復元
-  if(state.ui.savedRange){
+  // ただし savedRange が非collapsedの場合のみ（範囲選択していた場合のみ復元）
+  if(state.ui.savedRange && !state.ui.savedRange.collapsed){
     try{
       const sel=window.getSelection();
       sel.removeAllRanges();
@@ -3964,7 +3965,8 @@ function ebToggleFmt(fmt){
   if(!tag) return;
 
   // 編集バー操作でフォーカスが外れている場合は保存済み選択範囲を復元
-  if(state.ui.savedRange){
+  // ただし savedRange が非collapsedの場合のみ（範囲選択していた場合のみ復元）
+  if(state.ui.savedRange && !state.ui.savedRange.collapsed){
     try{
       const sel = window.getSelection();
       sel.removeAllRanges();
@@ -3989,6 +3991,8 @@ function ebToggleFmt(fmt){
     }
     save();
     syncEbFmtButtons();
+    // 操作後にsavedRangeをクリア（次回の段落全体操作で誤復元を防ぐ）
+    state.ui.savedRange = null;
     return;
   }
 
@@ -5145,7 +5149,9 @@ function setupGlobalListeners(){
       const r=sel.getRangeAt(0);
       const ae=document.activeElement;
       if(ae&&ae.isContentEditable){
-        state.ui.savedRange=r.cloneRange();
+        // 範囲選択がある場合のみ保存。collapsed（カーソルだけ）なら保存しない
+        // → 古い範囲が次回のボタン押下で復元されるバグを防止
+        state.ui.savedRange = r.collapsed ? null : r.cloneRange();
         // selParaをカーソル位置から確定させる
         const paraEl=getParaElUnderCaret();
         if(paraEl){
@@ -5187,7 +5193,10 @@ function setupGlobalListeners(){
       const sel=window.getSelection();
       if(sel&&sel.rangeCount>0){
         const ae=document.activeElement;
-        if(ae&&ae.isContentEditable) state.ui.savedRange=sel.getRangeAt(0).cloneRange();
+        if(ae&&ae.isContentEditable){
+          const r=sel.getRangeAt(0);
+          state.ui.savedRange = r.collapsed ? null : r.cloneRange();
+        }
       }
     },{passive:true});
     ebFixedRight.addEventListener('mousedown',e=>{
@@ -5195,7 +5204,8 @@ function setupGlobalListeners(){
       if(sel&&sel.rangeCount>0){
         const ae=document.activeElement;
         if(ae&&ae.isContentEditable){
-          state.ui.savedRange=sel.getRangeAt(0).cloneRange();
+          const r=sel.getRangeAt(0);
+          state.ui.savedRange = r.collapsed ? null : r.cloneRange();
           const paraEl=getParaElUnderCaret();
           if(paraEl){
             const pi=parseInt(paraEl.dataset.pi,10);
