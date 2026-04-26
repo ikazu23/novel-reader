@@ -5074,34 +5074,32 @@ function setupBackNavigation(){
   if(location.hash){
     try{ history.replaceState(null, '', location.pathname + location.search); }catch(_){}
   }
-  // 起動時に1つセンチネルを積む
-  pushSentinel();
+  // 起動時に大量のセンチネルを積む（Chromiumのフォワードスロット消費に備える）
+  // 戻るボタンを押すたびに popstate ハンドラで1つ積み足すが、
+  // 一部のChromium挙動で増えないことがあるので、最初から余裕を持たせる
+  for(let i=0; i<50; i++) pushSentinel();
 
   window.addEventListener('popstate', (e)=>{
     const view = getCurrentView();
     const overlayOpen = hasOpenOverlay();
-    // [DEBUG] 何が起きているか可視化（後で削除）
+    // [DEBUG]
     try{ showToast('back: view='+view+' ov='+overlayOpen+' hist='+history.length); }catch(_){}
 
     // ライブラリ画面で戻るボタン → 終了確認
     if(view === 'library' && !overlayOpen){
       if(_navState.exitConfirmed){
-        // 2回目 → 何もしない、ブラウザに離脱させる
         return;
       }
       _navState.exitConfirmed = true;
       try{ showToast('もう一度戻るボタンで終了'); }catch(_){}
       clearTimeout(_navState.exitTimer);
       _navState.exitTimer = setTimeout(()=>{ _navState.exitConfirmed = false; }, 2000);
-      // 履歴を補充
       pushSentinel();
       return;
     }
 
     _navState.exitConfirmed = false;
-    // 画面遷移を先に
     handleBackNavigation();
-    // 履歴を補充（次の戻るに備える）
     pushSentinel();
   });
 }
