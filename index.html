@@ -269,6 +269,13 @@ mark.sh.current{background:#ff8f00;color:#fff;}
   padding:2px 0;
   position:relative;
 }
+/* 編集モード中のみ：段落を視覚的に区切る四角い枠 */
+.viewport.edit-mode .page-editor p {
+  background:#f3f3f3;
+  border:1px solid #888;
+  border-radius:2px;
+  padding:6px 10px;
+}
 .page-editor p br{
   display:block;
   height:var(--para-spacing);
