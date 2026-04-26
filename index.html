@@ -3146,14 +3146,15 @@ function syncEditorToState(pi){
         const origByIdx = state.pages[pi] ? state.pages[pi].paras[globalQi] : null;
         // data-qiが一致するorigを優先、なければglobalQi照合、それもなければnull
         const orig = origByQi || origByIdx;
-        // size・color は必ずstateの値を使う。DOMのインラインスタイルは読まない。
-        // （ChromeのcontentEditableがinputのたびにstyleを書き換えるため）
+        // sizeはDOMのstyle.fontSizeを優先（直前のサイズボタン操作を保持）
+        let nodeSize = parseFloat(node.style.fontSize);
+        if(isNaN(nodeSize) || !nodeSize) nodeSize = (orig && orig.size) || state.settings.fontSize;
         newParas.push({
           type:'text',
           text:node.textContent,
           html:node.innerHTML,
           align:(node.style.textAlign||orig?.align||'left'),
-          size:orig?.size||state.settings.fontSize,
+          size: nodeSize,
           color:orig?.color||state.settings.color,
         });
       }
@@ -3759,8 +3760,6 @@ function ebSizeDelta(d){
   if(isNaN(baseSize) || !baseSize){ baseSize = state.settings.fontSize || 15; baseSrc='def'; }
   // 1pxずつクランプ
   const newSize = Math.min(40, Math.max(10, Math.round(baseSize) + d));
-  // [DEBUG] 詳細トースト
-  try{ showToast('qi='+qi+' src='+baseSrc+' '+baseSize+'->'+newSize+' el='+(el?'Y':'N')); }catch(_){}
   // undoスナップショット
   _undoStack.push(JSON.stringify(state.pages));
   if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
@@ -3769,7 +3768,12 @@ function ebSizeDelta(d){
   state.ui.selPara = {pi, qi};
   if(el) el.style.fontSize = newSize + 'px';
   if($.eb_size_val) $.eb_size_val.textContent = newSize;
-  save();
+  // syncEditorToStateを介さず直接保存（DOMから読み戻すと size が消える問題への対策）
+  syncCurrentEpisode();
+  state.novel.updatedAt = new Date().toISOString();
+  const idx = state.library.findIndex(n=>n.id===state.currentNovelId);
+  if(idx>=0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+  libDbPut(state.novel).catch(e=>{ console.warn('save failed:',e); });
 }
 
 function applyColorToPara(hex){
