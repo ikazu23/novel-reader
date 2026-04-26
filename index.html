@@ -43,10 +43,6 @@ body{
   background:transparent;
   border-bottom-color:rgba(0,0,0,0.08);
 }
-#topbar-cancel{
-  background:none;border:none;color:#666;font-family:'Noto Sans JP',sans-serif;
-  font-size:14px;padding:8px 10px;cursor:pointer;flex-shrink:0;
-}
 #topbar-title{
   flex:1;text-align:center;font-family:'Noto Sans JP',sans-serif;
   font-size:15px;font-weight:500;color:#222;
@@ -250,39 +246,6 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 }
 #dbtap-hint.show{opacity:1;}
 
-/* ══════ 空グループ確認バナー ══════ */
-#empty-group-banner{
-  position:fixed;
-  left:50%;transform:translateX(-50%) translateY(20px);
-  bottom:calc(var(--bot-h) + 12px);
-  background:#fff;
-  border:1px solid #e0e0e0;
-  border-radius:14px;
-  box-shadow:0 4px 20px rgba(0,0,0,.13);
-  padding:12px 16px;
-  display:flex;align-items:center;gap:10px;
-  font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#444;
-  white-space:nowrap;
-  z-index:150;
-  opacity:0;pointer-events:none;
-  transition:opacity .22s,transform .22s;
-}
-#empty-group-banner.show{
-  opacity:1;pointer-events:auto;
-  transform:translateX(-50%) translateY(0);
-}
-#empty-group-banner .egb-del{
-  background:#e05050;color:#fff;border:none;
-  border-radius:8px;padding:6px 14px;
-  font-family:'Noto Sans JP',sans-serif;font-size:12px;
-  cursor:pointer;flex-shrink:0;
-}
-#empty-group-banner .egb-keep{
-  background:none;color:#888;border:none;
-  font-family:'Noto Sans JP',sans-serif;font-size:12px;
-  cursor:pointer;flex-shrink:0;padding:6px 8px;
-}
-
 /* ══════ PAGE LABEL ══════ */
 .pnl{position:absolute;top:8px;right:10px;color:#ccc;font-size:11px;font-family:'Noto Sans JP',sans-serif;pointer-events:none;user-select:none;}
 
@@ -374,9 +337,6 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 /* ══════════════════════════════════════
    EDIT BAR
 ══════════════════════════════════════ */
-#edit-bar{display:none !important;}
-#edit-bar.visible{display:none !important;}
-
 #eb-scroll{
   display:flex;align-items:center;gap:0;
   overflow-x:scroll;overflow-y:hidden;
@@ -1344,13 +1304,6 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
 <!-- DOUBLE TAP HINT -->
 <div id="dbtap-hint">ダブルタップで編集</div>
 
-<!-- EMPTY GROUP BANNER -->
-<div id="empty-group-banner">
-  <span id="egb-msg">このグループは空です</span>
-  <button class="egb-keep" onclick="dismissEmptyGroupBanner()">そのまま</button>
-  <button class="egb-del"  onclick="deleteEmptyGroup()">削除</button>
-</div>
-
 <!-- BOTTOM EDIT BAR -->
 <div id="botbar">
   <div id="botbar-edit-row"><div id="eb-scroll">
@@ -1586,7 +1539,6 @@ function cacheDOM(){
   'eb-size-val',
   'ecp-custom-input',
   'ecp-dots',
-  'empty-group-banner',
   'font-file-input',
   'font-list',
   'font-load-name',
@@ -1704,7 +1656,6 @@ const state = {
     transitioning: false, // ページ遷移アニメーション中か
     savedRange: null,     // 編集バー操作前のカーソル位置を保存
     search:     { matches:[], idx:0, open:false },
-    emptyGroup: { pi:-1, idx:-1 },
   },
 };
 
@@ -3304,7 +3255,6 @@ function setupScrollPageTurn(pageEl,pi,groupCount){
         return;
       }
     }
-    dismissEmptyGroupBanner();
     const groups=pageEl.querySelectorAll('.subpage-group');
     groups.forEach((g,i)=>{
       g.classList.remove('active','fade-in','slide-up');
@@ -3497,7 +3447,6 @@ function goToPage(idx){
 function slideToPage(next,dir,axis='v'){
   state.ui.transitioning=true;
   closeColorPopup();
-  dismissEmptyGroupBanner();
   const ae=document.activeElement;if(ae&&ae.isContentEditable)ae.blur();
   hideEB();
   state.ui.selPara=null;
@@ -3938,33 +3887,8 @@ function getGroupParas(pi, g){
   return result;
 }
 
-function checkEmptyGroup(pi, groupIdx){
-  if(pi !== state.curPage || state.subPageIndex !== groupIdx)return;
-  if(isCurrentGroupEmpty(pi)) showEmptyGroupBanner(pi, groupIdx);
-}
-
-function showEmptyGroupBanner(pi, groupIdx){
-  state.ui.emptyGroup.pi  = pi;
-  state.ui.emptyGroup.idx = groupIdx;
-  // 末尾の空グループのときだけ削除ボタンを有効表示
-  const isTail = (groupIdx === countGroups(pi) - 1);
-  const delBtn = document.querySelector('#empty-group-banner .egb-del');
-  const msg    = document.getElementById('egb-msg');
-  if(delBtn) delBtn.style.display = isTail ? '' : 'none';
-  if(msg) msg.textContent = isTail ? 'このグループは空です' : 'グループが空です（末尾のみ削除可）';
-  $.empty_group_banner.classList.add('show');
-}
-
-function dismissEmptyGroupBanner(){
-  $.empty_group_banner.classList.remove('show');
-  state.ui.emptyGroup.pi = -1; state.ui.emptyGroup.idx = -1;
-}
-
-function deleteEmptyGroup(argPi, argGi){
-  const pi = (argPi !== undefined) ? argPi : state.ui.emptyGroup.pi;
-  const gi = (argGi !== undefined) ? argGi : state.ui.emptyGroup.idx;
-  dismissEmptyGroupBanner();
-  if(pi < 0)return;
+function deleteEmptyGroup(pi, gi){
+  if(pi == null || gi == null || pi < 0)return;
   const pg = state.pages[pi];
   if(!pg)return;
 
@@ -4037,11 +3961,6 @@ function countGroups(pi){
   const pg=state.pages[pi];if(!pg)return 1;
   return pg.paras.filter(p=>p.type==='group-break').length + 1;
 }
-
-/* グループ操作ボタン候補（現在未使用・ボタン追加時に復活させる）
-function addGroup(){ autoAddGroup(state.curPage); }
-function deleteGroup(){ if(isCurrentGroupEmpty(state.curPage)) showEmptyGroupBanner(state.curPage, state.subPageIndex); }
-*/
 
 /* ── 挿絵削除 ── */
 function deleteImagePara(pi, imgName){
