@@ -1386,6 +1386,22 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
 
     <div class="eb-sep"></div>
 
+    <!-- テキスト装飾：太字/斜体/下線/取り消し線 -->
+    <button class="eb-btn eb-fmt-btn" data-fmt="bold" ontouchstart="event.preventDefault();ebToggleFmt('bold');" onclick="ebToggleFmt('bold');" title="太字">
+      <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 5h6a3.5 3.5 0 0 1 0 7H7zM7 12h7a3.5 3.5 0 0 1 0 7H7z"/></svg>
+    </button>
+    <button class="eb-btn eb-fmt-btn" data-fmt="italic" ontouchstart="event.preventDefault();ebToggleFmt('italic');" onclick="ebToggleFmt('italic');" title="斜体">
+      <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
+    </button>
+    <button class="eb-btn eb-fmt-btn" data-fmt="underline" ontouchstart="event.preventDefault();ebToggleFmt('underline');" onclick="ebToggleFmt('underline');" title="下線">
+      <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v8a6 6 0 0 0 12 0V3"/><line x1="4" y1="21" x2="20" y2="21"/></svg>
+    </button>
+    <button class="eb-btn eb-fmt-btn" data-fmt="strikethrough" ontouchstart="event.preventDefault();ebToggleFmt('strikethrough');" onclick="ebToggleFmt('strikethrough');" title="取り消し線">
+      <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4H9a3 3 0 0 0-2.83 4M14 12a4 4 0 0 1 0 8H6"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
+    </button>
+
+    <div class="eb-sep"></div>
+
     <!-- 挿絵 -->
     <button class="eb-btn" onclick="document.getElementById('img-picker-input').click()" title="挿絵を追加">
       <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
@@ -3734,6 +3750,8 @@ function syncEB(para){
   const size = para.size != null ? para.size : state.settings.fontSize;
   $.eb_size_val.textContent = size;
   updateEbColorBtn(para.color||state.settings.lastColor);
+  // 装飾ボタンの状態同期
+  if(typeof syncEbFmtButtons === 'function') syncEbFmtButtons();
 }
 
 // ── 段落スタイル操作 ──
@@ -3924,6 +3942,190 @@ function applyParaColor(pi,qi,hex){
   const idx = state.library.findIndex(n=>n.id===state.currentNovelId);
   if(idx>=0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
   libDbPut(state.novel).catch(e=>{ console.warn('save failed:',e); });
+}
+
+/* ══════════════════════════════════════
+   テキスト装飾：太字 / 斜体 / 下線 / 取り消し線
+   - 選択範囲があれば範囲のみ
+   - 選択範囲がなければ段落全体（カーソルのある段落）
+   - もう一度押すと解除
+══════════════════════════════════════ */
+
+// fmt: 'bold' | 'italic' | 'underline' | 'strikethrough'
+const _fmtToTag = {
+  bold: 'b',
+  italic: 'i',
+  underline: 'u',
+  strikethrough: 's',
+};
+
+function ebToggleFmt(fmt){
+  const tag = _fmtToTag[fmt];
+  if(!tag) return;
+
+  // 編集バー操作でフォーカスが外れている場合は保存済み選択範囲を復元
+  if(state.ui.savedRange){
+    try{
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(state.ui.savedRange);
+    }catch(_){}
+  }
+
+  const sel = window.getSelection();
+  const hasRange = sel && sel.rangeCount > 0 && !sel.getRangeAt(0).collapsed;
+
+  if(hasRange){
+    // 選択範囲モード：範囲が完全に該当タグで包まれていれば解除、そうでなければ適用
+    syncEditorToState(state.curPage);
+    _undoStack.push(JSON.stringify(state.pages));
+    if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
+    _redoStack.length = 0;
+    const range = sel.getRangeAt(0);
+    if(isRangeFullyWrappedBy(range, tag)){
+      unwrapTagInRange(range, tag);
+    } else {
+      wrapRangeWithTag(range, tag);
+    }
+    save();
+    syncEbFmtButtons();
+    return;
+  }
+
+  // 段落全体モード：selPara → カーソル → グループ先頭
+  let t = state.ui.selPara || getActivePara();
+  if(!t || !state.pages[t.pi] || !state.pages[t.pi].paras[t.qi] || state.pages[t.pi].paras[t.qi].type!=='text'){
+    const pi = state.curPage;
+    const pg = state.pages[pi];
+    if(!pg) return;
+    let g = 0;
+    t = null;
+    for(let qi=0; qi<pg.paras.length; qi++){
+      const p = pg.paras[qi];
+      if(p.type==='group-break'){ g++; continue; }
+      if(g===state.subPageIndex && p.type==='text'){ t={pi,qi}; break; }
+    }
+  }
+  if(!t) return;
+  toggleParaFmt(t.pi, t.qi, tag);
+}
+
+// 段落全体に装飾を適用/解除
+function toggleParaFmt(pi, qi, tag){
+  if(!state.pages[pi] || !state.pages[pi].paras[qi] || state.pages[pi].paras[qi].type!=='text') return;
+  // undoスナップショット
+  _undoStack.push(JSON.stringify(state.pages));
+  if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
+  _redoStack.length = 0;
+  const para = state.pages[pi].paras[qi];
+  state.ui.selPara = {pi, qi};
+  const el = getContent(pi, qi);
+  if(!el) return;
+  // 既に該当タグが段落全体を包んでいるか判定
+  const allWrapped = isElementFullyWrappedBy(el, tag);
+  if(allWrapped){
+    // 解除：その段落内の全タグを除去
+    el.querySelectorAll(tag).forEach(t=>{
+      const parent = t.parentNode;
+      while(t.firstChild) parent.insertBefore(t.firstChild, t);
+      parent.removeChild(t);
+    });
+  } else {
+    // 適用：段落全体を包む（既存の同タグはまず除去してから）
+    el.querySelectorAll(tag).forEach(t=>{
+      const parent = t.parentNode;
+      while(t.firstChild) parent.insertBefore(t.firstChild, t);
+      parent.removeChild(t);
+    });
+    const wrap = document.createElement(tag);
+    while(el.firstChild) wrap.appendChild(el.firstChild);
+    el.appendChild(wrap);
+  }
+  el.normalize();
+  para.html = el.innerHTML;
+  // 直接保存
+  syncCurrentEpisode();
+  state.novel.updatedAt = new Date().toISOString();
+  const idx = state.library.findIndex(n=>n.id===state.currentNovelId);
+  if(idx>=0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+  libDbPut(state.novel).catch(e=>{ console.warn('save failed:',e); });
+  syncEbFmtButtons();
+}
+
+// 要素全体が指定タグで完全に包まれているかチェック
+function isElementFullyWrappedBy(el, tag){
+  if(!el || !el.textContent.trim()) return false;
+  // テキストノードを全て辿り、それぞれが指定タグの子孫であるか確認
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+  let node;
+  while(node = walker.nextNode()){
+    if(!node.textContent.trim()) continue;
+    let parent = node.parentNode;
+    let found = false;
+    while(parent && parent !== el){
+      if(parent.tagName && parent.tagName.toLowerCase() === tag){ found = true; break; }
+      parent = parent.parentNode;
+    }
+    if(!found) return false;
+  }
+  return true;
+}
+
+// 範囲全体が指定タグで包まれているかチェック
+function isRangeFullyWrappedBy(range, tag){
+  const frag = range.cloneContents();
+  if(!frag.textContent.trim()) return false;
+  const tempDiv = document.createElement('div');
+  tempDiv.appendChild(frag);
+  return isElementFullyWrappedBy(tempDiv, tag);
+}
+
+// 範囲を指定タグで包む
+function wrapRangeWithTag(range, tag){
+  try{
+    const wrap = document.createElement(tag);
+    const frag = range.extractContents();
+    // 抽出した中の同タグは外しておく（二重包み防止）
+    frag.querySelectorAll(tag).forEach(t=>{
+      const parent = t.parentNode;
+      while(t.firstChild) parent.insertBefore(t.firstChild, t);
+      parent.removeChild(t);
+    });
+    wrap.appendChild(frag);
+    range.insertNode(wrap);
+    if(wrap.parentNode) wrap.parentNode.normalize();
+  }catch(err){ console.warn('wrapRangeWithTag:', err); }
+}
+
+// 範囲内の指定タグを全て解除
+function unwrapTagInRange(range, tag){
+  try{
+    const frag = range.extractContents();
+    frag.querySelectorAll(tag).forEach(t=>{
+      const parent = t.parentNode;
+      while(t.firstChild) parent.insertBefore(t.firstChild, t);
+      parent.removeChild(t);
+    });
+    range.insertNode(frag);
+    if(range.startContainer && range.startContainer.parentNode){
+      range.startContainer.parentNode.normalize();
+    }
+  }catch(err){ console.warn('unwrapTagInRange:', err); }
+}
+
+// バーの装飾ボタンの「アクティブ表示」を更新
+function syncEbFmtButtons(){
+  const t = state.ui.selPara;
+  if(!t) return;
+  const el = getContent(t.pi, t.qi);
+  if(!el) return;
+  document.querySelectorAll('.eb-fmt-btn').forEach(btn=>{
+    const fmt = btn.dataset.fmt;
+    const tag = _fmtToTag[fmt];
+    if(!tag) return;
+    const active = isElementFullyWrappedBy(el, tag);
+    btn.classList.toggle('active', active);
+  });
 }
 
 function wrapRangeWithColor(range,hex){
