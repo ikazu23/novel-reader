@@ -3128,16 +3128,24 @@ function syncEditorToState(pi){
           });
         }
       }else if(node.tagName==='P'||node.tagName==='DIV'){
-        const orig=state.pages[pi]&&state.pages[pi].paras[globalQi];
-        // size・color は state(orig)を優先し、origがなければDOMから読む
-        // （syncのたびに上書きされてebSizeDelta等の変更が消えないようにするため）
+        // data-qi属性で元の段落を特定。属性がなければglobalQiで照合。
+        // ChromeはDOM操作でdata-qiが消えることがあるのでどちらも試みる。
+        const dataQi = node.dataset && node.dataset.qi !== undefined
+          ? parseInt(node.dataset.qi, 10) : NaN;
+        const origByQi  = !isNaN(dataQi) && state.pages[pi]
+          ? state.pages[pi].paras[dataQi] : null;
+        const origByIdx = state.pages[pi] ? state.pages[pi].paras[globalQi] : null;
+        // data-qiが一致するorigを優先、なければglobalQi照合、それもなければnull
+        const orig = origByQi || origByIdx;
+        // size・color は必ずstateの値を使う。DOMのインラインスタイルは読まない。
+        // （ChromeのcontentEditableがinputのたびにstyleを書き換えるため）
         newParas.push({
           type:'text',
           text:node.textContent,
           html:node.innerHTML,
           align:(node.style.textAlign||orig?.align||'left'),
-          size:orig?.size||(parseInt(node.style.fontSize)||state.settings.fontSize),
-          color:(orig?.color||(node.style.color||state.settings.color)),
+          size:orig?.size||state.settings.fontSize,
+          color:orig?.color||state.settings.color,
         });
       }
       if(node.dataset){node.dataset.pi=pi; node.dataset.qi=globalQi;}
@@ -4241,8 +4249,8 @@ function applyGlobalSize(val){
     // 3) 段落個別のサイズが変わったので本文データも保存
     debouncedSave();
   }
-  // 編集中でなければ、または編集中でも安全のためrenderAllPagesを呼ぶ
-  if(!state.editMode) renderAllPages();
+  // 編集中・閲覧中どちらでもDOMに反映する
+  renderAllPages();
   debouncedSaveSettings();
 }
 
