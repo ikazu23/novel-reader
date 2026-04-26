@@ -3766,9 +3766,23 @@ function ebSizeDelta(d){
   _redoStack.length = 0;
   para.size = newSize;
   state.ui.selPara = {pi, qi};
-  if(el) el.style.fontSize = newSize + 'px';
+  if(el){
+    el.style.fontSize = newSize + 'px';
+    // 子孫spanのfont-sizeを全て除去（親要素のfont-sizeをoverrideしないように）
+    el.querySelectorAll('[style*="font-size"]').forEach(child=>{
+      child.style.removeProperty('font-size');
+      // styleが空になったspanは中身を残してアンラップ
+      if(child.tagName==='SPAN' && (!child.getAttribute('style') || child.getAttribute('style').trim()==='')){
+        const parent = child.parentNode;
+        while(child.firstChild) parent.insertBefore(child.firstChild, child);
+        parent.removeChild(child);
+      }
+    });
+    // html を最新DOMで更新
+    para.html = el.innerHTML;
+  }
   if($.eb_size_val) $.eb_size_val.textContent = newSize;
-  // syncEditorToStateを介さず直接保存（DOMから読み戻すと size が消える問題への対策）
+  // syncEditorToStateを介さず直接保存
   syncCurrentEpisode();
   state.novel.updatedAt = new Date().toISOString();
   const idx = state.library.findIndex(n=>n.id===state.currentNovelId);
