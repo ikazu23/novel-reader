@@ -3729,10 +3729,21 @@ function ebSizeDelta(d){
   if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
   _redoStack.length = 0;
   const p=state.pages[pi].paras[qi];
-  const baseSize = p.size != null ? p.size : state.settings.fontSize;
+  // 表示中のバー値・DOM・stateの順で基準サイズを確定（ズレ防止）
+  const el=getContent(pi,qi);
+  let baseSize;
+  const barVal = parseInt(document.getElementById('eb-size-val').textContent, 10);
+  if(!isNaN(barVal) && barVal > 0){
+    baseSize = barVal; // バーに表示されている値が最も信頼できる
+  } else if(p.size != null){
+    baseSize = p.size;
+  } else if(el && el.style.fontSize){
+    baseSize = parseFloat(el.style.fontSize) || state.settings.fontSize;
+  } else {
+    baseSize = state.settings.fontSize;
+  }
   p.size = Math.min(40, Math.max(10, baseSize + d));
   state.ui.selPara={pi,qi};
-  const el=getContent(pi,qi);
   if(el) el.style.fontSize=p.size+'px';
   syncEB(p);
   save(); // サイズ変更は即時保存
