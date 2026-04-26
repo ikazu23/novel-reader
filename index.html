@@ -5019,15 +5019,14 @@ function setupGlobalListeners(){
 }
 
 /* ══════════════════════════════════════
-   スマホ戻るボタン対応：センチネル方式
-   常に履歴に「センチネル」エントリ1つを保持。戻るボタン → popstate →
-   handleBack で1段戻し → センチネル積み直し。これで履歴は常に存在し、
-   アプリが意図せず閉じることがない。
+   スマホ戻るボタン対応：ハッシュベースのナビゲーションスタック
+   各画面遷移時にハッシュに番号(#nav-N)を増やす形で履歴に積む。
+   戻るボタンでハッシュが減ると hashchange が発火 → 画面を1段戻す。
+   ハッシュ方式は popstate 方式より Android Chromium で安定。
 ══════════════════════════════════════ */
-// pushNav は廃止。すべての履歴管理はナビゲーション関数で行う。
-function pushNav(_view){ /* no-op: 履歴は popstate ハンドラが一元管理 */ }
+// pushNav は廃止：履歴はハッシュ変更で自動管理される
+function pushNav(_view){ /* no-op */ }
 
-// 現在画面の判定
 function getCurrentView(){
   if(state.editMode) return 'editor';
   if(document.body.classList.contains('library-mode')) return 'library';
@@ -5036,74 +5035,21 @@ function getCurrentView(){
   return 'library';
 }
 
-// センチネルを積む（次の戻るボタン押下を受け止めるため）
+// 現在のハッシュレベル（数値）を取得
+function getNavLevel(){
+  const m = (location.hash || '').match(/^#nav-(\d+)$/);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+// ハッシュレベルを1つ進める（履歴に積む）
+let _expectedLevel = 0;
 function pushSentinel(){
+  _expectedLevel = getNavLevel() + 1;
   try{
-    history.pushState({sentinel: true, view: getCurrentView(), ts: Date.now()}, '');
+    location.hash = 'nav-' + _expectedLevel;
   }catch(e){ console.warn('pushSentinel failed:', e); }
 }
 
-// 戻るボタン押下時：1段だけ戻す。戻り値:
-//   true  - 何かしらアクションを取った（画面遷移 or オーバーレイ閉じ）→ センチネル積み直し
-//   false - ライブラリ画面で何もない → ブラウザに離脱を任せる
-function handleBackNavigation(){
-  // 1. 開いているオーバーレイ系を優先的に閉じる
-  if($.modal_ov && $.modal_ov.classList.contains('show')){ closeModal(); return true; }
-  if($.search_overlay && $.search_overlay.classList.contains('open')){ closeSearch(); return true; }
-  if($.side_panel && $.side_panel.classList.contains('open')){ closePanel(); return true; }
-  const backupMenu = document.getElementById('backup-menu');
-  if(backupMenu && backupMenu.style.display !== 'none' && typeof closeBackupMenu === 'function'){ closeBackupMenu(); return true; }
-  const colorPopup = document.getElementById('eb-color-popup');
-  if(colorPopup && colorPopup.classList.contains('show') && typeof closeColorPopup === 'function'){ closeColorPopup(); return true; }
-  if(typeof _selectionMode !== 'undefined' && _selectionMode && typeof exitSelectionMode === 'function'){ exitSelectionMode(); return true; }
-
-  // 2. 画面階層を1段戻す
-  const view = getCurrentView();
-  if(view === 'editor'){ exitEditMode(); return true; }
-  if(view === 'reader'){ showToc(); return true; }
-  if(view === 'toc'){ showLibrary(); return true; }
-  // ライブラリ画面：何もしない（離脱を許可）
-  return false;
-}
-
-function setupBackNavigation(){
-  // 起動時に1つセンチネルを積む（ブラウザの履歴: [page, sentinel(現)]）
-  pushSentinel();
-
-  // ライブラリ画面で戻るボタンを2回押すとアプリ離脱できるように
-  let _exitConfirmed = false;
-  let _exitTimer = null;
-
-  window.addEventListener('popstate', (e)=>{
-    // 重要：先にpushStateで履歴を補充してから画面遷移処理を行う
-    // これにより、画面遷移処理中にユーザーが連続で戻るを押しても、
-    // 既に新しいセンチネルが積まれているので次のpopstateが正しく発火する
-
-    const view = getCurrentView();
-
-    // ライブラリ画面 = 一番外
-    if(view === 'library' && !hasOpenOverlay()){
-      if(_exitConfirmed){
-        // 2回目 → 何もしない、ブラウザに離脱させる
-        return;
-      }
-      _exitConfirmed = true;
-      try{ showToast('もう一度戻るボタンで終了'); }catch(_){}
-      clearTimeout(_exitTimer);
-      _exitTimer = setTimeout(()=>{ _exitConfirmed = false; }, 2000);
-      pushSentinel(); // 同期的に積む
-      return;
-    }
-
-    _exitConfirmed = false;
-    // 先に履歴を積む（画面遷移処理の副作用に影響されない）
-    pushSentinel();
-    // その後で画面遷移
-    handleBackNavigation();
-  });
-}
-
-// オーバーレイが開いているかチェック
 function hasOpenOverlay(){
   if($.modal_ov && $.modal_ov.classList.contains('show')) return true;
   if($.search_overlay && $.search_overlay.classList.contains('open')) return true;
@@ -5114,6 +5060,74 @@ function hasOpenOverlay(){
   if(colorPopup && colorPopup.classList.contains('show')) return true;
   if(typeof _selectionMode !== 'undefined' && _selectionMode) return true;
   return false;
+}
+
+// 戻る処理：オーバーレイ閉じ or 画面1段戻し
+function handleBackNavigation(){
+  if($.modal_ov && $.modal_ov.classList.contains('show')){ closeModal(); return true; }
+  if($.search_overlay && $.search_overlay.classList.contains('open')){ closeSearch(); return true; }
+  if($.side_panel && $.side_panel.classList.contains('open')){ closePanel(); return true; }
+  const backupMenu = document.getElementById('backup-menu');
+  if(backupMenu && backupMenu.style.display !== 'none' && typeof closeBackupMenu === 'function'){ closeBackupMenu(); return true; }
+  const colorPopup = document.getElementById('eb-color-popup');
+  if(colorPopup && colorPopup.classList.contains('show') && typeof closeColorPopup === 'function'){ closeColorPopup(); return true; }
+  if(typeof _selectionMode !== 'undefined' && _selectionMode && typeof exitSelectionMode === 'function'){ exitSelectionMode(); return true; }
+
+  const view = getCurrentView();
+  if(view === 'editor'){ exitEditMode(); return true; }
+  if(view === 'reader'){ showToc(); return true; }
+  if(view === 'toc'){ showLibrary(); return true; }
+  return false;
+}
+
+function setupBackNavigation(){
+  // 起動時にハッシュをクリア → レベル1を積む
+  if(location.hash){
+    try{ history.replaceState(null, '', location.pathname + location.search); }catch(_){}
+  }
+  pushSentinel(); // -> #nav-1
+
+  let _exitConfirmed = false;
+  let _exitTimer = null;
+  let _internalChange = false; // 自分でハッシュ変えた時のフラグ
+
+  window.addEventListener('hashchange', ()=>{
+    if(_internalChange){ _internalChange = false; return; }
+
+    const currentLevel = getNavLevel();
+
+    // レベルが下がった = 戻るボタンが押された
+    if(currentLevel < _expectedLevel){
+      const view = getCurrentView();
+
+      // ライブラリ画面で戻るボタン → 終了確認
+      if(view === 'library' && !hasOpenOverlay()){
+        if(_exitConfirmed){
+          // 2回目 → ハッシュも空のまま、ブラウザに離脱させる（次の戻るで本当に閉じる）
+          _expectedLevel = currentLevel;
+          return;
+        }
+        _exitConfirmed = true;
+        try{ showToast('もう一度戻るボタンで終了'); }catch(_){}
+        clearTimeout(_exitTimer);
+        _exitTimer = setTimeout(()=>{ _exitConfirmed = false; }, 2000);
+        // ハッシュを再度積み直して履歴を補充
+        _internalChange = true;
+        pushSentinel();
+        return;
+      }
+
+      _exitConfirmed = false;
+      // 画面遷移
+      handleBackNavigation();
+      // ハッシュを積み直す（次の戻るに備える）
+      _internalChange = true;
+      pushSentinel();
+    } else if(currentLevel > _expectedLevel){
+      // 進む方向：そのまま受け入れる
+      _expectedLevel = currentLevel;
+    }
+  });
 }
 
 /* ══════════════════════════════════════
