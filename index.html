@@ -2149,9 +2149,15 @@ function renderLibrary(){
       const t = e.touches[0];
       if(t){ touchStartX = t.clientX; touchStartY = t.clientY; }
       pressTimer=setTimeout(()=>{
+        showToast('長押し検知✓');
         _suppressNextClick = true;
         if(!_selectionMode) enterSelectionMode();
         toggleNovelSelection(novel.id, card);
+        // 選択モードが入ったかチェック
+        const lib = document.getElementById('library-screen');
+        const hasClass = lib.classList.contains('selection-mode');
+        const cbVisible = window.getComputedStyle(card.querySelector('.lib-card-checkbox')).display;
+        setTimeout(()=>showToast(`mode=${hasClass} cb=${cbVisible}`), 1000);
         pressTimer = null;
       },500);
     },{passive:true});
