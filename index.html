@@ -1927,6 +1927,7 @@ const state = {
     kbOffset: 0,          // ソフトキーボードの高さ
     transitioning: false, // ページ遷移アニメーション中か
     savedRange: null,     // 編集バー操作前のカーソル位置を保存
+    savedCaret: null,     // 字下げ用：collapsed状態（カーソル位置のみ）も保存
     search:     { matches:[], idx:0, open:false },
   },
 };
@@ -4438,6 +4439,100 @@ function removeIndentFromParaEl(el){
   return false;
 }
 
+// 段落内で「カーソルがある行の先頭位置」を見つける
+// 戻り値: { node, offset } または null
+//   - node: テキストノード（行頭の最初のテキストノード）または挿入の親要素
+//   - offset: そのノード内のオフセット（0 = ノードの先頭）
+//   - useInsertBefore: true なら node の前に挿入、false なら node 内 offset 位置
+function findLineStartInPara(paraEl, caretNode, caretOffset){
+  if(!paraEl || !caretNode) return null;
+  // paraEl 内の全ノードを document order で取得
+  const walker = document.createTreeWalker(paraEl, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, null);
+  const order = [];
+  let n;
+  while(n = walker.nextNode()) order.push(n);
+
+  // caretNode のインデックスを特定
+  let caretIdx = -1;
+  // caretNode 自体がテキストノードでないこともあるので、その場合は子か parent を辿る
+  if(caretNode.nodeType === 3){
+    caretIdx = order.indexOf(caretNode);
+  }
+  if(caretIdx === -1){
+    // caretNode が要素の場合、childNodes[caretOffset] が境界。その位置に最も近いテキストノードを探す
+    // シンプルに、caretNodeの子孫または直前のテキストノードを探す
+    for(let i = order.length - 1; i >= 0; i--){
+      if(order[i].nodeType === 3 && (caretNode.contains(order[i]) || order[i].compareDocumentPosition(caretNode) & Node.DOCUMENT_POSITION_FOLLOWING)){
+        caretIdx = i;
+        break;
+      }
+    }
+    if(caretIdx === -1 && order.length > 0) caretIdx = 0;
+  }
+  if(caretIdx === -1) return null;
+
+  // caretIdx から後方に向かって <br> を探す
+  // <br> が見つかればその直後、見つからなければ段落の先頭
+  for(let i = caretIdx; i >= 0; i--){
+    const node = order[i];
+    if(node.nodeType === 1 && node.tagName === 'BR'){
+      // この <br> の直後の最初のテキストノードを行頭とする
+      // 後続のテキストノードを探す
+      for(let j = i + 1; j < order.length; j++){
+        if(order[j].nodeType === 3){
+          return { node: order[j], offset: 0, isBrAfter: false };
+        }
+      }
+      // <br> の後にテキストノードがない場合は <br> の直後に挿入
+      return { node: node, offset: 0, isBrAfter: true };
+    }
+  }
+  // <br> が見つからない → 段落の先頭
+  // 最初のテキストノードを返す
+  for(let i = 0; i < order.length; i++){
+    if(order[i].nodeType === 3){
+      return { node: order[i], offset: 0, isBrAfter: false };
+    }
+  }
+  return null;
+}
+
+// カーソル位置の行頭にINDENT_CHARを追加（既にあれば削除＝トグル）
+// caretNode/caretOffset が無い場合は段落の先頭にトグル
+function toggleIndentAtCaret(paraEl, caretNode, caretOffset){
+  if(!paraEl) return false;
+  let pos = null;
+  if(caretNode){
+    pos = findLineStartInPara(paraEl, caretNode, caretOffset);
+  }
+  if(!pos){
+    // フォールバック：段落先頭
+    const text = paraEl.textContent || '';
+    if(text.charAt(0) === INDENT_CHAR){
+      return removeIndentFromParaEl(paraEl);
+    } else {
+      return addIndentToParaEl(paraEl);
+    }
+  }
+  // pos にすでに INDENT_CHAR があるか
+  if(pos.isBrAfter){
+    // <br> の直後にテキストノードがない → 新規挿入
+    const tn = document.createTextNode(INDENT_CHAR);
+    pos.node.parentNode.insertBefore(tn, pos.node.nextSibling);
+    return true;
+  }
+  const node = pos.node;
+  if(node.textContent.charAt(0) === INDENT_CHAR){
+    // 削除（トグル）
+    node.textContent = node.textContent.substring(1);
+    return true;
+  } else {
+    // 追加
+    node.textContent = INDENT_CHAR + node.textContent;
+    return true;
+  }
+}
+
 // 単一段落への字下げトグル（タップ時の動作）
 function onIndentTap(){
   // ターゲット決定
@@ -4459,17 +4554,30 @@ function onIndentTap(){
   if(!para || para.type!=='text') return;
   const el = getContent(pi, qi);
   if(!el) return;
+  // カーソル位置の行頭を取得（保存済みcaret > savedRange > 現在のselectionの順）
+  let caretNode = null, caretOffset = 0;
+  if(state.ui.savedCaret && el.contains(state.ui.savedCaret.node)){
+    caretNode = state.ui.savedCaret.node;
+    caretOffset = state.ui.savedCaret.offset;
+  } else if(state.ui.savedRange && el.contains(state.ui.savedRange.startContainer)){
+    caretNode = state.ui.savedRange.startContainer;
+    caretOffset = state.ui.savedRange.startOffset;
+  } else {
+    const sel = window.getSelection();
+    if(sel && sel.rangeCount > 0){
+      const r = sel.getRangeAt(0);
+      if(el.contains(r.startContainer)){
+        caretNode = r.startContainer;
+        caretOffset = r.startOffset;
+      }
+    }
+  }
   // undoスナップショット
   _undoStack.push(JSON.stringify(state.pages));
   if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
   _redoStack.length = 0;
-  // 既に字下げされているかチェック → トグル
-  const text = el.textContent || '';
-  if(text.charAt(0) === INDENT_CHAR){
-    removeIndentFromParaEl(el);
-  } else {
-    addIndentToParaEl(el);
-  }
+  // カーソル位置の行頭にトグル
+  toggleIndentAtCaret(el, caretNode, caretOffset);
   para.html = el.innerHTML;
   para.text = el.textContent;
   state.ui.selPara = {pi, qi};
@@ -6281,6 +6389,8 @@ function setupGlobalListeners(){
         // 範囲選択がある場合のみ保存。collapsed（カーソルだけ）なら保存しない
         // → 古い範囲が次回のボタン押下で復元されるバグを防止
         state.ui.savedRange = r.collapsed ? null : r.cloneRange();
+        // 字下げ用：collapsed (カーソル位置) も別途保存
+        state.ui.savedCaret = { node: r.startContainer, offset: r.startOffset };
         // selParaをカーソル位置から確定させる
         const paraEl=getParaElUnderCaret();
         if(paraEl){
