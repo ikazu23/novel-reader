@@ -1360,11 +1360,11 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
 
     <!-- サイズ -->
     <div class="eb-stepper">
-      <button class="eb-step" onclick="ebSizeDelta(-1)" ontouchend="ebSizeDelta(-1)">
+      <button class="eb-step" ontouchend="ebSizeDelta(-1);event.preventDefault();" onclick="if(event.pointerType!=='touch')ebSizeDelta(-1);">
         <svg width="14" height="14" viewBox="0 0 18 18"><text x="0" y="13" font-size="14" fill="#333" font-family="serif">A</text><text x="10" y="15" font-size="12" fill="#333" font-family="sans-serif">－</text></svg>
       </button>
       <span class="eb-sizeval" id="eb-size-val">15</span>
-      <button class="eb-step" onclick="ebSizeDelta(+1)" ontouchend="ebSizeDelta(+1)">
+      <button class="eb-step" ontouchend="ebSizeDelta(+1);event.preventDefault();" onclick="if(event.pointerType!=='touch')ebSizeDelta(+1);">
         <svg width="14" height="14" viewBox="0 0 18 18"><text x="2" y="15" font-size="18" fill="#333" font-family="serif">A</text><text x="10" y="12" font-size="12" fill="#333" font-family="sans-serif">＋</text></svg>
       </button>
     </div>
@@ -3735,7 +3735,7 @@ function ebSizeDelta(d){
   const el=getContent(pi,qi);
   if(el) el.style.fontSize=p.size+'px';
   syncEB(p);
-  debouncedSave();
+  save(); // サイズ変更は即時保存
 }
 
 function applyColorToPara(hex){
