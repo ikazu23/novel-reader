@@ -695,6 +695,76 @@ body.library-mode #bg-image-layer,body.library-mode #bg-overlay-layer{display:no
 #library-topbar-title:focus{
   background:rgba(0,0,0,0.05);
 }
+
+/* 選択モード：チェックボックスとバー */
+.lib-card-checkbox{
+  position:absolute;
+  top:6px;left:6px;
+  width:22px;height:22px;
+  border-radius:50%;
+  background:rgba(255,255,255,0.85);
+  border:2px solid rgba(0,0,0,0.25);
+  display:none;
+  align-items:center;justify-content:center;
+  z-index:5;
+  box-shadow:0 1px 4px rgba(0,0,0,0.2);
+  transition:background .15s,border-color .15s;
+}
+#library-screen.selection-mode .lib-card-checkbox{display:flex;}
+.lib-card.selected .lib-card-checkbox{
+  background:#11d1d1;
+  border-color:#11d1d1;
+}
+.lib-card.selected .lib-card-checkbox::after{
+  content:'';
+  width:10px;height:6px;
+  border-left:2px solid #fff;
+  border-bottom:2px solid #fff;
+  transform:rotate(-45deg) translate(1px,-1px);
+}
+#library-screen.selection-mode .lib-card-cover{
+  transition:transform .15s;
+}
+#library-screen.selection-mode .lib-card.selected .lib-card-cover{
+  transform:scale(0.94);
+}
+
+/* 選択モード時の上部バー */
+#library-selection-bar{
+  display:none;
+  position:sticky;top:0;
+  height:var(--top-h);
+  background:#fff;
+  border-bottom:1px solid #eee;
+  align-items:center;
+  padding:0 8px;
+  z-index:15;
+  flex-shrink:0;
+}
+#library-screen.selection-mode #library-selection-bar{display:flex;}
+#library-screen.selection-mode #library-topbar{display:none;}
+#lib-sel-cancel{
+  background:none;border:none;color:#555;
+  width:36px;height:36px;border-radius:6px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+#lib-sel-cancel:active{background:#f0f0f0;}
+#lib-sel-count{
+  flex:1;
+  font-family:'Noto Sans JP',sans-serif;
+  font-size:15px;font-weight:500;color:#222;
+  padding:0 12px;
+}
+.lib-sel-action{
+  background:none;border:none;color:#555;
+  width:36px;height:36px;border-radius:6px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;transition:color .12s;
+}
+.lib-sel-action:active{background:#f0f0f0;}
+.lib-sel-action.danger{color:#c54040;}
+.lib-sel-action:disabled{opacity:0.35;cursor:default;}
 .lib-tb-btn{
   background:none;border:none;color:#555;
   width:36px;height:36px;border-radius:6px;
@@ -1108,6 +1178,16 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
 
 <!-- LIBRARY SCREEN -->
 <div id="library-screen">
+  <!-- 選択モード時の上部バー -->
+  <div id="library-selection-bar">
+    <button id="lib-sel-cancel" onclick="exitSelectionMode()" title="キャンセル">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <span id="lib-sel-count">0冊選択</span>
+    <button class="lib-sel-action danger" id="lib-sel-delete" onclick="deleteSelectedNovels()" title="選択した本を削除" disabled>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+    </button>
+  </div>
   <div id="library-topbar">
     <div style="width:36px;flex-shrink:0;"></div>
     <span id="library-topbar-title" contenteditable="true" spellcheck="false"
@@ -2055,6 +2135,7 @@ function showLibrary(){
 }
 
 function hideLibrary(){
+  if(_selectionMode) exitSelectionMode();
   document.body.classList.remove('library-mode');
   document.getElementById('library-screen').classList.remove('show');
   document.getElementById('library-fab').style.display='none';
@@ -2076,12 +2157,21 @@ function renderLibrary(){
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
           <span>カバーなし</span>
         </div>`:''}
+        <div class="lib-card-checkbox"></div>
         <div class="lib-card-ep-badge">全${epCount}話</div>
 
       </div>
       <div class="lib-card-title">${escapeHtml(novel.title||'無題の小説')}</div>
     `;
-    card.onclick=()=>{
+    card.dataset.novelId = novel.id;
+    if(_selectedNovelIds.has(novel.id)) card.classList.add('selected');
+
+    card.onclick=(e)=>{
+      // 選択モード中はトグル
+      if(_selectionMode){
+        toggleNovelSelection(novel.id, card);
+        return;
+      }
       const lastEp=novel.lastReadId&&novel.episodes&&novel.episodes.find(e=>e.id===novel.lastReadId);
       if(lastEp){
         // ライブラリ上でポップアップ表示（openNovelははいボタンで実行）
@@ -2091,14 +2181,85 @@ function renderLibrary(){
         openNovel(novel.id);
       }
     };
-    // 長押しで削除メニュー
+    // 長押しで選択モードへ
     let pressTimer=null;
-    card.addEventListener('touchstart',()=>{pressTimer=setTimeout(()=>openNovelMenu(novel.id),600);},{passive:true});
+    card.addEventListener('touchstart',()=>{
+      pressTimer=setTimeout(()=>{
+        if(!_selectionMode) enterSelectionMode();
+        toggleNovelSelection(novel.id, card);
+      },500);
+    },{passive:true});
     card.addEventListener('touchend',()=>clearTimeout(pressTimer));
     card.addEventListener('touchmove',()=>clearTimeout(pressTimer));
-    card.addEventListener('contextmenu',e=>{e.preventDefault();openNovelMenu(novel.id);});
+    card.addEventListener('contextmenu',e=>{
+      e.preventDefault();
+      if(!_selectionMode) enterSelectionMode();
+      toggleNovelSelection(novel.id, card);
+    });
     grid.appendChild(card);
   });
+}
+
+/* ══════════════════════════════════════
+   ライブラリ選択モード
+══════════════════════════════════════ */
+let _selectionMode = false;
+let _selectedNovelIds = new Set();
+
+function enterSelectionMode(){
+  _selectionMode = true;
+  _selectedNovelIds.clear();
+  document.getElementById('library-screen').classList.add('selection-mode');
+  updateSelectionCount();
+}
+
+function exitSelectionMode(){
+  _selectionMode = false;
+  _selectedNovelIds.clear();
+  document.getElementById('library-screen').classList.remove('selection-mode');
+  document.querySelectorAll('.lib-card.selected').forEach(c=>c.classList.remove('selected'));
+}
+
+function toggleNovelSelection(novelId, cardEl){
+  if(_selectedNovelIds.has(novelId)){
+    _selectedNovelIds.delete(novelId);
+    cardEl.classList.remove('selected');
+  } else {
+    _selectedNovelIds.add(novelId);
+    cardEl.classList.add('selected');
+  }
+  updateSelectionCount();
+  // 選択0になったら自動で選択モード解除
+  if(_selectedNovelIds.size === 0) exitSelectionMode();
+}
+
+function updateSelectionCount(){
+  const n = _selectedNovelIds.size;
+  const countEl = document.getElementById('lib-sel-count');
+  if(countEl) countEl.textContent = `${n}冊選択`;
+  const delBtn = document.getElementById('lib-sel-delete');
+  if(delBtn) delBtn.disabled = (n === 0);
+}
+
+async function deleteSelectedNovels(){
+  if(_selectedNovelIds.size === 0) return;
+  const n = _selectedNovelIds.size;
+  if(!confirm(`選択した${n}冊を削除しますか？\nこの操作は元に戻せません。`)) return;
+  const ids = Array.from(_selectedNovelIds);
+  for(const id of ids){
+    await libDbDelete(id).catch(()=>{});
+    state.library = state.library.filter(n=>n.id!==id);
+  }
+  // 全削除されたら新規本を作る
+  if(state.library.length === 0){
+    const novel = makeNovel('無題の小説');
+    novel.episodes = [makeEpisode(1,'第1話',getDefaultPages())];
+    await libDbPut(novel);
+    state.library = [novel];
+  }
+  exitSelectionMode();
+  renderLibrary();
+  showToast(`${n}冊を削除しました`);
 }
 
 async function openNovel(novelId){
