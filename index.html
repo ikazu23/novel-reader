@@ -3129,13 +3129,15 @@ function syncEditorToState(pi){
         }
       }else if(node.tagName==='P'||node.tagName==='DIV'){
         const orig=state.pages[pi]&&state.pages[pi].paras[globalQi];
+        // size・color は state(orig)を優先し、origがなければDOMから読む
+        // （syncのたびに上書きされてebSizeDelta等の変更が消えないようにするため）
         newParas.push({
           type:'text',
           text:node.textContent,
           html:node.innerHTML,
           align:(node.style.textAlign||orig?.align||'left'),
-          size:parseInt(node.style.fontSize)||orig?.size||state.settings.fontSize,
-          color:(node.style.color||orig?.color||state.settings.color),
+          size:orig?.size||(parseInt(node.style.fontSize)||state.settings.fontSize),
+          color:(orig?.color||(node.style.color||state.settings.color)),
         });
       }
       if(node.dataset){node.dataset.pi=pi; node.dataset.qi=globalQi;}
@@ -3778,6 +3780,7 @@ function applyParaColor(pi,qi,hex){
     el.normalize();
     state.pages[pi].paras[qi].html=el.innerHTML;
   }
+  debouncedSave();
 }
 
 function wrapRangeWithColor(range,hex){
@@ -4849,10 +4852,6 @@ function setupGlobalListeners(){
       }
     }
   },{passive:true});
-
-  $.global_size.addEventListener('input',function(){
-    $.global_size_val.textContent=this.value+'px';
-  });
 
   // 固定右ボタン（区切り・段落）にも同じtouchstart保存を適用
   const ebFixedRight=document.getElementById('eb-fixed-right');
