@@ -24,6 +24,8 @@
   --top-h: 52px;
   --bot-h: 0px;
   --eb-h: 0px;
+  --para-line-height: 2.0;
+  --para-spacing: 24px;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;width:100%;overflow:hidden;}
@@ -257,12 +259,12 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 }
 /* Each paragraph = <p> or <div> inside editor */
 .page-editor p, .page-editor div.para-img-wrap {
-  line-height:2.0;
+  line-height:var(--para-line-height);
   letter-spacing:.06em;
   word-break:break-all;
   white-space:pre-wrap;
   min-height:1.5em;
-  margin-bottom:24px;
+  margin-bottom:var(--para-spacing);
   border-radius:4px;
   padding:2px 0;
   position:relative;
@@ -1430,6 +1432,20 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
     </div>
   </div>
   <div class="ps">
+    <div class="pl">行間</div>
+    <div class="sr">
+      <input type="range" min="1.2" max="3.0" step="0.1" value="2.0" id="global-lineheight" oninput="applyParaLineHeight(this.value)">
+      <span class="sv" id="global-lineheight-val">2.0</span>
+    </div>
+  </div>
+  <div class="ps">
+    <div class="pl">段落の余白</div>
+    <div class="sr">
+      <input type="range" min="0" max="60" step="1" value="24" id="global-paraspacing" oninput="applyParaSpacing(this.value)">
+      <span class="sv" id="global-paraspacing-val">24px</span>
+    </div>
+  </div>
+  <div class="ps">
     <div class="pl">フォント</div>
     <div class="font-list" id="font-list"></div>
     <div class="font-load-row">
@@ -1649,6 +1665,8 @@ const state = {
     lastColor:  '#1a1208',
     enterInsertsBr: false, // false=段落分割, true=段落内改行(<br>)
     themeIdx:   0,         // THEMES配列のインデックス
+    lineHeight: 2.0,       // 行間（line-heightの倍率）
+    paraSpacing: 24,       // 段落間の余白（px）
     // bg は小説ごとに novel.bg として管理
   },
   // UI/セッション状態（永続化しない）
@@ -1940,6 +1958,20 @@ function applyLoadedSettings(){
     $.global_size.value=s.fontSize;
     $.global_size_val.textContent=s.fontSize+'px';
   }
+  // 行間・段落間の初期反映
+  if(s.lineHeight == null) s.lineHeight = 2.0;
+  if(s.paraSpacing == null) s.paraSpacing = 24;
+  applyParaLineHeight(s.lineHeight);
+  applyParaSpacing(s.paraSpacing);
+  // 行間・段落間スライダーの値反映
+  const lhEl = document.getElementById('global-lineheight');
+  const lhVal = document.getElementById('global-lineheight-val');
+  if(lhEl) lhEl.value = s.lineHeight;
+  if(lhVal) lhVal.textContent = s.lineHeight.toFixed(1);
+  const psEl = document.getElementById('global-paraspacing');
+  const psVal = document.getElementById('global-paraspacing-val');
+  if(psEl) psEl.value = s.paraSpacing;
+  if(psVal) psVal.textContent = s.paraSpacing + 'px';
   // フォントボタンのactive状態（ロード済みフォントには未対応：FONTS配列のインデックスのみ）
   const fontIdx=FONTS.findIndex(f=>f.family===s.fontFamily);
   if(fontIdx>=0){
@@ -4138,22 +4170,59 @@ async function pickAndInsertImage(input){
 ══════════════════════════════════════ */
 function applyGlobalSize(val){
   val=parseInt(val);
-  const delta=val-state.settings.fontSize;
+  const old = state.settings.fontSize;
+  const delta=val-old;
   state.settings.fontSize=val;
   $.global_size_val.textContent=val+'px';
   if(delta!==0){
+    // 1) state内のすべての段落のサイズを調整（直接編集中でも保存先を更新）
     state.pages.forEach(pg=>{
       pg.paras.forEach(para=>{
         if(para.type==='text'){
-          const cur=para.size||val;
+          const cur=para.size||old;
           para.size=Math.min(40,Math.max(10,cur+delta));
         }
       });
     });
-    // 段落個別のサイズが変わったので本文データも保存
+    // 2) 編集中なら state→DOMの直接同期も行う
+    if(state.editMode && state.curPage != null){
+      const pageEl = document.getElementById(`page-${state.curPage}`);
+      if(pageEl){
+        pageEl.querySelectorAll('[data-qi]').forEach(el=>{
+          const qi = parseInt(el.dataset.qi, 10);
+          if(isNaN(qi)) return;
+          const para = state.pages[state.curPage]?.paras[qi];
+          if(para && para.type === 'text' && para.size){
+            el.style.fontSize = para.size + 'px';
+          }
+        });
+      }
+    }
+    // 3) 段落個別のサイズが変わったので本文データも保存
     debouncedSave();
   }
-  renderAllPages();
+  // 編集中でなければ、または編集中でも安全のためrenderAllPagesを呼ぶ
+  if(!state.editMode) renderAllPages();
+  debouncedSaveSettings();
+}
+
+function applyParaLineHeight(val){
+  val = parseFloat(val);
+  if(isNaN(val)) return;
+  state.settings.lineHeight = val;
+  document.documentElement.style.setProperty('--para-line-height', val);
+  const lhVal = document.getElementById('global-lineheight-val');
+  if(lhVal) lhVal.textContent = val.toFixed(1);
+  debouncedSaveSettings();
+}
+
+function applyParaSpacing(val){
+  val = parseInt(val);
+  if(isNaN(val)) return;
+  state.settings.paraSpacing = val;
+  document.documentElement.style.setProperty('--para-spacing', val + 'px');
+  const psVal = document.getElementById('global-paraspacing-val');
+  if(psVal) psVal.textContent = val + 'px';
   debouncedSaveSettings();
 }
 function applyGlobalFont(family,idx){
