@@ -1360,11 +1360,11 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
 
     <!-- サイズ -->
     <div class="eb-stepper">
-      <button class="eb-step" ontouchend="ebSizeDelta(-1);event.preventDefault();" onclick="if(event.pointerType!=='touch')ebSizeDelta(-1);">
+      <button class="eb-step" id="eb-size-minus" ontouchstart="event.preventDefault();ebSizeDelta(-1);" onclick="ebSizeDelta(-1);">
         <svg width="14" height="14" viewBox="0 0 18 18"><text x="0" y="13" font-size="14" fill="#333" font-family="serif">A</text><text x="10" y="15" font-size="12" fill="#333" font-family="sans-serif">－</text></svg>
       </button>
       <span class="eb-sizeval" id="eb-size-val">15</span>
-      <button class="eb-step" ontouchend="ebSizeDelta(+1);event.preventDefault();" onclick="if(event.pointerType!=='touch')ebSizeDelta(+1);">
+      <button class="eb-step" id="eb-size-plus" ontouchstart="event.preventDefault();ebSizeDelta(+1);" onclick="ebSizeDelta(+1);">
         <svg width="14" height="14" viewBox="0 0 18 18"><text x="2" y="15" font-size="18" fill="#333" font-family="serif">A</text><text x="10" y="12" font-size="12" fill="#333" font-family="sans-serif">＋</text></svg>
       </button>
     </div>
@@ -3726,46 +3726,49 @@ function ebAlign(align){
 }
 
 function ebSizeDelta(d){
-  // selParaを最優先（タップで保存された段落） → カーソル位置 → グループ先頭の順
+  // [DEBUG] 押されたか可視化（問題切り分け用、後で削除可）
+  try{ showToast('size '+d+'  sel:'+JSON.stringify(state.ui.selPara||null)); }catch(_){}
+  // ターゲット段落を順次探す
   let t = state.ui.selPara || getActivePara();
-  if(!t){
+  if(!t || !state.pages[t.pi] || !state.pages[t.pi].paras[t.qi] || state.pages[t.pi].paras[t.qi].type!=='text'){
+    // フォールバック：現在表示中グループの最初のテキスト段落
     const pi=state.curPage;
     const pg=state.pages[pi];
-    if(!pg)return;
+    if(!pg){ console.warn('[ebSize] no page'); return; }
     let g=0;
+    t=null;
     for(let qi=0;qi<pg.paras.length;qi++){
       const p=pg.paras[qi];
       if(p.type==='group-break'){g++;continue;}
       if(g===state.subPageIndex&&p.type==='text'){t={pi,qi};break;}
     }
   }
-  if(!t)return;
+  if(!t){ console.warn('[ebSize] no target paragraph'); return; }
   const{pi,qi}=t;
-  if(!state.pages[pi]||!state.pages[pi].paras[qi]||state.pages[pi].paras[qi].type!=='text')return;
-  // サイズ変更前にundoスナップショットを積む
+  const para = state.pages[pi] && state.pages[pi].paras[qi];
+  if(!para || para.type!=='text'){ console.warn('[ebSize] target is not text'); return; }
+  // undoスナップショット
   _undoStack.push(JSON.stringify(state.pages));
   if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
   _redoStack.length = 0;
-  const p=state.pages[pi].paras[qi];
-  const el=getContent(pi,qi);
-  // 基準サイズ：state → DOMのstyle → DOMの実描画サイズ → デフォルト の順
-  let baseSize;
-  if(p.size != null && !isNaN(p.size)){
-    baseSize = p.size;
-  } else if(el && el.style.fontSize){
-    baseSize = parseFloat(el.style.fontSize);
+  // 基準サイズの取得
+  const el = getContent(pi,qi);
+  let baseSize = NaN;
+  if(typeof para.size === 'number' && !isNaN(para.size)){
+    baseSize = para.size;
   } else if(el){
-    baseSize = parseFloat(getComputedStyle(el).fontSize);
+    const styleSize = parseFloat(el.style.fontSize);
+    if(!isNaN(styleSize)){ baseSize = styleSize; }
+    else { baseSize = parseFloat(getComputedStyle(el).fontSize); }
   }
-  if(!baseSize || isNaN(baseSize)) baseSize = state.settings.fontSize;
-  // 1pxずつ変更
+  if(isNaN(baseSize) || !baseSize) baseSize = state.settings.fontSize || 15;
+  // 1pxずつクランプ
   const newSize = Math.min(40, Math.max(10, Math.round(baseSize) + d));
-  p.size = newSize;
-  state.ui.selPara={pi,qi};
+  para.size = newSize;
+  state.ui.selPara = {pi, qi};
   if(el) el.style.fontSize = newSize + 'px';
-  // バー表示も同じ値に同期（syncEBに任せず明示的に）
   if($.eb_size_val) $.eb_size_val.textContent = newSize;
-  save(); // サイズ変更は即時保存
+  save();
 }
 
 function applyColorToPara(hex){
