@@ -2122,8 +2122,7 @@ function renderLibrary(){
 
     card.onclick=(e)=>{
       // 長押し直後のclickを無視（タップ離した瞬間に発火する偽click対策）
-      if(_suppressNextClick){
-        _suppressNextClick = false;
+      if(Date.now() - _lastLongPressAt < 500){
         e.preventDefault();
         e.stopPropagation();
         return;
@@ -2149,15 +2148,9 @@ function renderLibrary(){
       const t = e.touches[0];
       if(t){ touchStartX = t.clientX; touchStartY = t.clientY; }
       pressTimer=setTimeout(()=>{
-        showToast('長押し検知✓');
-        _suppressNextClick = true;
+        _lastLongPressAt = Date.now();
         if(!_selectionMode) enterSelectionMode();
         toggleNovelSelection(novel.id, card);
-        // 選択モードが入ったかチェック
-        const lib = document.getElementById('library-screen');
-        const hasClass = lib.classList.contains('selection-mode');
-        const cbVisible = window.getComputedStyle(card.querySelector('.lib-card-checkbox')).display;
-        setTimeout(()=>showToast(`mode=${hasClass} cb=${cbVisible}`), 1000);
         pressTimer = null;
       },500);
     },{passive:true});
@@ -2178,7 +2171,7 @@ function renderLibrary(){
     },{passive:true});
     card.addEventListener('contextmenu',e=>{
       e.preventDefault();
-      _suppressNextClick = true;
+      _lastLongPressAt = Date.now();
       if(!_selectionMode) enterSelectionMode();
       toggleNovelSelection(novel.id, card);
     });
@@ -2191,7 +2184,7 @@ function renderLibrary(){
 ══════════════════════════════════════ */
 let _selectionMode = false;
 let _selectedNovelIds = new Set();
-let _suppressNextClick = false;
+let _lastLongPressAt = 0;
 
 function enterSelectionMode(){
   _selectionMode = true;
@@ -2216,8 +2209,7 @@ function toggleNovelSelection(novelId, cardEl){
     cardEl.classList.add('selected');
   }
   updateSelectionCount();
-  // 選択0になったら自動で選択モード解除
-  if(_selectedNovelIds.size === 0) exitSelectionMode();
+  // 選択0でも自動解除しない（×ボタンで明示的に解除）
 }
 
 function updateSelectionCount(){
