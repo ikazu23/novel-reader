@@ -1,6 +1,6 @@
 // 小説リーダー Service Worker
 // 更新時はこのバージョン番号を上げる
-const CACHE_VERSION = 'v56';
+const CACHE_VERSION = 'v57';
 const CACHE_NAME = `novel-reader-${CACHE_VERSION}`;
 
 // 完全オフライン用にキャッシュするリソース
@@ -13,12 +13,12 @@ const PRECACHE_URLS = [
   './icon-maskable-512.png'
 ];
 
-// インストール時：必要なリソースをキャッシュ（skipWaitingはしない）
+// インストール時：必要なリソースをキャッシュして即座に有効化
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(PRECACHE_URLS))
-    // skipWaiting() を呼ばない: ユーザーが「更新」を押すまで旧版のまま動く
+      .then(() => self.skipWaiting()) // 待機せず即座に新SWを有効化
   );
 });
 
