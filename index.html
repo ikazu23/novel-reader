@@ -311,8 +311,6 @@ mark.sh.current{background:#ff8f00;color:#fff;}
   z-index:90;
   display:flex;flex-direction:column;
   transition:transform .22s cubic-bezier(.25,.46,.45,.94);
-  /* タッチ操作時にエディタのフォーカスを奪わない */
-  touch-action:manipulation;
 }
 
 /* edit row inside botbar */
@@ -372,11 +370,7 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 .eb-icon{font-size:15px;line-height:1;display:block;}
 .eb-lbl{display:none;}
 
-#eb-undo, #eb-redo {
-  opacity: 0.35;
-  transition: opacity .15s;
-}
-
+.eb-align-wrap{display:flex;flex-shrink:0;align-items:center;}
 .eb-abtn{
   flex-shrink:0;
   background:transparent;border:none;color:#333;
@@ -1320,10 +1314,10 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
   <div id="botbar-edit-row"><div id="eb-scroll">
 
     <!-- 戻す／やり直し -->
-    <button class="eb-btn" id="eb-undo" onmousedown="event.preventDefault()" onclick="edUndo()" title="元に戻す">
+    <button class="eb-btn" id="eb-undo" onclick="edUndo()" title="元に戻す">
       <svg class="eb-icon" width="15" height="15" viewBox="0 0 20 20"><path d="M4 9 A6 6 0 1 1 7 15" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/><polyline points="2,6 4,10 8,8" fill="currentColor"/></svg>
     </button>
-    <button class="eb-btn" id="eb-redo" onmousedown="event.preventDefault()" onclick="edRedo()" title="やり直し">
+    <button class="eb-btn" id="eb-redo" onclick="edRedo()" title="やり直し">
       <svg class="eb-icon" width="15" height="15" viewBox="0 0 20 20"><path d="M16 9 A6 6 0 1 0 13 15" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/><polyline points="18,6 16,10 12,8" fill="currentColor"/></svg>
     </button>
 
@@ -1361,11 +1355,11 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
 
     <!-- サイズ -->
     <div class="eb-stepper">
-      <button class="eb-step" onmousedown="event.preventDefault()" onclick="ebSizeDelta(-1)">
+      <button class="eb-step" onclick="ebSizeDelta(-1)">
         <svg width="14" height="14" viewBox="0 0 18 18"><text x="0" y="13" font-size="14" fill="#333" font-family="serif">A</text><text x="10" y="15" font-size="12" fill="#333" font-family="sans-serif">－</text></svg>
       </button>
       <span class="eb-sizeval" id="eb-size-val">15</span>
-      <button class="eb-step" onmousedown="event.preventDefault()" onclick="ebSizeDelta(+1)">
+      <button class="eb-step" onclick="ebSizeDelta(+1)">
         <svg width="14" height="14" viewBox="0 0 18 18"><text x="2" y="15" font-size="18" fill="#333" font-family="serif">A</text><text x="10" y="12" font-size="12" fill="#333" font-family="sans-serif">＋</text></svg>
       </button>
     </div>
@@ -2959,26 +2953,42 @@ function buildParaEl(pi,qi,para){
   }
 }
 
+/* ── カスタム Undo/Redo スタック ── */
+const _undoStack = [];
+const _redoStack = [];
+const _UNDO_MAX  = 50;
+
 // Attach keydown/input/focus listeners to the single editor div
 function setupEditorEvents(editor,pi,groupIdx=0,qiOffset=0){
   // Track input → sync state & debounced save
-  // undoスナップショットは「入力前」に取るため beforeinput を使う
-  let _undoPending = false;
-  editor.addEventListener('beforeinput', ()=>{
-    if(!_undoPending){
-      _undoPending = true;
-      // 現在のstateをスナップショット（inputイベント後にリセット）
-      if(state.editMode){
-        syncEditorToState(pi);
+  // undoスナップショット：入力開始時（最初のinputイベント）に変更前の状態を積む
+  let _snapPending = false;
+  let _snapFlushTimer = null;
+  editor.addEventListener('input', e=>{
+    if(!e.isComposing){
+      if(!_snapPending){
+        _snapPending = true;
+        // この時点ではまだsyncEditorToStateを呼んでいないので
+        // state.pagesは変更前の値 → undoスタックへ
+        _undoStack.push(JSON.stringify(state.pages));
+        if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
+        _redoStack.length = 0;
       }
-      _undoStack.push(JSON.stringify(state.pages));
-      if(_undoStack.length > UNDO_MAX) _undoStack.shift();
-      _redoStack.length = 0;
-      _updateUndoRedoBtns();
+      clearTimeout(_snapFlushTimer);
+      _snapFlushTimer = setTimeout(()=>{ _snapPending = false; }, 1500);
     }
+    syncEditorToState(pi);
+    debouncedSave();
   });
-  editor.addEventListener('input', ()=>{
-    _undoPending = false;
+  editor.addEventListener('compositionend', ()=>{
+    if(!_snapPending){
+      _snapPending = true;
+      _undoStack.push(JSON.stringify(state.pages));
+      if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
+      _redoStack.length = 0;
+    }
+    clearTimeout(_snapFlushTimer);
+    _snapFlushTimer = setTimeout(()=>{ _snapPending = false; }, 1500);
     syncEditorToState(pi);
     debouncedSave();
   });
@@ -3612,8 +3622,6 @@ function enterEditMode(){
     state.ui.ebOpen=true;
     placeEB();
   }
-  // undo/redoボタンの状態を更新
-  _updateUndoRedoBtns();
   // 編集バー表示後にbotbarの実高さでviewportの下端を調整
   // CSS transition (.22s) があるため少し待ってから再測定
   requestAnimationFrame(()=>{
@@ -3698,9 +3706,8 @@ function ebAlign(align){
 }
 
 function ebSizeDelta(d){
-  // state.ui.selPara を優先。なければカーソル位置を再取得。
-  let t = state.ui.selPara || getActivePara();
-  // それもなければ現在グループの最初のテキスト段落にフォールバック
+  let t=getActivePara();
+  // selParaがなければ現在グループの最初のテキスト段落をターゲットにする
   if(!t){
     const pi=state.curPage;
     const pg=state.pages[pi];
@@ -3715,8 +3722,10 @@ function ebSizeDelta(d){
   if(!t)return;
   const{pi,qi}=t;
   if(!state.pages[pi]||!state.pages[pi].paras[qi]||state.pages[pi].paras[qi].type!=='text')return;
-  // サイズ変更前にundoスナップショットを取る
-  pushUndo();
+  // サイズ変更前にundoスナップショットを積む
+  _undoStack.push(JSON.stringify(state.pages));
+  if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
+  _redoStack.length = 0;
   const p=state.pages[pi].paras[qi];
   p.size=Math.min(40,Math.max(10,(p.size||state.settings.fontSize)+d));
   state.ui.selPara={pi,qi};
@@ -3883,14 +3892,6 @@ function setupKb(){
   }
   vv.addEventListener('resize',upd);
   vv.addEventListener('scroll',upd);
-
-  // botbarのタッチでエディタのフォーカスを奪わない
-  $.botbar.addEventListener('touchstart', e=>{
-    // ファイル選択input・color inputなど一部は除外
-    const tag = e.target.tagName;
-    if(tag==='INPUT'||tag==='TEXTAREA') return;
-    e.preventDefault();
-  }, {passive:false});
 }
 
 /* ══════════════════════════════════════
@@ -4493,63 +4494,33 @@ function applyOverlay(){
 /* ══════════════════════════════════════
    テキスト編集操作（undo/redo・コピー・貼り付け）
 ══════════════════════════════════════ */
-
-/* ── カスタム Undo/Redo スタック ── */
-const _undoStack = [];   // 過去の state.pages スナップショット
-const _redoStack = [];
-const UNDO_MAX  = 50;
-
-// 変更前のスナップショットを積む（editイベントの input ハンドラから呼ぶ）
-function pushUndo(){
-  // 編集中なら最新のエディタ内容をstateに同期してからスナップショット
-  if(state.editMode && state.curPage != null){
-    syncEditorToState(state.curPage);
-  }
-  _undoStack.push(JSON.stringify(state.pages));
-  if(_undoStack.length > UNDO_MAX) _undoStack.shift();
-  _redoStack.length = 0; // 新規変更でredo履歴をクリア
-  _updateUndoRedoBtns();
-}
-
-function _updateUndoRedoBtns(){
-  const undoBtn = document.getElementById('eb-undo');
-  const redoBtn = document.getElementById('eb-redo');
-  if(undoBtn) undoBtn.style.opacity = _undoStack.length === 0 ? '0.35' : '1';
-  if(redoBtn) redoBtn.style.opacity = _redoStack.length === 0 ? '0.35' : '1';
-}
-
 function edUndo(){
   if(_undoStack.length === 0){ showToast('これ以上戻せません'); return; }
-  // 現在の状態をredoスタックに保存する前にエディタ内容を同期
-  if(state.editMode && state.curPage != null){
-    syncEditorToState(state.curPage);
-  }
+  const pi = state.curPage;
+  syncEditorToState(pi);
   _redoStack.push(JSON.stringify(state.pages));
-  const snap = _undoStack.pop();
-  _restoreSnapshot(snap);
+  state.pages = JSON.parse(_undoStack.pop());
+  refreshPage(pi);
+  debouncedSave();
+  if(state.ui.selPara){
+    const{pi:spi,qi}=state.ui.selPara;
+    const para=state.pages[spi]&&state.pages[spi].paras[qi];
+    if(para) syncEB(para);
+  }
 }
 function edRedo(){
   if(_redoStack.length === 0){ showToast('これ以上進めません'); return; }
-  // 現在の状態をundoスタックに保存する前にエディタ内容を同期
-  if(state.editMode && state.curPage != null){
-    syncEditorToState(state.curPage);
-  }
+  const pi = state.curPage;
+  syncEditorToState(pi);
   _undoStack.push(JSON.stringify(state.pages));
-  const snap = _redoStack.pop();
-  _restoreSnapshot(snap);
-}
-function _restoreSnapshot(snap){
-  state.pages = JSON.parse(snap);
-  refreshPage(state.curPage);
+  state.pages = JSON.parse(_redoStack.pop());
+  refreshPage(pi);
   debouncedSave();
-  _updateUndoRedoBtns();
-  // 復元後に編集バーのサイズ表示を更新
   if(state.ui.selPara){
-    const{pi,qi}=state.ui.selPara;
-    const para=state.pages[pi]&&state.pages[pi].paras[qi];
+    const{pi:spi,qi}=state.ui.selPara;
+    const para=state.pages[spi]&&state.pages[spi].paras[qi];
     if(para) syncEB(para);
   }
-  showToast(_undoStack.length === 0 ? '最初の状態です' : '');
 }
 function edSelectAll(){
   const ed=getActiveEditor();
