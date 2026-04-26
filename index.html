@@ -5067,7 +5067,7 @@ function handleBackNavigation(){
 }
 
 function setupBackNavigation(){
-  // 起動時に最初のセンチネルを積む。これで戻るボタンを1回押されてもアプリは閉じない
+  // 起動時に1つセンチネルを積む（ブラウザの履歴: [page, sentinel(現)]）
   pushSentinel();
 
   // ライブラリ画面で戻るボタンを2回押すとアプリ離脱できるように
@@ -5075,27 +5075,45 @@ function setupBackNavigation(){
   let _exitTimer = null;
 
   window.addEventListener('popstate', (e)=>{
-    const acted = handleBackNavigation();
-    if(acted){
-      // 何かを戻したので、次の戻るボタンに備えてセンチネルを補充
-      pushSentinel();
-      _exitConfirmed = false;
-    } else {
-      // ライブラリ画面：1回目はトーストで警告、2秒以内にもう1度押せば離脱
+    // 重要：先にpushStateで履歴を補充してから画面遷移処理を行う
+    // これにより、画面遷移処理中にユーザーが連続で戻るを押しても、
+    // 既に新しいセンチネルが積まれているので次のpopstateが正しく発火する
+
+    const view = getCurrentView();
+
+    // ライブラリ画面 = 一番外
+    if(view === 'library' && !hasOpenOverlay()){
       if(_exitConfirmed){
-        // 2回目 → センチネルを積まず、もう1度戻ってブラウザに離脱を委ねる
-        // popstate がまた発火しても _exitConfirmed=true なので素通り
-        try{ history.back(); }catch(_){}
+        // 2回目 → 何もしない、ブラウザに離脱させる
         return;
       }
       _exitConfirmed = true;
       try{ showToast('もう一度戻るボタンで終了'); }catch(_){}
       clearTimeout(_exitTimer);
       _exitTimer = setTimeout(()=>{ _exitConfirmed = false; }, 2000);
-      pushSentinel();
+      pushSentinel(); // 同期的に積む
+      return;
     }
-    // result===false の場合は履歴を積まないので、次の戻るでブラウザが本当に戻る
+
+    _exitConfirmed = false;
+    // 先に履歴を積む（画面遷移処理の副作用に影響されない）
+    pushSentinel();
+    // その後で画面遷移
+    handleBackNavigation();
   });
+}
+
+// オーバーレイが開いているかチェック
+function hasOpenOverlay(){
+  if($.modal_ov && $.modal_ov.classList.contains('show')) return true;
+  if($.search_overlay && $.search_overlay.classList.contains('open')) return true;
+  if($.side_panel && $.side_panel.classList.contains('open')) return true;
+  const backupMenu = document.getElementById('backup-menu');
+  if(backupMenu && backupMenu.style.display !== 'none') return true;
+  const colorPopup = document.getElementById('eb-color-popup');
+  if(colorPopup && colorPopup.classList.contains('show')) return true;
+  if(typeof _selectionMode !== 'undefined' && _selectionMode) return true;
+  return false;
 }
 
 /* ══════════════════════════════════════
