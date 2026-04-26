@@ -269,6 +269,11 @@ mark.sh.current{background:#ff8f00;color:#fff;}
   padding:2px 0;
   position:relative;
 }
+.page-editor p br{
+  display:block;
+  height:var(--para-spacing);
+  margin:0;
+}
 /* image wrapper (not contenteditable content) */
 .page-editor div.para-img-wrap {
   white-space:normal;
@@ -1355,11 +1360,11 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
 
     <!-- サイズ -->
     <div class="eb-stepper">
-      <button class="eb-step" onclick="ebSizeDelta(-1)">
+      <button class="eb-step" onclick="ebSizeDelta(-1)" ontouchend="ebSizeDelta(-1)">
         <svg width="14" height="14" viewBox="0 0 18 18"><text x="0" y="13" font-size="14" fill="#333" font-family="serif">A</text><text x="10" y="15" font-size="12" fill="#333" font-family="sans-serif">－</text></svg>
       </button>
       <span class="eb-sizeval" id="eb-size-val">15</span>
-      <button class="eb-step" onclick="ebSizeDelta(+1)">
+      <button class="eb-step" onclick="ebSizeDelta(+1)" ontouchend="ebSizeDelta(+1)">
         <svg width="14" height="14" viewBox="0 0 18 18"><text x="2" y="15" font-size="18" fill="#333" font-family="serif">A</text><text x="10" y="12" font-size="12" fill="#333" font-family="sans-serif">＋</text></svg>
       </button>
     </div>
@@ -1424,13 +1429,6 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
     </button>
   </div>
   <div id="panel-body">
-  <div class="ps">
-    <div class="pl">文字サイズ</div>
-    <div class="sr">
-      <input type="range" min="12" max="28" value="15" id="global-size" oninput="applyGlobalSize(this.value)">
-      <span class="sv" id="global-size-val">15px</span>
-    </div>
-  </div>
   <div class="ps">
     <div class="pl">行間</div>
     <div class="sr">
@@ -1561,8 +1559,6 @@ function cacheDOM(){
   'font-file-input',
   'font-list',
   'font-load-name',
-  'global-size',
-  'global-size-val',
   'modal-body',
   'modal-ok',
   'modal-ov',
@@ -1953,11 +1949,6 @@ function applyLoadedSettings(){
   const s=state.settings;
   // テーマ
   applyTheme(s.themeIdx||0);
-  // フォントサイズスライダー
-  if($.global_size){
-    $.global_size.value=s.fontSize;
-    $.global_size_val.textContent=s.fontSize+'px';
-  }
   // 行間・段落間の初期反映
   if(s.lineHeight == null) s.lineHeight = 2.0;
   if(s.paraSpacing == null) s.paraSpacing = 24;
@@ -4216,44 +4207,6 @@ async function pickAndInsertImage(input){
 /* ══════════════════════════════════════
    フォント・テーマ設定
 ══════════════════════════════════════ */
-function applyGlobalSize(val){
-  val=parseInt(val);
-  const old = state.settings.fontSize;
-  const delta=val-old;
-  state.settings.fontSize=val;
-  $.global_size_val.textContent=val+'px';
-  if(delta!==0){
-    // 1) state内のすべての段落のサイズを調整（直接編集中でも保存先を更新）
-    state.pages.forEach(pg=>{
-      pg.paras.forEach(para=>{
-        if(para.type==='text'){
-          const cur=para.size||old;
-          para.size=Math.min(40,Math.max(10,cur+delta));
-        }
-      });
-    });
-    // 2) 編集中なら state→DOMの直接同期も行う
-    if(state.editMode && state.curPage != null){
-      const pageEl = document.getElementById(`page-${state.curPage}`);
-      if(pageEl){
-        pageEl.querySelectorAll('[data-qi]').forEach(el=>{
-          const qi = parseInt(el.dataset.qi, 10);
-          if(isNaN(qi)) return;
-          const para = state.pages[state.curPage]?.paras[qi];
-          if(para && para.type === 'text' && para.size){
-            el.style.fontSize = para.size + 'px';
-          }
-        });
-      }
-    }
-    // 3) 段落個別のサイズが変わったので本文データも保存
-    debouncedSave();
-  }
-  // 編集中・閲覧中どちらでもDOMに反映する
-  renderAllPages();
-  debouncedSaveSettings();
-}
-
 function applyParaLineHeight(val){
   val = parseFloat(val);
   if(isNaN(val)) return;
