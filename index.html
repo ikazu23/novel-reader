@@ -4649,12 +4649,15 @@ function onIndentTap(){
   if(!el) return;
   // カーソル位置の行頭を取得（保存済みcaret > savedRange > 現在のselectionの順）
   let caretNode = null, caretOffset = 0;
+  let caretSrc = 'none';
   if(state.ui.savedCaret && el.contains(state.ui.savedCaret.node)){
     caretNode = state.ui.savedCaret.node;
     caretOffset = state.ui.savedCaret.offset;
+    caretSrc = 'savedCaret';
   } else if(state.ui.savedRange && el.contains(state.ui.savedRange.startContainer)){
     caretNode = state.ui.savedRange.startContainer;
     caretOffset = state.ui.savedRange.startOffset;
+    caretSrc = 'savedRange';
   } else {
     const sel = window.getSelection();
     if(sel && sel.rangeCount > 0){
@@ -4662,9 +4665,16 @@ function onIndentTap(){
       if(el.contains(r.startContainer)){
         caretNode = r.startContainer;
         caretOffset = r.startOffset;
+        caretSrc = 'live';
       }
     }
   }
+  // [DEBUG]
+  try{
+    const brCount = el.querySelectorAll('br').length;
+    const nodeType = caretNode ? (caretNode.nodeType === 3 ? 'TEXT' : caretNode.tagName || '?') : 'null';
+    showToast('caret='+caretSrc+' type='+nodeType+' off='+caretOffset+' br='+brCount);
+  }catch(_){}
   // undoスナップショット
   _undoStack.push(JSON.stringify(state.pages));
   if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
@@ -4693,12 +4703,14 @@ function indentAll(){
   if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
   _redoStack.length = 0;
   let count = 0;
+  let totalBr = 0;
   pg.paras.forEach((p, qi)=>{
     if(p.type !== 'text') return;
     // 中央寄せ・右寄せの段落は字下げ対象外（タイトル等の体裁を崩さないため）
     if(p.align === 'center' || p.align === 'right') return;
     const el = getContent(pi, qi);
     if(!el) return;
+    totalBr += el.querySelectorAll('br').length;
     const text = el.textContent || '';
     if(shouldIndentText(text)){
       if(addIndentToParaEl(el)){
@@ -4708,6 +4720,8 @@ function indentAll(){
       }
     }
   });
+  // [DEBUG]
+  try{ showToast('段落数:'+count+' 内BR数:'+totalBr); }catch(_){}
   // 直接保存
   syncCurrentEpisode();
   state.novel.updatedAt = new Date().toISOString();
