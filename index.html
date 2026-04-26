@@ -6519,9 +6519,13 @@ function setupGlobalListeners(){
     }
     const sel=window.getSelection();
     if(sel&&sel.rangeCount>0){
+      const r=sel.getRangeAt(0);
       const ae=document.activeElement;
       if(ae&&ae.isContentEditable){
-        state.ui.savedRange=sel.getRangeAt(0).cloneRange();
+        // 範囲選択がある場合のみsavedRange、collapsedなら null
+        state.ui.savedRange = r.collapsed ? null : r.cloneRange();
+        // 字下げ用：カーソル位置（collapsed含む）も常に保存
+        state.ui.savedCaret = { node: r.startContainer, offset: r.startOffset };
       }
     }
   },{passive:true});
