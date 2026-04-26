@@ -2126,6 +2126,7 @@ function showLibrary(){
   $.toc_screen.classList.remove('show');
   document.getElementById('library-fab').style.display='flex';
   renderLibrary();
+  if(typeof pushNav==='function') pushNav('library');
 }
 
 function hideLibrary(){
@@ -2344,6 +2345,7 @@ function showToc(){
   document.getElementById('library-screen').classList.remove('show');
   document.getElementById('library-fab').style.display='none';
   renderToc();
+  if(typeof pushNav==='function') pushNav('toc');
 }
 
 function hideToc(){
@@ -2541,6 +2543,7 @@ function openEpisode(id, startPos='first'){
   hideToc();
   renderAllPages();
   updateNavBtns();
+  if(typeof pushNav==='function') pushNav('reader');
 }
 
 function openEpMenu(id){
@@ -3666,6 +3669,7 @@ function enterEditMode(){
     const botbarH=$.botbar.offsetHeight;
     $.viewport.style.bottom=botbarH+'px';
   });
+  if(typeof pushNav==='function') pushNav('editor');
 }
 
 function exitEditMode(){
@@ -5013,7 +5017,106 @@ function setupGlobalListeners(){
   setInterval(()=>{
     if(state.editMode && _saveTimer != null) flushSave();
   }, 30000);
+
+  /* ── スマホ戻るボタン対応 ── */
+  setupBackNavigation();
 }
+
+/* ══════════════════════════════════════
+   スマホ戻るボタン対応：履歴ベースの画面遷移
+══════════════════════════════════════ */
+// 自分でhistory.pushStateを呼んだ時のフラグ（popstateの自己呼び出しを区別）
+let _navIgnorePop = false;
+
+function pushNav(view){
+  // view: 'library' | 'toc' | 'reader' | 'editor'
+  try{
+    history.pushState({appView: view, ts: Date.now()}, '');
+  }catch(e){ console.warn('pushState failed:', e); }
+}
+
+// 現在画面の判定
+function getCurrentView(){
+  if(state.editMode) return 'editor';
+  if(document.body.classList.contains('library-mode')) return 'library';
+  if(document.body.classList.contains('toc-mode')) return 'toc';
+  if(state.currentEpisodeId) return 'reader';
+  return 'library';
+}
+
+// 戻るボタン押下時：1段だけ戻す
+function handleBackNavigation(){
+  // 1. 開いているオーバーレイ系を優先的に閉じる
+  if($.modal_ov && $.modal_ov.classList.contains('show')){
+    closeModal();
+    return true;
+  }
+  if($.search_overlay && $.search_overlay.classList.contains('open')){
+    closeSearch();
+    return true;
+  }
+  if($.side_panel && $.side_panel.classList.contains('open')){
+    closePanel();
+    return true;
+  }
+  // バックアップメニュー等のシンプルなポップアップ
+  const backupMenu = document.getElementById('backup-menu');
+  if(backupMenu && backupMenu.style.display !== 'none' && typeof closeBackupMenu === 'function'){
+    closeBackupMenu();
+    return true;
+  }
+  // 色パレット等
+  const colorPopup = document.getElementById('eb-color-popup');
+  if(colorPopup && colorPopup.classList.contains('show') && typeof closeColorPopup === 'function'){
+    closeColorPopup();
+    return true;
+  }
+  // ライブラリ選択モード
+  if(typeof _selectionMode !== 'undefined' && _selectionMode && typeof exitSelectionMode === 'function'){
+    exitSelectionMode();
+    return true;
+  }
+
+  // 2. 画面階層を1段戻す
+  const view = getCurrentView();
+  if(view === 'editor'){
+    exitEditMode();
+    return true;
+  }
+  if(view === 'reader'){
+    showToc();
+    return true;
+  }
+  if(view === 'toc'){
+    showLibrary();
+    return true;
+  }
+  // ライブラリ画面の場合は戻らない（ブラウザに任せる）
+  return false;
+}
+
+function setupBackNavigation(){
+  // 起動時に1つ余分に履歴を積んでおく（最初の戻るで離脱しないように）
+  try{ history.replaceState({appView: 'library', initial: true}, ''); }catch(_){}
+
+  window.addEventListener('popstate', (e)=>{
+    if(_navIgnorePop){ _navIgnorePop = false; return; }
+    const handled = handleBackNavigation();
+    if(handled){
+      // 1段戻したので、次の戻るに備えて履歴を1つ積み直す
+      _navIgnorePop = true;
+      try{ history.pushState({appView: getCurrentView(), restored: true}, ''); }catch(_){}
+    }
+    // handled=false の場合は履歴を積まないので、次の戻るでブラウザが本当に戻る
+  });
+}
+
+/* ══════════════════════════════════════
+   START
+══════════════════════════════════════ */
+/* ══════════════════════════════════════
+   バックアップ・復元
+══════════════════════════════════════ */
 
 /* ══════════════════════════════════════
    START
