@@ -5074,12 +5074,18 @@ function setupBackNavigation(){
   if(location.hash){
     try{ history.replaceState(null, '', location.pathname + location.search); }catch(_){}
   }
-  // 起動時に大量のセンチネルを積む（Chromiumのフォワードスロット消費に備える）
-  // 戻るボタンを押すたびに popstate ハンドラで1つ積み足すが、
-  // 一部のChromium挙動で増えないことがあるので、最初から余裕を持たせる
-  for(let i=0; i<50; i++) pushSentinel();
+  // 起動時に1つだけ積む。連続戻る対応は popstate ハンドラ内のgo(1)テクニックで実現
+  pushSentinel();
+
+  // go(1) による自己発生popstateを無視するためのフラグ
+  let _ignoreNextPop = false;
 
   window.addEventListener('popstate', (e)=>{
+    if(_ignoreNextPop){
+      _ignoreNextPop = false;
+      return;
+    }
+
     const view = getCurrentView();
     const overlayOpen = hasOpenOverlay();
     // [DEBUG]
@@ -5088,19 +5094,25 @@ function setupBackNavigation(){
     // ライブラリ画面で戻るボタン → 終了確認
     if(view === 'library' && !overlayOpen){
       if(_navState.exitConfirmed){
-        return;
+        return; // 2回目はそのまま離脱
       }
       _navState.exitConfirmed = true;
       try{ showToast('もう一度戻るボタンで終了'); }catch(_){}
       clearTimeout(_navState.exitTimer);
       _navState.exitTimer = setTimeout(()=>{ _navState.exitConfirmed = false; }, 2000);
+      // 履歴を積んでgo(1)で前進
       pushSentinel();
+      _ignoreNextPop = true;
+      try{ history.go(1); }catch(_){ _ignoreNextPop = false; }
       return;
     }
 
     _navState.exitConfirmed = false;
     handleBackNavigation();
+    // 履歴を積んでgo(1)で前進（次の戻るで再度popstateが発火する位置に戻る）
     pushSentinel();
+    _ignoreNextPop = true;
+    try{ history.go(1); }catch(_){ _ignoreNextPop = false; }
   });
 }
 
