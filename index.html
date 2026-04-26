@@ -5019,12 +5019,11 @@ function setupGlobalListeners(){
 }
 
 /* ══════════════════════════════════════
-   スマホ戻るボタン対応：ハッシュベースのナビゲーションスタック
-   各画面遷移時にハッシュに番号(#nav-N)を増やす形で履歴に積む。
-   戻るボタンでハッシュが減ると hashchange が発火 → 画面を1段戻す。
-   ハッシュ方式は popstate 方式より Android Chromium で安定。
+   スマホ戻るボタン対応：シンプルなpopstate方式
+   - 起動時に余分な履歴エントリを積む
+   - 戻るボタンで popstate → 画面遷移 → 履歴を再度積む
+   - ライブラリで2回連続なら離脱
 ══════════════════════════════════════ */
-// pushNav は廃止：履歴はハッシュ変更で自動管理される
 function pushNav(_view){ /* no-op */ }
 
 function getCurrentView(){
@@ -5033,21 +5032,6 @@ function getCurrentView(){
   if(document.body.classList.contains('toc-mode')) return 'toc';
   if(state.currentEpisodeId) return 'reader';
   return 'library';
-}
-
-// 現在のハッシュレベル（数値）を取得
-function getNavLevel(){
-  const m = (location.hash || '').match(/^#nav-(\d+)$/);
-  return m ? parseInt(m[1], 10) : 0;
-}
-
-// ハッシュレベルを1つ進める（履歴に積む）
-let _expectedLevel = 0;
-function pushSentinel(){
-  _expectedLevel = getNavLevel() + 1;
-  try{
-    location.hash = 'nav-' + _expectedLevel;
-  }catch(e){ console.warn('pushSentinel failed:', e); }
 }
 
 function hasOpenOverlay(){
@@ -5062,7 +5046,6 @@ function hasOpenOverlay(){
   return false;
 }
 
-// 戻る処理：オーバーレイ閉じ or 画面1段戻し
 function handleBackNavigation(){
   if($.modal_ov && $.modal_ov.classList.contains('show')){ closeModal(); return true; }
   if($.search_overlay && $.search_overlay.classList.contains('open')){ closeSearch(); return true; }
@@ -5080,53 +5063,46 @@ function handleBackNavigation(){
   return false;
 }
 
+let _navState = { exitConfirmed: false, exitTimer: null };
+
+function pushSentinel(){
+  try{ history.pushState({appNav: true, ts: Date.now()}, ''); }catch(e){}
+}
+
 function setupBackNavigation(){
-  // 起動時にハッシュをクリア → レベル1を積む
+  // ハッシュが残っていたらクリア
   if(location.hash){
     try{ history.replaceState(null, '', location.pathname + location.search); }catch(_){}
   }
-  pushSentinel(); // -> #nav-1
+  // 起動時に1つセンチネルを積む
+  pushSentinel();
 
-  let _exitConfirmed = false;
-  let _exitTimer = null;
-  let _internalChange = false; // 自分でハッシュ変えた時のフラグ
+  window.addEventListener('popstate', (e)=>{
+    const view = getCurrentView();
+    const overlayOpen = hasOpenOverlay();
+    // [DEBUG] 何が起きているか可視化（後で削除）
+    try{ showToast('back: view='+view+' ov='+overlayOpen+' hist='+history.length); }catch(_){}
 
-  window.addEventListener('hashchange', ()=>{
-    if(_internalChange){ _internalChange = false; return; }
-
-    const currentLevel = getNavLevel();
-
-    // レベルが下がった = 戻るボタンが押された
-    if(currentLevel < _expectedLevel){
-      const view = getCurrentView();
-
-      // ライブラリ画面で戻るボタン → 終了確認
-      if(view === 'library' && !hasOpenOverlay()){
-        if(_exitConfirmed){
-          // 2回目 → ハッシュも空のまま、ブラウザに離脱させる（次の戻るで本当に閉じる）
-          _expectedLevel = currentLevel;
-          return;
-        }
-        _exitConfirmed = true;
-        try{ showToast('もう一度戻るボタンで終了'); }catch(_){}
-        clearTimeout(_exitTimer);
-        _exitTimer = setTimeout(()=>{ _exitConfirmed = false; }, 2000);
-        // ハッシュを再度積み直して履歴を補充
-        _internalChange = true;
-        pushSentinel();
+    // ライブラリ画面で戻るボタン → 終了確認
+    if(view === 'library' && !overlayOpen){
+      if(_navState.exitConfirmed){
+        // 2回目 → 何もしない、ブラウザに離脱させる
         return;
       }
-
-      _exitConfirmed = false;
-      // 画面遷移
-      handleBackNavigation();
-      // ハッシュを積み直す（次の戻るに備える）
-      _internalChange = true;
+      _navState.exitConfirmed = true;
+      try{ showToast('もう一度戻るボタンで終了'); }catch(_){}
+      clearTimeout(_navState.exitTimer);
+      _navState.exitTimer = setTimeout(()=>{ _navState.exitConfirmed = false; }, 2000);
+      // 履歴を補充
       pushSentinel();
-    } else if(currentLevel > _expectedLevel){
-      // 進む方向：そのまま受け入れる
-      _expectedLevel = currentLevel;
+      return;
     }
+
+    _navState.exitConfirmed = false;
+    // 画面遷移を先に
+    handleBackNavigation();
+    // 履歴を補充（次の戻るに備える）
+    pushSentinel();
   });
 }
 
