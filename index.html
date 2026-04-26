@@ -3964,18 +3964,24 @@ function ebToggleFmt(fmt){
   const tag = _fmtToTag[fmt];
   if(!tag) return;
 
-  // 編集バー操作でフォーカスが外れている場合は保存済み選択範囲を復元
-  // ただし savedRange が非collapsedの場合のみ（範囲選択していた場合のみ復元）
-  if(state.ui.savedRange && !state.ui.savedRange.collapsed){
-    try{
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(state.ui.savedRange);
-    }catch(_){}
-  }
-
+  // 現在の選択範囲を直接見る（savedRangeは使わない、復元による副作用を避ける）
   const sel = window.getSelection();
-  const hasRange = sel && sel.rangeCount > 0 && !sel.getRangeAt(0).collapsed;
+  // 選択範囲が「エディタ内」かつ「非collapsed」の場合のみ範囲モード
+  let hasRange = false;
+  if(sel && sel.rangeCount > 0){
+    const r = sel.getRangeAt(0);
+    if(!r.collapsed){
+      // 範囲がエディタ内に収まっているか確認
+      let node = r.commonAncestorContainer;
+      while(node && node !== document.body){
+        if(node.classList && node.classList.contains('page-editor')){
+          hasRange = true;
+          break;
+        }
+        node = node.parentNode;
+      }
+    }
+  }
 
   if(hasRange){
     // 選択範囲モード：範囲が完全に該当タグで包まれていれば解除、そうでなければ適用
@@ -3991,8 +3997,12 @@ function ebToggleFmt(fmt){
     }
     save();
     syncEbFmtButtons();
-    // 操作後にsavedRangeをクリア（次回の段落全体操作で誤復元を防ぐ）
+    // 操作後にsavedRangeをクリア & 選択範囲も完全に解除
     state.ui.savedRange = null;
+    try{
+      const s = window.getSelection();
+      s.removeAllRanges();
+    }catch(_){}
     return;
   }
 
@@ -4054,6 +4064,12 @@ function toggleParaFmt(pi, qi, tag){
   if(idx>=0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
   libDbPut(state.novel).catch(e=>{ console.warn('save failed:',e); });
   syncEbFmtButtons();
+  // 段落全体モードの後も selection をクリアして、次回の操作に影響しないように
+  state.ui.savedRange = null;
+  try{
+    const s = window.getSelection();
+    s.removeAllRanges();
+  }catch(_){}
 }
 
 // 要素全体が指定タグで完全に包まれているかチェック
