@@ -4410,85 +4410,178 @@ function shouldIndentText(text){
   return after.length > 0;
 }
 
-// 段落要素の先頭にINDENT_CHARを追加（DOM）
+// 段落要素の各行（<br>区切り含む）の先頭にINDENT_CHARを追加
+// 既に字下げ済みの行はスキップ
 function addIndentToParaEl(el){
   if(!el) return false;
-  // 最初のテキストノードを探す
-  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
-  let node = walker.nextNode();
-  if(node){
-    if(node.textContent.charAt(0) === INDENT_CHAR) return false; // 既に
-    node.textContent = INDENT_CHAR + node.textContent;
-    return true;
+  let changed = false;
+  // 1. 段落の先頭行（最初のテキストノード）
+  const firstWalker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+  const firstText = firstWalker.nextNode();
+  if(firstText){
+    if(firstText.textContent.charAt(0) !== INDENT_CHAR){
+      firstText.textContent = INDENT_CHAR + firstText.textContent;
+      changed = true;
+    }
   } else {
-    // 空段落の場合は新規追加
+    // 空段落
     el.insertBefore(document.createTextNode(INDENT_CHAR), el.firstChild);
     return true;
   }
+  // 2. <br> の直後の各行
+  const brs = el.querySelectorAll('br');
+  brs.forEach(br=>{
+    // <br> 直後のテキストノードを探す（同じ階層 or 親階層を辿る）
+    let next = br.nextSibling;
+    // 直後がテキストノードならそこ
+    while(next){
+      if(next.nodeType === 3){
+        if(next.textContent.charAt(0) !== INDENT_CHAR){
+          next.textContent = INDENT_CHAR + next.textContent;
+          changed = true;
+        }
+        return;
+      }
+      if(next.nodeType === 1){
+        // 要素ノード：その中の最初のテキストノードを探す
+        const inner = document.createTreeWalker(next, NodeFilter.SHOW_TEXT, null).nextNode();
+        if(inner){
+          if(inner.textContent.charAt(0) !== INDENT_CHAR){
+            inner.textContent = INDENT_CHAR + inner.textContent;
+            changed = true;
+          }
+          return;
+        }
+        // 中にテキストがない要素（空のspan等）→ 次へ
+        next = next.nextSibling;
+        continue;
+      }
+      next = next.nextSibling;
+    }
+    // <br> の後にテキストがない → <br> の直後にINDENT_CHARを挿入
+    const tn = document.createTextNode(INDENT_CHAR);
+    br.parentNode.insertBefore(tn, br.nextSibling);
+    changed = true;
+  });
+  return changed;
 }
 
-// 段落要素の先頭からINDENT_CHARを除去
+// 段落要素の各行先頭からINDENT_CHARを除去
 function removeIndentFromParaEl(el){
   if(!el) return false;
-  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
-  let node = walker.nextNode();
-  if(node && node.textContent.charAt(0) === INDENT_CHAR){
-    node.textContent = node.textContent.substring(1);
-    return true;
+  let changed = false;
+  // 1. 段落の先頭行
+  const firstWalker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+  const firstText = firstWalker.nextNode();
+  if(firstText && firstText.textContent.charAt(0) === INDENT_CHAR){
+    firstText.textContent = firstText.textContent.substring(1);
+    changed = true;
   }
-  return false;
+  // 2. <br> の直後の各行
+  const brs = el.querySelectorAll('br');
+  brs.forEach(br=>{
+    let next = br.nextSibling;
+    while(next){
+      if(next.nodeType === 3){
+        if(next.textContent.charAt(0) === INDENT_CHAR){
+          next.textContent = next.textContent.substring(1);
+          changed = true;
+        }
+        return;
+      }
+      if(next.nodeType === 1){
+        const inner = document.createTreeWalker(next, NodeFilter.SHOW_TEXT, null).nextNode();
+        if(inner && inner.textContent.charAt(0) === INDENT_CHAR){
+          inner.textContent = inner.textContent.substring(1);
+          changed = true;
+        }
+        return;
+      }
+      next = next.nextSibling;
+    }
+  });
+  return changed;
 }
 
 // 段落内で「カーソルがある行の先頭位置」を見つける
-// 戻り値: { node, offset } または null
-//   - node: テキストノード（行頭の最初のテキストノード）または挿入の親要素
-//   - offset: そのノード内のオフセット（0 = ノードの先頭）
-//   - useInsertBefore: true なら node の前に挿入、false なら node 内 offset 位置
+// 戻り値: { node, offset, isBrAfter, kind } または null
 function findLineStartInPara(paraEl, caretNode, caretOffset){
   if(!paraEl || !caretNode) return null;
-  // paraEl 内の全ノードを document order で取得
+
+  // 1. caretNode を「実際のターゲットテキストノード or 位置」に正規化
+  let targetTextNode = null;
+  let targetTextOffset = 0;
+  if(caretNode.nodeType === 3){
+    targetTextNode = caretNode;
+    targetTextOffset = caretOffset || 0;
+  } else if(caretNode.nodeType === 1){
+    // 要素ノード：startOffset は子要素のインデックス
+    // startOffset 番目の子の前にカーソルがある
+    if(caretOffset > 0 && caretNode.childNodes.length > 0){
+      // startOffset の手前の子から逆に辿って、テキストノードを探す
+      const idx = Math.min(caretOffset, caretNode.childNodes.length) - 1;
+      // 手前の子の中の「最後のテキストノード」を探す
+      const prevChild = caretNode.childNodes[idx];
+      if(prevChild){
+        if(prevChild.nodeType === 3){
+          targetTextNode = prevChild;
+          targetTextOffset = prevChild.textContent.length;
+        } else if(prevChild.nodeType === 1){
+          // 中の最後のテキストノード
+          const tw = document.createTreeWalker(prevChild, NodeFilter.SHOW_TEXT, null);
+          let last = null, t;
+          while(t = tw.nextNode()) last = t;
+          if(last){
+            targetTextNode = last;
+            targetTextOffset = last.textContent.length;
+          }
+        }
+      }
+    }
+    if(!targetTextNode){
+      // 最初のテキストノードを使う
+      const tw = document.createTreeWalker(caretNode, NodeFilter.SHOW_TEXT, null);
+      const first = tw.nextNode();
+      if(first){
+        targetTextNode = first;
+        targetTextOffset = 0;
+      }
+    }
+  }
+
+  // 2. paraEl 内の全ノードを document order で取得
   const walker = document.createTreeWalker(paraEl, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT, null);
   const order = [];
   let n;
   while(n = walker.nextNode()) order.push(n);
 
-  // caretNode のインデックスを特定
-  let caretIdx = -1;
-  // caretNode 自体がテキストノードでないこともあるので、その場合は子か parent を辿る
-  if(caretNode.nodeType === 3){
-    caretIdx = order.indexOf(caretNode);
-  }
+  // 3. targetTextNode の order インデックスを特定
+  let caretIdx = targetTextNode ? order.indexOf(targetTextNode) : -1;
   if(caretIdx === -1){
-    // caretNode が要素の場合、childNodes[caretOffset] が境界。その位置に最も近いテキストノードを探す
-    // シンプルに、caretNodeの子孫または直前のテキストノードを探す
-    for(let i = order.length - 1; i >= 0; i--){
-      if(order[i].nodeType === 3 && (caretNode.contains(order[i]) || order[i].compareDocumentPosition(caretNode) & Node.DOCUMENT_POSITION_FOLLOWING)){
-        caretIdx = i;
-        break;
-      }
+    // フォールバック：最初のテキストノード
+    for(let i = 0; i < order.length; i++){
+      if(order[i].nodeType === 3){ caretIdx = i; break; }
     }
-    if(caretIdx === -1 && order.length > 0) caretIdx = 0;
   }
   if(caretIdx === -1) return null;
 
-  // caretIdx から後方に向かって <br> を探す
-  // <br> が見つかればその直後、見つからなければ段落の先頭
+  // 4. caretIdx から後方に向かって行区切りを探す
+  // 行区切り = BR要素、または DIV/P など改行を生む要素の境界
   for(let i = caretIdx; i >= 0; i--){
     const node = order[i];
-    if(node.nodeType === 1 && node.tagName === 'BR'){
-      // この <br> の直後の最初のテキストノードを行頭とする
-      // 後続のテキストノードを探す
-      for(let j = i + 1; j < order.length; j++){
-        if(order[j].nodeType === 3){
-          return { node: order[j], offset: 0, isBrAfter: false };
+    if(node.nodeType === 1){
+      if(node.tagName === 'BR'){
+        // この <br> の直後の最初のテキストノードを行頭とする
+        for(let j = i + 1; j < order.length; j++){
+          if(order[j].nodeType === 3){
+            return { node: order[j], offset: 0, isBrAfter: false };
+          }
         }
+        return { node: node, offset: 0, isBrAfter: true };
       }
-      // <br> の後にテキストノードがない場合は <br> の直後に挿入
-      return { node: node, offset: 0, isBrAfter: true };
     }
   }
   // <br> が見つからない → 段落の先頭
-  // 最初のテキストノードを返す
   for(let i = 0; i < order.length; i++){
     if(order[i].nodeType === 3){
       return { node: order[i], offset: 0, isBrAfter: false };
