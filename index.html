@@ -423,6 +423,68 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 .replace-modal-hint{
   color:#888;font-size:11px;margin-bottom:10px;line-height:1.5;
 }
+.replace-section-title{
+  font-size:13px;font-weight:bold;color:#555;
+  margin:18px 0 6px;padding-top:14px;
+  border-top:1px solid #eee;
+}
+.replace-section-title:first-child{border-top:none;padding-top:0;margin-top:0;}
+#pronoun-list{
+  display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;
+}
+.pronoun-chip{
+  display:inline-flex;align-items:center;gap:0;
+  padding:0;
+  border:1px solid #ccc;border-radius:14px;
+  background:#fff;font-size:13px;
+  -webkit-tap-highlight-color:transparent;
+  overflow:hidden;
+}
+.pronoun-chip.target{
+  background:var(--accent);color:#fff;border-color:var(--accent);
+}
+.pronoun-chip .pronoun-label{
+  padding:5px 10px;
+  cursor:pointer;
+  display:inline-block;
+}
+.pronoun-chip .x{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:24px;height:100%;
+  color:#bbb;font-size:12px;
+  cursor:pointer;
+  border-left:1px solid #e5e5e5;
+  background:rgba(0,0,0,0.02);
+}
+.pronoun-chip.target .x{
+  color:rgba(255,255,255,0.85);
+  border-left-color:rgba(255,255,255,0.3);
+  background:rgba(0,0,0,0.08);
+}
+#pronoun-add-row{
+  display:flex;gap:6px;margin-top:6px;
+}
+#pronoun-add-row input{
+  flex:1;padding:6px 8px;border:1px solid #ccc;border-radius:4px;
+  font-size:13px;font-family:inherit;
+}
+#pronoun-add-row button{
+  padding:6px 12px;border:1px solid #aaa;background:#fff;border-radius:4px;
+  font-size:13px;cursor:pointer;
+}
+#pronoun-target-info{
+  font-size:12px;color:#666;margin-top:8px;
+}
+#pronoun-target-info strong{color:var(--accent);}
+.pronoun-apply-btn{
+  width:100%;margin-top:10px;padding:10px;
+  background:#e8f0f5;color:#3a6d8c;
+  border:none;border-radius:6px;cursor:pointer;
+  font-size:13px;font-family:inherit;font-weight:bold;
+}
+.pronoun-apply-btn:disabled{
+  opacity:0.5;cursor:not-allowed;
+}
 
 /* 字下げ長押しメニュー */
 #indent-menu{
@@ -1463,6 +1525,13 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
   <div id="botbar-edit-row">
     <!-- 字下げボタン（左端固定） -->
     <div id="eb-fixed-left">
+      <button class="eb-btn" onclick="openReplaceModal()" title="置換ルール">
+        <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 6h6"/><path d="M4 12h6"/><path d="M4 18h6"/>
+          <path d="M14 8l3-3 3 3"/><path d="M17 5v6"/>
+          <path d="M14 16l3 3 3-3"/><path d="M17 13v6"/>
+        </svg>
+      </button>
       <button class="eb-btn" id="eb-indent" onclick="onIndentTap()" title="字下げ（長押しでメニュー）">
         <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <line x1="3" y1="6" x2="21" y2="6"/>
@@ -1546,17 +1615,6 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
     </button>
     <button class="eb-btn eb-fmt-btn" data-fmt="strikethrough" onclick="ebToggleFmt('strikethrough');" title="取り消し線">
       <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4H9a3 3 0 0 0-2.83 4M14 12a4 4 0 0 1 0 8H6"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
-    </button>
-
-    <div class="eb-sep"></div>
-
-    <!-- 置換ルール -->
-    <button class="eb-btn" onclick="openReplaceModal()" title="置換ルール">
-      <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M4 6h6"/><path d="M4 12h6"/><path d="M4 18h6"/>
-        <path d="M14 8l3-3 3 3"/><path d="M17 5v6"/>
-        <path d="M14 16l3 3 3-3"/><path d="M17 13v6"/>
-      </svg>
     </button>
 
     <div class="eb-sep"></div>
@@ -1859,6 +1917,7 @@ const state = {
     lineHeight: 2.0,       // 行間（line-heightの倍率）
     paraSpacing: 24,       // 段落間の余白（px）
     indentSkipSymbols: ['「','『','（','〈','《','【','［'], // 字下げ除外記号
+    pronounList: ['俺','私','僕','オレ'], // 一人称リスト（追加可）
     // bg は小説ごとに novel.bg として管理
   },
   // UI/セッション状態（永続化しない）
@@ -4560,6 +4619,7 @@ function openReplaceModal(){
     return;
   }
   renderReplaceRules();
+  renderPronounList();
   const ov = document.getElementById('replace-modal-ov');
   if(ov) ov.classList.add('show');
 }
@@ -4746,6 +4806,300 @@ function runReplace(scope){
   try{
     const scopeLabel = scope === 'all' ? '本全体' : 'エピソード';
     showToast(scopeLabel + 'で ' + totalCount + ' 箇所を置換しました');
+  }catch(_){}
+}
+
+/* ══════════════════════════════════════
+   主語（一人称）変換
+══════════════════════════════════════ */
+
+// 主語と判定する直後の1文字
+const PRONOUN_PARTICLES = ['は','が','を','に','と','で','も','へ','や','か','の','ね','よ','さ','、','。','！','？','…','」','』','）','　',' '];
+// 直後の2文字パターン（変換時はこの部分を保持する）
+const PRONOUN_SUFFIXES = []; // 「たち」等のサフィックスは扱わない（誤変換防止のため）
+
+// 現在選択中の変換先（モーダル内で保持）
+let _pronounTarget = null;
+
+function getPronounList(){
+  if(!Array.isArray(state.settings.pronounList)) state.settings.pronounList = [];
+  return state.settings.pronounList;
+}
+
+function renderPronounList(){
+  const wrap = document.getElementById('pronoun-list');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  const list = getPronounList();
+  list.forEach(p=>{
+    const chip = document.createElement('div');
+    chip.className = 'pronoun-chip' + (p === _pronounTarget ? ' target' : '');
+    chip.dataset.pronoun = p;
+    // ラベル部分（タップで変換先指定）
+    const label = document.createElement('span');
+    label.className = 'pronoun-label';
+    label.textContent = p;
+    label.addEventListener('click', e=>{
+      e.stopPropagation();
+      _pronounTarget = (_pronounTarget === p ? null : p);
+      renderPronounList();
+      updatePronounTargetInfo();
+    });
+    chip.appendChild(label);
+    // ✕ ボタン（全ての一人称に表示）
+    const x = document.createElement('span');
+    x.className = 'x';
+    x.textContent = '✕';
+    x.title = '削除';
+    x.addEventListener('click', e=>{
+      e.stopPropagation();
+      if(confirm('「' + p + '」を一人称リストから削除しますか？')){
+        removePronoun(p);
+      }
+    });
+    chip.appendChild(x);
+    wrap.appendChild(chip);
+  });
+  updatePronounTargetInfo();
+}
+
+function updatePronounTargetInfo(){
+  const info = document.getElementById('pronoun-target-info');
+  const btn = document.getElementById('pronoun-apply-btn');
+  if(!info || !btn) return;
+  if(_pronounTarget){
+    info.innerHTML = '変換先: <strong>' + escapeHtml(_pronounTarget) + '</strong> （地の文の他の一人称をすべてこれに変換します）';
+    btn.disabled = false;
+  } else {
+    info.textContent = '変換先のチップをタップで選択してください';
+    btn.disabled = true;
+  }
+}
+
+// 簡易HTMLエスケープ
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function addPronoun(){
+  const input = document.getElementById('pronoun-add-input');
+  if(!input) return;
+  const v = (input.value || '').trim();
+  if(!v) return;
+  const list = getPronounList();
+  if(list.indexOf(v) >= 0){
+    try{ showToast('既に登録されています'); }catch(_){}
+    return;
+  }
+  list.push(v);
+  state.settings.pronounList = list;
+  debouncedSaveSettings();
+  input.value = '';
+  renderPronounList();
+}
+
+function removePronoun(p){
+  const list = getPronounList();
+  const i = list.indexOf(p);
+  if(i >= 0){
+    list.splice(i, 1);
+    state.settings.pronounList = list;
+    debouncedSaveSettings();
+    if(_pronounTarget === p) _pronounTarget = null;
+    renderPronounList();
+  }
+}
+
+// 段落が「地の文」かどうか判定（既存のshouldIndentTextに似たロジック）
+function isPlainTextPara(p){
+  if(!p || p.type !== 'text') return false;
+  const txt = (p.text || '').replace(/^　+/, ''); // 字下げ除去
+  if(!txt.trim()) return false;
+  const first = txt.charAt(0);
+  // BRACKET_PAIRS で始まる場合、閉じカッコの後に文字があれば地の文
+  if(BRACKET_PAIRS && BRACKET_PAIRS[first]){
+    const closer = BRACKET_PAIRS[first];
+    const closeIdx = txt.indexOf(closer, 1);
+    if(closeIdx >= 0){
+      const after = txt.substring(closeIdx + 1).trim();
+      return after.length > 0;
+    }
+    return false;
+  }
+  return true;
+}
+
+// 文字列内の一人称を変換
+// pronouns: 変換対象の一人称リスト（target以外）
+// target: 変換先
+// 戻り値: { newText, count }
+function convertPronounsInText(text, pronouns, target){
+  if(!text) return { newText: text, count: 0 };
+  let result = '';
+  let i = 0;
+  let count = 0;
+  // 長いものから順にマッチさせる（例：「俺たち」を「俺」より先に試す）
+  const sorted = pronouns.slice().sort((a,b) => b.length - a.length);
+  while(i < text.length){
+    let matched = false;
+    for(const p of sorted){
+      if(p === target) continue;
+      if(text.substr(i, p.length) !== p) continue;
+      // 直後の文字をチェック
+      const afterIdx = i + p.length;
+      const after1 = text.charAt(afterIdx);
+      const after2 = text.substr(afterIdx, 2);
+      // 末尾なら主語扱い
+      const isEnd = afterIdx >= text.length;
+      // 助詞・句読点
+      const isParticle = PRONOUN_PARTICLES.indexOf(after1) >= 0;
+      // たち などのサフィックス（保持する）
+      let suffix = '';
+      for(const sfx of PRONOUN_SUFFIXES){
+        if(after2 === sfx || (sfx.length === 2 && text.substr(afterIdx, 2) === sfx)){
+          // サフィックスの直後もチェックしないと「俺たちがいる」「俺たちダンス部」を区別できる
+          const afterSfxIdx = afterIdx + sfx.length;
+          const afterSfx = text.charAt(afterSfxIdx);
+          if(afterSfxIdx >= text.length || PRONOUN_PARTICLES.indexOf(afterSfx) >= 0){
+            suffix = sfx;
+          }
+          break;
+        }
+      }
+      if(isEnd || isParticle || suffix){
+        // ただし、target自身がサフィックスを含む場合（例：「私たち」）はスキップロジックを工夫
+        // p が「俺」、target が「私」なら「俺たち」→「私たち」になる
+        // p が「俺たち」、target が「私たち」なら「俺たち」→「私たち」になるが、
+        // 「俺たち」マッチしたあとサフィックスは見ないので suffix=''で問題ない
+        result += target + suffix;
+        i = afterIdx + suffix.length;
+        count++;
+        matched = true;
+        break;
+      }
+    }
+    if(!matched){
+      result += text.charAt(i);
+      i++;
+    }
+  }
+  return { newText: result, count };
+}
+
+// HTMLの中のテキストノードのみを変換
+function convertPronounsInHtml(html, pronouns, target){
+  if(!html) return { newHtml: html, count: 0 };
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  let totalCount = 0;
+  const walker = document.createTreeWalker(tmp, NodeFilter.SHOW_TEXT, null);
+  const nodes = [];
+  let node;
+  while(node = walker.nextNode()) nodes.push(node);
+  nodes.forEach(n=>{
+    const r = convertPronounsInText(n.textContent, pronouns, target);
+    if(r.count > 0){
+      n.textContent = r.newText;
+      totalCount += r.count;
+    }
+  });
+  return { newHtml: tmp.innerHTML, count: totalCount };
+}
+
+// 主語変換実行（現在のエピソードのみ）
+function runPronounConvert(){
+  if(!_pronounTarget){
+    try{ showToast('変換先を選択してください'); }catch(_){}
+    return;
+  }
+  if(!state.novel){
+    try{ showToast('本を開いてから操作してください'); }catch(_){}
+    return;
+  }
+  if(!state.currentEpisodeId){
+    try{ showToast('エピソードを開いてから実行してください'); }catch(_){}
+    return;
+  }
+  const ep = state.novel.episodes.find(e => e.id === state.currentEpisodeId);
+  if(!ep){
+    try{ showToast('現在のエピソードが見つかりません'); }catch(_){}
+    return;
+  }
+  // 編集中エピソードのDOMをstateに同期
+  if(state.editMode && state.curPage != null){
+    try{ syncEditorToState(state.curPage); }catch(_){}
+    syncCurrentEpisode();
+  }
+
+  const pronouns = getPronounList();
+  const target = _pronounTarget;
+  let totalCount = 0;
+  let paraCount = 0;
+
+  if(!ep.pages) return;
+  ep.pages.forEach(pg=>{
+    if(!pg.paras) return;
+    pg.paras.forEach(p=>{
+      if(!isPlainTextPara(p)) return;
+      // 段落のテキスト全体に対して変換（HTMLが装飾で分割されていても確実に動作）
+      // textContent ベースで判定し、html はテキストノードごとに同じ変換を当てる
+      // 1. 全文連結のtextに対して変換し、変換すべきマッチ位置を取得
+      const fullText = p.text || '';
+      const r = convertPronounsInText(fullText, pronouns, target);
+      if(r.count > 0){
+        // html がある場合：DOM を解析して、各テキストノード単位で同じ規則で変換
+        if(p.html){
+          const tmp = document.createElement('div');
+          tmp.innerHTML = p.html;
+          const walker = document.createTreeWalker(tmp, NodeFilter.SHOW_TEXT, null);
+          const nodes = [];
+          let n;
+          while(n = walker.nextNode()) nodes.push(n);
+          // テキストノードを順に変換するが、ノード境界を超える場合に問題が出るので
+          // 全テキストを連結して変換し、ノードに分配し直す方法を採る
+          const oldFullText = nodes.map(nn => nn.textContent).join('');
+          const newFullText = convertPronounsInText(oldFullText, pronouns, target).newText;
+          if(oldFullText === newFullText){
+            // 変化なし
+          } else if(nodes.length === 1){
+            // ノードが1つなら単純に置き換え
+            nodes[0].textContent = newFullText;
+          } else {
+            // 複数ノードの場合：先頭ノードに全文を入れ、残りを空にする
+            // （装飾の境界が崩れるが、変換の確実性を優先）
+            nodes[0].textContent = newFullText;
+            for(let k = 1; k < nodes.length; k++){
+              nodes[k].textContent = '';
+            }
+          }
+          p.html = tmp.innerHTML;
+        }
+        p.text = r.newText;
+        totalCount += r.count;
+        paraCount++;
+      }
+    });
+  });
+
+  // state.pagesを更新
+  state.pages = JSON.parse(JSON.stringify(ep.pages));
+
+  // 保存
+  try{
+    state.novel.updatedAt = new Date().toISOString();
+    const idx = state.library.findIndex(n=>n.id===state.currentNovelId);
+    if(idx>=0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+    libDbPut(state.novel).catch(e=>{ console.warn('save after pronoun convert failed:',e); });
+  }catch(e){ console.warn(e); }
+
+  // 現在ページを再描画
+  if(state.curPage != null){
+    refreshPage(state.curPage);
+  }
+
+  closeReplaceModal();
+  try{
+    showToast(paraCount + '段落、' + totalCount + '箇所の主語を「' + target + '」に変換しました');
   }catch(_){}
 }
 
@@ -6433,15 +6787,29 @@ init();
       </button>
     </div>
     <div id="replace-modal-body">
+      <div class="replace-section-title">置換ルール（この本のみ）</div>
       <div class="replace-modal-hint">
-        この本専用の置換ルールです。各行の左に「置換前」、右に「置換後」を入力してください。空欄の行は無視されます。
+        各行の左に「置換前」、右に「置換後」を入力してください。空欄の行は無視されます。
       </div>
       <div id="replace-rules-list"></div>
       <button id="replace-add-btn" onclick="addReplaceRuleRow()">＋ ルールを追加</button>
+
+      <div class="replace-section-title">主語（一人称）変換</div>
+      <div class="replace-modal-hint">
+        地の文の中の一人称を一括変換します。チップをタップで変換先に指定。✕で削除（デフォルト以外）。<br>
+        ※「は」「が」「を」「、」「。」など主語を示す文字が直後にある場合のみ変換します。「俺様」「俺たち」などは変換されません（必要に応じて個別追加してください）。
+      </div>
+      <div id="pronoun-list"></div>
+      <div id="pronoun-add-row">
+        <input type="text" id="pronoun-add-input" placeholder="一人称を追加（例：拙者）" maxlength="10">
+        <button onclick="addPronoun()">＋追加</button>
+      </div>
+      <div id="pronoun-target-info"></div>
+      <button class="pronoun-apply-btn" id="pronoun-apply-btn" onclick="runPronounConvert()" disabled>このエピソードの主語を変換</button>
     </div>
     <div id="replace-modal-footer">
-      <button class="apply-ep" onclick="runReplace('episode')">このエピソードに適用</button>
-      <button class="apply-all" onclick="runReplace('all')">本全体に適用</button>
+      <button class="apply-ep" onclick="runReplace('episode')">このエピソードに置換適用</button>
+      <button class="apply-all" onclick="runReplace('all')">本全体に置換適用</button>
     </div>
   </div>
 </div>
