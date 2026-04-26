@@ -339,6 +339,15 @@ mark.sh.current{background:#ff8f00;color:#fff;}
   border-top-width:1px;
 }
 
+/* 字下げボタンを左端に固定 */
+#eb-fixed-left{
+  display:flex;align-items:center;
+  flex-shrink:0;
+  border-right:1px solid #e0e0e0;
+  background:#fff;
+  height:100%;
+  z-index:5;
+}
 /* 区切り・段落ボタンを右端に固定 */
 #eb-fixed-right{
   display:flex;align-items:center;
@@ -347,6 +356,64 @@ mark.sh.current{background:#ff8f00;color:#fff;}
   background:#fff;
   height:100%;
   z-index:5;
+}
+/* 字下げ長押しメニュー */
+#indent-menu{
+  position:fixed;
+  left:4px;
+  background:#fff;
+  border:1px solid #ccc;
+  border-radius:6px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.15);
+  padding:6px;
+  display:none;
+  z-index:1000;
+  min-width:180px;
+}
+#indent-menu.show{display:block;}
+.indent-menu-item{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 12px;
+  cursor:pointer;
+  border-radius:4px;
+  font-size:14px;
+  color:#333;
+  background:transparent;border:none;width:100%;text-align:left;
+}
+.indent-menu-item:active{background:#f0f0f0;}
+.indent-menu-item svg{flex-shrink:0;}
+/* 記号登録ポップアップ */
+#indent-skip-popup{
+  position:fixed;
+  left:4px;
+  background:#fff;
+  border:1px solid #ccc;
+  border-radius:6px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.15);
+  padding:10px;
+  display:none;
+  z-index:1001;
+  min-width:240px;
+}
+#indent-skip-popup.show{display:block;}
+#indent-skip-popup .isp-title{
+  font-size:12px;color:#666;margin-bottom:6px;
+}
+#indent-skip-popup .isp-list{
+  display:grid;grid-template-columns:repeat(4, 1fr);gap:4px;
+}
+#indent-skip-popup .isp-item{
+  display:flex;flex-direction:column;align-items:center;
+  padding:6px 4px;
+  border:1px solid #ddd;
+  border-radius:4px;
+  background:#fff;
+  cursor:pointer;
+  font-size:14px;
+  -webkit-tap-highlight-color:transparent;
+}
+#indent-skip-popup .isp-item.active{
+  background:var(--accent);color:#fff;border-color:var(--accent);
 }
 
 /* ══════════════════════════════════════
@@ -1326,7 +1393,19 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
 
 <!-- BOTTOM EDIT BAR -->
 <div id="botbar">
-  <div id="botbar-edit-row"><div id="eb-scroll">
+  <div id="botbar-edit-row">
+    <!-- 字下げボタン（左端固定） -->
+    <div id="eb-fixed-left">
+      <button class="eb-btn" id="eb-indent" onclick="onIndentTap()" title="字下げ（長押しでメニュー）">
+        <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="9" y1="12" x2="21" y2="12"/>
+          <line x1="9" y1="18" x2="21" y2="18"/>
+          <polyline points="3,10 6,12 3,14"/>
+        </svg>
+      </button>
+    </div>
+    <div id="eb-scroll">
 
     <!-- 戻す／やり直し -->
     <button class="eb-btn" id="eb-undo" onclick="edUndo()" title="元に戻す">
@@ -1689,6 +1768,7 @@ const state = {
     themeIdx:   0,         // THEMES配列のインデックス
     lineHeight: 2.0,       // 行間（line-heightの倍率）
     paraSpacing: 24,       // 段落間の余白（px）
+    indentSkipSymbols: ['「','『','（','〈','《','【','［'], // 字下げ除外記号
     // bg は小説ごとに novel.bg として管理
   },
   // UI/セッション状態（永続化しない）
@@ -4150,6 +4230,387 @@ function syncEbFmtButtons(){
   });
 }
 
+/* ══════════════════════════════════════
+   字下げ機能
+══════════════════════════════════════ */
+
+const INDENT_CHAR = '　'; // 全角スペース
+// カッコのペア（開き → 閉じ）
+const BRACKET_PAIRS = {
+  '「':'」','『':'』','（':'）','〈':'〉','《':'》','【':'】','［':'］',
+  '〔':'〕','｛':'｝','〝':'〟',
+};
+
+// 段落のテキストの先頭から、字下げが必要かどうか判定
+// - 既に字下げされていれば false（再字下げ不要）
+// - 先頭がスキップ記号でも、段落途中で閉じて続きがあれば true（地の文と判断）
+function shouldIndentText(text){
+  if(!text) return false;
+  if(text.charAt(0) === INDENT_CHAR) return false; // 既に字下げ済み
+  const first = text.charAt(0);
+  const skipList = (state.settings.indentSkipSymbols || []);
+  if(skipList.indexOf(first) === -1) return true; // スキップ対象でない → 字下げ
+  // スキップ記号で始まる → カッコペアが段落内で閉じた後に続きがあるかチェック
+  const closer = BRACKET_PAIRS[first];
+  if(!closer) return false; // ペアが定義されていない → 字下げしない
+  const closeIdx = text.indexOf(closer, 1);
+  if(closeIdx === -1) return false; // 閉じカッコなし → 純粋な台詞 → 字下げしない
+  // 閉じカッコの後に何か文字（スペース除く）があれば地の文と判断
+  const after = text.substring(closeIdx + 1).trim();
+  return after.length > 0;
+}
+
+// 段落要素の先頭にINDENT_CHARを追加（DOM）
+function addIndentToParaEl(el){
+  if(!el) return false;
+  // 最初のテキストノードを探す
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+  let node = walker.nextNode();
+  if(node){
+    if(node.textContent.charAt(0) === INDENT_CHAR) return false; // 既に
+    node.textContent = INDENT_CHAR + node.textContent;
+    return true;
+  } else {
+    // 空段落の場合は新規追加
+    el.insertBefore(document.createTextNode(INDENT_CHAR), el.firstChild);
+    return true;
+  }
+}
+
+// 段落要素の先頭からINDENT_CHARを除去
+function removeIndentFromParaEl(el){
+  if(!el) return false;
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+  let node = walker.nextNode();
+  if(node && node.textContent.charAt(0) === INDENT_CHAR){
+    node.textContent = node.textContent.substring(1);
+    return true;
+  }
+  return false;
+}
+
+// 単一段落への字下げトグル（タップ時の動作）
+function onIndentTap(){
+  // ターゲット決定
+  let t = state.ui.selPara || getActivePara();
+  if(!t || !state.pages[t.pi] || !state.pages[t.pi].paras[t.qi] || state.pages[t.pi].paras[t.qi].type!=='text'){
+    const pi=state.curPage;
+    const pg=state.pages[pi];
+    if(!pg) return;
+    let g=0; t=null;
+    for(let qi=0; qi<pg.paras.length; qi++){
+      const p=pg.paras[qi];
+      if(p.type==='group-break'){g++;continue;}
+      if(g===state.subPageIndex && p.type==='text'){t={pi,qi};break;}
+    }
+  }
+  if(!t) return;
+  const{pi,qi}=t;
+  const para = state.pages[pi].paras[qi];
+  if(!para || para.type!=='text') return;
+  const el = getContent(pi, qi);
+  if(!el) return;
+  // undoスナップショット
+  _undoStack.push(JSON.stringify(state.pages));
+  if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
+  _redoStack.length = 0;
+  // 既に字下げされているかチェック → トグル
+  const text = el.textContent || '';
+  if(text.charAt(0) === INDENT_CHAR){
+    removeIndentFromParaEl(el);
+  } else {
+    addIndentToParaEl(el);
+  }
+  para.html = el.innerHTML;
+  para.text = el.textContent;
+  state.ui.selPara = {pi, qi};
+  // 直接保存
+  syncCurrentEpisode();
+  state.novel.updatedAt = new Date().toISOString();
+  const idx = state.library.findIndex(n=>n.id===state.currentNovelId);
+  if(idx>=0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+  libDbPut(state.novel).catch(e=>{ console.warn('save failed:',e); });
+}
+
+// 全段落を字下げ（長押しメニューから）
+function indentAll(){
+  closeIndentMenu();
+  const pi = state.curPage;
+  const pg = state.pages[pi];
+  if(!pg) return;
+  // undoスナップショット
+  _undoStack.push(JSON.stringify(state.pages));
+  if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
+  _redoStack.length = 0;
+  let count = 0;
+  pg.paras.forEach((p, qi)=>{
+    if(p.type !== 'text') return;
+    // 中央寄せ・右寄せの段落は字下げ対象外（タイトル等の体裁を崩さないため）
+    if(p.align === 'center' || p.align === 'right') return;
+    const el = getContent(pi, qi);
+    if(!el) return;
+    const text = el.textContent || '';
+    if(shouldIndentText(text)){
+      if(addIndentToParaEl(el)){
+        p.html = el.innerHTML;
+        p.text = el.textContent;
+        count++;
+      }
+    }
+  });
+  // 直接保存
+  syncCurrentEpisode();
+  state.novel.updatedAt = new Date().toISOString();
+  const idx = state.library.findIndex(n=>n.id===state.currentNovelId);
+  if(idx>=0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+  libDbPut(state.novel).catch(e=>{ console.warn('save failed:',e); });
+  try{ showToast(count + '段落を字下げしました'); }catch(_){}
+}
+
+// 段落の「種類」を判定する
+// 戻り値: 'plain'(地の文) | '「' | '『' | ... | 'image' | 'group' | 'empty'
+function getParaKind(p){
+  if(!p) return 'empty';
+  if(p.type === 'image') return 'image';
+  if(p.type === 'group-break') return 'group';
+  if(p.type !== 'text') return 'other';
+  // テキスト：先頭の全角スペースを除いた最初の文字を見る
+  const txt = (p.text != null ? p.text : '').replace(/^　+/, '');
+  if(!txt.trim()) return 'empty';
+  const first = txt.charAt(0);
+  // BRACKET_PAIRS に登録されている記号で始まれば、その記号を種類とする
+  if(BRACKET_PAIRS && BRACKET_PAIRS[first]){
+    // ただし、段落内で閉じカッコの後に続きがあれば「地の文」とみなす（地の文の判定と一貫）
+    const closer = BRACKET_PAIRS[first];
+    const closeIdx = txt.indexOf(closer, 1);
+    if(closeIdx >= 0){
+      const after = txt.substring(closeIdx + 1).trim();
+      if(after.length > 0) return 'plain';
+    }
+    return first;
+  }
+  return 'plain';
+}
+
+// 同じ種類のテキストの間にある空段落を詰める
+function compactSameKindParas(){
+  closeIndentMenu();
+  const pi = state.curPage;
+  const pg = state.pages[pi];
+  if(!pg || !pg.paras || pg.paras.length === 0) return;
+  // undoスナップショット
+  _undoStack.push(JSON.stringify(state.pages));
+  if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
+  _redoStack.length = 0;
+
+  const paras = pg.paras;
+  const result = [];
+  let removed = 0;
+  let i = 0;
+  while(i < paras.length){
+    const p = paras[i];
+    const kind = getParaKind(p);
+    // 空テキスト段落の場合、前後を見て同じ種類なら除去
+    if(kind === 'empty' && p.type === 'text'){
+      // 直前の非group-break段落を後ろに見る（resultの末尾）
+      let prevKind = null;
+      for(let j = result.length - 1; j >= 0; j--){
+        const k = getParaKind(result[j]);
+        if(k === 'group') break; // グループ境界を超えない
+        if(k === 'empty') continue; // 連続する空はスキップして実体を探す
+        prevKind = k;
+        break;
+      }
+      // 直後の非group-break段落を前に見る
+      let nextKind = null;
+      for(let j = i + 1; j < paras.length; j++){
+        const k = getParaKind(paras[j]);
+        if(k === 'group') break;
+        if(k === 'empty') continue;
+        nextKind = k;
+        break;
+      }
+      // 前後が同じ「実体ある段落種別」なら詰める
+      if(prevKind && nextKind && prevKind === nextKind){
+        removed++;
+        i++;
+        continue; // この空段落を捨てる
+      }
+    }
+    result.push(p);
+    i++;
+  }
+
+  pg.paras = result;
+  // DOM再描画
+  refreshPage(pi);
+  // 直接保存
+  syncCurrentEpisode();
+  state.novel.updatedAt = new Date().toISOString();
+  const idx = state.library.findIndex(n=>n.id===state.currentNovelId);
+  if(idx>=0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+  libDbPut(state.novel).catch(e=>{ console.warn('save failed:',e); });
+  try{ showToast(removed + '個の空行を削除'); }catch(_){}
+}
+
+// 字下げメニューの開閉
+function openIndentMenu(){
+  const m = document.getElementById('indent-menu');
+  if(!m) return;
+  // ボタンの直上にメニューを配置（botbarがキーボードでズレることを考慮）
+  const btn = document.getElementById('eb-indent');
+  if(btn){
+    const rect = btn.getBoundingClientRect();
+    m.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+  }
+  m.classList.add('show');
+}
+function closeIndentMenu(){
+  const m = document.getElementById('indent-menu');
+  if(m) m.classList.remove('show');
+  closeIndentSkipPopup();
+}
+// ポップアップを開いた時点の設定スナップショット（変更検知用）
+let _indentSkipSnapshot = null;
+
+function openIndentSkipPopup(){
+  closeIndentMenu();
+  renderIndentSkipPopup();
+  const p = document.getElementById('indent-skip-popup');
+  if(!p) return;
+  const btn = document.getElementById('eb-indent');
+  if(btn){
+    const rect = btn.getBoundingClientRect();
+    p.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+  }
+  p.classList.add('show');
+  // スナップショットを保存（閉じる時に変更検知して再字下げ）
+  _indentSkipSnapshot = JSON.stringify((state.settings.indentSkipSymbols || []).slice().sort());
+}
+function closeIndentSkipPopup(){
+  const p = document.getElementById('indent-skip-popup');
+  if(!p) return;
+  const wasOpen = p.classList.contains('show');
+  p.classList.remove('show');
+  // 開いていて、設定に変更があった場合のみ再字下げ
+  if(wasOpen && _indentSkipSnapshot != null){
+    const cur = JSON.stringify((state.settings.indentSkipSymbols || []).slice().sort());
+    if(cur !== _indentSkipSnapshot){
+      reapplyIndentAll();
+    }
+    _indentSkipSnapshot = null;
+  }
+}
+
+// 全段落の字下げを一旦剥がして、現在の設定で再適用
+function reapplyIndentAll(){
+  const pi = state.curPage;
+  const pg = state.pages[pi];
+  if(!pg) return;
+  // undoスナップショット
+  _undoStack.push(JSON.stringify(state.pages));
+  if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
+  _redoStack.length = 0;
+  let added = 0, removed = 0;
+  pg.paras.forEach((p, qi)=>{
+    if(p.type !== 'text') return;
+    if(p.align === 'center' || p.align === 'right') return;
+    const el = getContent(pi, qi);
+    if(!el) return;
+    // まず既存の字下げを除去
+    if(removeIndentFromParaEl(el)) removed++;
+    // 新しい設定で再判定して必要なら付け直し
+    const text = el.textContent || '';
+    if(shouldIndentText(text)){
+      if(addIndentToParaEl(el)) added++;
+    }
+    p.html = el.innerHTML;
+    p.text = el.textContent;
+  });
+  // 直接保存
+  syncCurrentEpisode();
+  state.novel.updatedAt = new Date().toISOString();
+  const idx = state.library.findIndex(n=>n.id===state.currentNovelId);
+  if(idx>=0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+  libDbPut(state.novel).catch(e=>{ console.warn('save failed:',e); });
+  try{ showToast('字下げを再適用：' + added + '段落'); }catch(_){}
+}
+
+// 字下げスキップ記号ポップアップを描画
+function renderIndentSkipPopup(){
+  const list = document.getElementById('indent-skip-list');
+  if(!list) return;
+  // 候補：BRACKET_PAIRSの全キー
+  const candidates = Object.keys(BRACKET_PAIRS);
+  const active = state.settings.indentSkipSymbols || [];
+  list.innerHTML = '';
+  candidates.forEach(sym=>{
+    const btn = document.createElement('button');
+    btn.className = 'isp-item' + (active.indexOf(sym) >= 0 ? ' active' : '');
+    btn.textContent = sym;
+    btn.onclick = ()=> toggleIndentSkipSymbol(sym);
+    list.appendChild(btn);
+  });
+}
+function toggleIndentSkipSymbol(sym){
+  const list = state.settings.indentSkipSymbols || [];
+  const idx = list.indexOf(sym);
+  if(idx >= 0) list.splice(idx, 1);
+  else list.push(sym);
+  state.settings.indentSkipSymbols = list;
+  debouncedSaveSettings();
+  renderIndentSkipPopup();
+}
+
+// 字下げボタンの長押し検出セットアップ
+function setupIndentLongPress(){
+  const btn = document.getElementById('eb-indent');
+  if(!btn) return;
+  let lpTimer = null;
+  let lpFired = false;
+  const startLp = ()=>{
+    lpFired = false;
+    lpTimer = setTimeout(()=>{
+      lpFired = true;
+      openIndentMenu();
+    }, 500);
+  };
+  const cancelLp = ()=>{
+    if(lpTimer){ clearTimeout(lpTimer); lpTimer = null; }
+  };
+  btn.addEventListener('touchstart', e=>{ startLp(); }, {passive:true});
+  btn.addEventListener('touchend', e=>{
+    cancelLp();
+    if(lpFired){ e.preventDefault(); e.stopPropagation(); }
+  });
+  btn.addEventListener('touchmove', e=>{ cancelLp(); }, {passive:true});
+  btn.addEventListener('touchcancel', cancelLp);
+  btn.addEventListener('mousedown', startLp);
+  btn.addEventListener('mouseup', cancelLp);
+  btn.addEventListener('mouseleave', cancelLp);
+  // クリック時、長押しが発火していたらタップ動作をスキップ
+  // ただし onIndentTap は onclick 属性で呼ばれるので、長押し後の onclick も抑制する
+  btn.addEventListener('click', e=>{
+    if(lpFired){
+      e.preventDefault();
+      e.stopPropagation();
+      lpFired = false;
+    }
+  }, {capture:true});
+  // メニュー外タップで閉じる
+  document.addEventListener('click', e=>{
+    const menu = document.getElementById('indent-menu');
+    const popup = document.getElementById('indent-skip-popup');
+    const btnEl = document.getElementById('eb-indent');
+    if(!menu) return;
+    if(menu.classList.contains('show') || (popup && popup.classList.contains('show'))){
+      if(!menu.contains(e.target) && !btnEl.contains(e.target) && (!popup || !popup.contains(e.target))){
+        closeIndentMenu();
+      }
+    }
+  });
+}
+
 function wrapRangeWithColor(range,hex){
   const span=document.createElement('span');
   span.style.color=hex;
@@ -5289,6 +5750,9 @@ function setupGlobalListeners(){
     if(state.editMode && _saveTimer != null) flushSave();
   }, 30000);
 
+  /* ── 字下げボタンの長押し検出 ── */
+  setupIndentLongPress();
+
   /* ── スマホ戻るボタン対応 ── */
   setupBackNavigation();
 }
@@ -5650,5 +6114,39 @@ function showUpdateBanner(worker){
 
 init();
 </script>
+
+<!-- 字下げ長押しメニュー（botbarのoverflow:hiddenを避けるためbody直下に配置） -->
+<div id="indent-menu">
+  <button class="indent-menu-item" onclick="indentAll()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="3" y1="6" x2="21" y2="6"/>
+      <line x1="9" y1="12" x2="21" y2="12"/>
+      <line x1="9" y1="18" x2="21" y2="18"/>
+      <polyline points="3,10 6,12 3,14"/>
+    </svg>
+    <span>全段落を字下げ</span>
+  </button>
+  <button class="indent-menu-item" onclick="compactSameKindParas()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="4" y1="6" x2="20" y2="6"/>
+      <line x1="4" y1="10" x2="20" y2="10"/>
+      <polyline points="8,14 12,18 16,14"/>
+      <line x1="4" y1="20" x2="20" y2="20"/>
+    </svg>
+    <span>同じ種類のテキストを詰める</span>
+  </button>
+  <button class="indent-menu-item" onclick="openIndentSkipPopup()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <text x="3" y="17" font-size="14" font-family="serif" stroke="none" fill="currentColor">「」</text>
+      <line x1="2" y1="2" x2="22" y2="22" stroke="#d33" stroke-width="2"/>
+    </svg>
+    <span>字下げしない記号</span>
+  </button>
+</div>
+<!-- 字下げ除外記号の登録ポップアップ -->
+<div id="indent-skip-popup">
+  <div class="isp-title">この記号で始まる段落は字下げしない<br>（ただし段落途中で閉じて続きがある場合は字下げ）</div>
+  <div class="isp-list" id="indent-skip-list"></div>
+</div>
 </body>
 </html>
