@@ -1,6 +1,6 @@
 // 小説リーダー Service Worker
-// バージョン番号を変えるとキャッシュが更新される
-const CACHE_VERSION = 'v1';
+// 更新時はこのバージョン番号を上げる
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `novel-reader-${CACHE_VERSION}`;
 
 // 完全オフライン用にキャッシュするリソース
@@ -13,12 +13,12 @@ const PRECACHE_URLS = [
   './icon-maskable-512.png'
 ];
 
-// インストール時：必要なリソースをキャッシュ
+// インストール時：必要なリソースをキャッシュ（skipWaitingはしない）
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(PRECACHE_URLS))
-      .then(() => self.skipWaiting())
+    // skipWaiting() を呼ばない: ユーザーが「更新」を押すまで旧版のまま動く
   );
 });
 
@@ -33,7 +33,14 @@ self.addEventListener('activate', event => {
   );
 });
 
-// フェッチ：キャッシュ優先、なければネットワーク → キャッシュ追加
+// クライアントから SKIP_WAITING を受け取ったら待機中SWを有効化
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
+// フェッチ：HTMLはネットワーク優先、それ以外はキャッシュ優先
 self.addEventListener('fetch', event => {
   const req = event.request;
 
@@ -48,22 +55,34 @@ self.addEventListener('fetch', event => {
 
   if (!isSameOrigin && !isGoogleFonts) return;
 
-  event.respondWith(
-    caches.match(req).then(cached => {
-      if (cached) return cached;
+  const accept = req.headers.get('accept') || '';
+  const isHtml = accept.includes('text/html');
 
-      return fetch(req).then(response => {
-        // 成功したレスポンスのみキャッシュ
+  if (isHtml && isSameOrigin) {
+    // HTML: ネットワーク優先（更新検知のため）、失敗時キャッシュ
+    event.respondWith(
+      fetch(req).then(response => {
         if (response && response.status === 200) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
         }
         return response;
-      }).catch(() => {
-        // ネットワーク失敗時：HTMLならindex.htmlを返す
-        if (req.headers.get('accept')?.includes('text/html')) {
-          return caches.match('./index.html');
+      }).catch(() => caches.match(req).then(c => c || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // それ以外: キャッシュ優先、なければネットワーク → キャッシュ追加
+  event.respondWith(
+    caches.match(req).then(cached => {
+      if (cached) return cached;
+
+      return fetch(req).then(response => {
+        if (response && response.status === 200) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
         }
+        return response;
       });
     })
   );

@@ -4916,14 +4916,92 @@ async function doRestore(input){
 
 
 /* ══════════════════════════════════════
-   PWA: Service Worker 登録
+   PWA: Service Worker 登録 + 自動更新検知
 ══════════════════════════════════════ */
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('service-worker.js')
-      .then(reg=>console.log('SW registered:', reg.scope))
+      .then(reg=>{
+        console.log('SW registered:', reg.scope);
+
+        // 既に待機中のSWがあれば通知を表示
+        if(reg.waiting){
+          showUpdateBanner(reg.waiting);
+        }
+
+        // 新しいSWが見つかった時の処理
+        reg.addEventListener('updatefound', ()=>{
+          const newWorker = reg.installing;
+          if(!newWorker) return;
+          newWorker.addEventListener('statechange', ()=>{
+            // インストール完了 & 既存SWがある = 更新版
+            if(newWorker.state === 'installed' && navigator.serviceWorker.controller){
+              showUpdateBanner(newWorker);
+            }
+          });
+        });
+
+        // 定期的に更新チェック（30分ごと、起動中のみ）
+        setInterval(()=>{ reg.update().catch(()=>{}); }, 30*60*1000);
+      })
       .catch(err=>console.warn('SW registration failed:', err));
+
+    // SW切り替え完了時にページをリロード
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+      if(refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
   });
+}
+
+function showUpdateBanner(worker){
+  // 既に表示中なら何もしない
+  if(document.getElementById('update-banner')) return;
+  const banner = document.createElement('div');
+  banner.id = 'update-banner';
+  banner.style.cssText = `
+    position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+    background:#1a1a1a;color:#fff;padding:12px 16px 12px 18px;
+    border-radius:24px;box-shadow:0 4px 20px rgba(0,0,0,0.3);
+    display:flex;align-items:center;gap:12px;
+    font-family:'Noto Sans JP',sans-serif;font-size:13px;
+    z-index:9999;white-space:nowrap;
+    animation:updBanIn .3s cubic-bezier(.25,.46,.45,.94) both;
+  `;
+  banner.innerHTML = `
+    <span>新しいバージョンがあります</span>
+    <button id="update-btn" style="
+      background:#11d1d1;color:#fff;border:none;
+      padding:6px 14px;border-radius:18px;
+      font-family:inherit;font-size:12px;font-weight:600;
+      cursor:pointer;-webkit-tap-highlight-color:transparent;
+    ">更新</button>
+    <button id="update-close" style="
+      background:none;border:none;color:#888;
+      width:24px;height:24px;cursor:pointer;font-size:18px;
+      display:flex;align-items:center;justify-content:center;
+      -webkit-tap-highlight-color:transparent;
+    ">×</button>
+  `;
+  // アニメーション用CSS
+  if(!document.getElementById('update-banner-style')){
+    const st = document.createElement('style');
+    st.id = 'update-banner-style';
+    st.textContent = '@keyframes updBanIn{from{opacity:0;transform:translate(-50%,16px);}to{opacity:1;transform:translate(-50%,0);}}';
+    document.head.appendChild(st);
+  }
+  document.body.appendChild(banner);
+
+  document.getElementById('update-btn').onclick = ()=>{
+    banner.remove();
+    worker.postMessage({type:'SKIP_WAITING'});
+    // controllerchange でリロードされる
+  };
+  document.getElementById('update-close').onclick = ()=>{
+    banner.remove();
+  };
 }
 
 init();
