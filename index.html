@@ -3146,16 +3146,17 @@ function syncEditorToState(pi){
         const origByIdx = state.pages[pi] ? state.pages[pi].paras[globalQi] : null;
         // data-qiが一致するorigを優先、なければglobalQi照合、それもなければnull
         const orig = origByQi || origByIdx;
-        // sizeはDOMのstyle.fontSizeを優先（直前のサイズボタン操作を保持）
+        // size・colorはDOMのstyleを優先（直前のボタン操作を保持）
         let nodeSize = parseFloat(node.style.fontSize);
         if(isNaN(nodeSize) || !nodeSize) nodeSize = (orig && orig.size) || state.settings.fontSize;
+        const nodeColor = node.style.color || (orig && orig.color) || state.settings.color;
         newParas.push({
           type:'text',
           text:node.textContent,
           html:node.innerHTML,
           align:(node.style.textAlign||orig?.align||'left'),
           size: nodeSize,
-          color:orig?.color||state.settings.color,
+          color: nodeColor,
         });
       }
       if(node.dataset){node.dataset.pi=pi; node.dataset.qi=globalQi;}
@@ -3798,9 +3799,11 @@ function applyColorToPara(hex){
 
   // 編集バー操作でフォーカスが外れている場合は保存済みの選択範囲を復元
   if(state.ui.savedRange){
-    const sel=window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(state.ui.savedRange);
+    try{
+      const sel=window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(state.ui.savedRange);
+    }catch(_){}
   }
 
   const sel=window.getSelection();
@@ -3812,28 +3815,56 @@ function applyColorToPara(hex){
     return;
   }
 
-  // Otherwise color the whole paragraph
-  const t=getActivePara();if(!t)return;
-  const{pi,qi}=t;
-  applyParaColor(pi,qi,hex);
+  // 段落全体に色を適用：selPara → カーソル → グループ先頭 の順でターゲット決定
+  let t = state.ui.selPara || getActivePara();
+  if(!t || !state.pages[t.pi] || !state.pages[t.pi].paras[t.qi] || state.pages[t.pi].paras[t.qi].type!=='text'){
+    const pi=state.curPage;
+    const pg=state.pages[pi];
+    if(!pg) return;
+    let g=0;
+    t=null;
+    for(let qi=0;qi<pg.paras.length;qi++){
+      const p=pg.paras[qi];
+      if(p.type==='group-break'){g++;continue;}
+      if(g===state.subPageIndex&&p.type==='text'){t={pi,qi};break;}
+    }
+  }
+  if(!t) return;
+  applyParaColor(t.pi, t.qi, hex);
 }
 
 function applyParaColor(pi,qi,hex){
   if(!state.pages[pi]||!state.pages[pi].paras[qi]||state.pages[pi].paras[qi].type!=='text')return;
-  state.pages[pi].paras[qi].color=hex;
-  state.ui.selPara={pi,qi};
-  const el=getContent(pi,qi);
+  const para = state.pages[pi].paras[qi];
+  para.color = hex;
+  state.ui.selPara = {pi, qi};
+  const el = getContent(pi, qi);
   if(el){
-    el.style.color=hex;
-    el.querySelectorAll('span[style*="color"]').forEach(span=>{
-      const parent=span.parentNode;
-      while(span.firstChild)parent.insertBefore(span.firstChild,span);
-      parent.removeChild(span);
+    el.style.color = hex;
+    // 子孫要素のcolor指定を全て除去（親のcolorをoverrideさせない）
+    el.querySelectorAll('[style*="color"]').forEach(child=>{
+      child.style.removeProperty('color');
+      if(child.tagName==='SPAN' && (!child.getAttribute('style') || child.getAttribute('style').trim()==='')){
+        const parent = child.parentNode;
+        while(child.firstChild) parent.insertBefore(child.firstChild, child);
+        parent.removeChild(child);
+      }
+    });
+    // 旧式の <font color="..."> も除去
+    el.querySelectorAll('font[color]').forEach(f=>{
+      const parent = f.parentNode;
+      while(f.firstChild) parent.insertBefore(f.firstChild, f);
+      parent.removeChild(f);
     });
     el.normalize();
-    state.pages[pi].paras[qi].html=el.innerHTML;
+    para.html = el.innerHTML;
   }
-  debouncedSave();
+  // syncEditorToStateを介さず直接保存（color が消える問題への対策）
+  syncCurrentEpisode();
+  state.novel.updatedAt = new Date().toISOString();
+  const idx = state.library.findIndex(n=>n.id===state.currentNovelId);
+  if(idx>=0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+  libDbPut(state.novel).catch(e=>{ console.warn('save failed:',e); });
 }
 
 function wrapRangeWithColor(range,hex){
