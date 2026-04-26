@@ -3713,18 +3713,43 @@ function syncEB(para){
 
 // ── 段落スタイル操作 ──
 function ebAlign(align){
-  const t=getActivePara();if(!t)return;
-  const{pi,qi}=t;
-  if(!state.pages[pi]||!state.pages[pi].paras[qi])return;
-  state.pages[pi].paras[qi].align=align;
-  state.ui.selPara={pi,qi};
-  document.querySelectorAll('#eb-scroll .eb-abtn').forEach(b=>b.classList.toggle('active',b.dataset.align===align));
-  const el=getContent(pi,qi);
-  if(el&&state.pages[pi].paras[qi].type!=='image')el.style.textAlign=align;
-  else if(el&&state.pages[pi].paras[qi].type==='image'){
-    const img=el.querySelector('img');
-    if(img)img.style.margin=align==='right'?'0 0 24px auto':align==='left'?'0 auto 24px 0':'0 auto 24px';
+  // ターゲット決定（selPara → カーソル → グループ先頭）
+  let t = state.ui.selPara || getActivePara();
+  if(!t || !state.pages[t.pi] || !state.pages[t.pi].paras[t.qi]){
+    const pi=state.curPage;
+    const pg=state.pages[pi];
+    if(!pg) return;
+    let g=0;
+    t=null;
+    for(let qi=0;qi<pg.paras.length;qi++){
+      const p=pg.paras[qi];
+      if(p.type==='group-break'){g++;continue;}
+      if(g===state.subPageIndex){t={pi,qi};break;}
+    }
   }
+  if(!t || !state.pages[t.pi] || !state.pages[t.pi].paras[t.qi]) return;
+  const{pi,qi}=t;
+  // undoスナップショット
+  _undoStack.push(JSON.stringify(state.pages));
+  if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
+  _redoStack.length = 0;
+  const para = state.pages[pi].paras[qi];
+  para.align = align;
+  state.ui.selPara = {pi, qi};
+  document.querySelectorAll('#eb-scroll .eb-abtn').forEach(b=>b.classList.toggle('active',b.dataset.align===align));
+  const el = getContent(pi, qi);
+  if(el && para.type!=='image'){
+    el.style.textAlign = align;
+  } else if(el && para.type==='image'){
+    const img = el.querySelector('img');
+    if(img) img.style.margin = align==='right'?'0 0 24px auto':align==='left'?'0 auto 24px 0':'0 auto 24px';
+  }
+  // 直接保存（syncEditorToStateを介さず align を保護）
+  syncCurrentEpisode();
+  state.novel.updatedAt = new Date().toISOString();
+  const idx = state.library.findIndex(n=>n.id===state.currentNovelId);
+  if(idx>=0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+  libDbPut(state.novel).catch(e=>{ console.warn('save failed:',e); });
 }
 
 function ebSizeDelta(d){
@@ -3809,6 +3834,11 @@ function applyColorToPara(hex){
   const sel=window.getSelection();
   // If there's a non-collapsed selection → color the range
   if(sel&&sel.rangeCount>0&&!sel.getRangeAt(0).collapsed){
+    // 操作前にDOMをstateへ反映してスナップショット
+    syncEditorToState(state.curPage);
+    _undoStack.push(JSON.stringify(state.pages));
+    if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
+    _redoStack.length = 0;
     const range=sel.getRangeAt(0);
     wrapRangeWithColor(range,hex);
     save();
@@ -3835,6 +3865,10 @@ function applyColorToPara(hex){
 
 function applyParaColor(pi,qi,hex){
   if(!state.pages[pi]||!state.pages[pi].paras[qi]||state.pages[pi].paras[qi].type!=='text')return;
+  // undoスナップショット
+  _undoStack.push(JSON.stringify(state.pages));
+  if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
+  _redoStack.length = 0;
   const para = state.pages[pi].paras[qi];
   para.color = hex;
   state.ui.selPara = {pi, qi};
@@ -4546,11 +4580,21 @@ function applyOverlay(){
 function edUndo(){
   if(_undoStack.length === 0){ showToast('これ以上戻せません'); return; }
   const pi = state.curPage;
+  // 入力中の文字をDOMからstateに反映（テキスト入力の取りこぼし防止）
+  // ただし、最後のスナップショットと現在のstateが同じなら追加同期しない
   syncEditorToState(pi);
+  // 現在のstateをredoに積む
   _redoStack.push(JSON.stringify(state.pages));
+  // undoから前の状態を復元
   state.pages = JSON.parse(_undoStack.pop());
+  // ページを完全再構築（state.pages の size/color/align が DOM に反映される）
   refreshPage(pi);
-  debouncedSave();
+  // 直接保存（debouncedSaveはsyncEditorToStateを呼びDOMから読み戻すため使わない）
+  syncCurrentEpisode();
+  state.novel.updatedAt = new Date().toISOString();
+  const idx = state.library.findIndex(n=>n.id===state.currentNovelId);
+  if(idx>=0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+  libDbPut(state.novel).catch(e=>{ console.warn('save failed:',e); });
   if(state.ui.selPara){
     const{pi:spi,qi}=state.ui.selPara;
     const para=state.pages[spi]&&state.pages[spi].paras[qi];
@@ -4564,7 +4608,11 @@ function edRedo(){
   _undoStack.push(JSON.stringify(state.pages));
   state.pages = JSON.parse(_redoStack.pop());
   refreshPage(pi);
-  debouncedSave();
+  syncCurrentEpisode();
+  state.novel.updatedAt = new Date().toISOString();
+  const idx = state.library.findIndex(n=>n.id===state.currentNovelId);
+  if(idx>=0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+  libDbPut(state.novel).catch(e=>{ console.warn('save failed:',e); });
   if(state.ui.selPara){
     const{pi:spi,qi}=state.ui.selPara;
     const para=state.pages[spi]&&state.pages[spi].paras[qi];
