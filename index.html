@@ -3070,6 +3070,24 @@ function setupEditorEvents(editor,pi,groupIdx=0,qiOffset=0){
       if(para){ state.ui.selPara=para; syncEB(state.pages[pi].paras[para.qi]); }
     }, 50);
   }, {passive:true});
+
+  // pointerdown → タップした段落要素を即座にselParaに保存（カーソル消失対策）
+  editor.addEventListener('pointerdown', e=>{
+    let node = e.target;
+    while(node && node !== editor){
+      if(node.dataset && node.dataset.qi !== undefined){
+        const qi = parseInt(node.dataset.qi, 10);
+        if(!isNaN(qi)){
+          state.ui.selPara = {pi, qi};
+          if(state.pages[pi] && state.pages[pi].paras[qi]){
+            syncEB(state.pages[pi].paras[qi]);
+          }
+        }
+        break;
+      }
+      node = node.parentNode;
+    }
+  }, {passive:true});
 }
 
 // Sync the editor DOM back into state.pages[] state
@@ -3708,8 +3726,8 @@ function ebAlign(align){
 }
 
 function ebSizeDelta(d){
-  let t=getActivePara();
-  // selParaがなければ現在グループの最初のテキスト段落をターゲットにする
+  // selParaを最優先（タップで保存された段落） → カーソル位置 → グループ先頭の順
+  let t = state.ui.selPara || getActivePara();
   if(!t){
     const pi=state.curPage;
     const pg=state.pages[pi];
@@ -3729,23 +3747,24 @@ function ebSizeDelta(d){
   if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
   _redoStack.length = 0;
   const p=state.pages[pi].paras[qi];
-  // 表示中のバー値・DOM・stateの順で基準サイズを確定（ズレ防止）
   const el=getContent(pi,qi);
+  // 基準サイズ：state → DOMのstyle → DOMの実描画サイズ → デフォルト の順
   let baseSize;
-  const barVal = parseInt(document.getElementById('eb-size-val').textContent, 10);
-  if(!isNaN(barVal) && barVal > 0){
-    baseSize = barVal; // バーに表示されている値が最も信頼できる
-  } else if(p.size != null){
+  if(p.size != null && !isNaN(p.size)){
     baseSize = p.size;
   } else if(el && el.style.fontSize){
-    baseSize = parseFloat(el.style.fontSize) || state.settings.fontSize;
-  } else {
-    baseSize = state.settings.fontSize;
+    baseSize = parseFloat(el.style.fontSize);
+  } else if(el){
+    baseSize = parseFloat(getComputedStyle(el).fontSize);
   }
-  p.size = Math.min(40, Math.max(10, baseSize + d));
+  if(!baseSize || isNaN(baseSize)) baseSize = state.settings.fontSize;
+  // 1pxずつ変更
+  const newSize = Math.min(40, Math.max(10, Math.round(baseSize) + d));
+  p.size = newSize;
   state.ui.selPara={pi,qi};
-  if(el) el.style.fontSize=p.size+'px';
-  syncEB(p);
+  if(el) el.style.fontSize = newSize + 'px';
+  // バー表示も同じ値に同期（syncEBに任せず明示的に）
+  if($.eb_size_val) $.eb_size_val.textContent = newSize;
   save(); // サイズ変更は即時保存
 }
 
