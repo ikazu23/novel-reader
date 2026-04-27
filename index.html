@@ -358,6 +358,36 @@ mark.sh.current{background:#ff8f00;color:#fff;}
   height:100%;
   z-index:5;
 }
+/* エクスポート/インポートメニュー */
+#export-menu{
+  position:fixed;
+  top:50px;right:8px;
+  background:#fff;
+  border:1px solid #ccc;
+  border-radius:6px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.15);
+  padding:6px;
+  display:none;
+  z-index:300;
+  min-width:200px;
+}
+#export-menu.show{display:block;}
+.export-menu-item{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 12px;
+  cursor:pointer;
+  border-radius:4px;
+  font-size:13px;
+  color:#333;
+  background:transparent;border:none;width:100%;text-align:left;
+  font-family:inherit;
+}
+.export-menu-item:active{background:#f0f0f0;}
+.export-menu-item svg{flex-shrink:0;color:#666;}
+.export-menu-divider{
+  height:1px;background:#eee;margin:4px 0;
+}
+
 /* バックアップ管理モーダル */
 #backup-modal-ov{
   position:fixed;inset:0;background:rgba(0,0,0,0.4);
@@ -1530,9 +1560,10 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
     <button class="toc-tb-btn" onclick="openTocSearch()" title="検索">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg>
     </button>
-    <button class="toc-tb-btn" onclick="exportAsZip()" title="テキストファイルをエクスポート（ZIP）">
+    <button id="toc-export-btn" class="toc-tb-btn" onclick="toggleExportMenu()" title="エクスポート / インポート">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
     </button>
+    <input type="file" id="json-import-input" accept="application/json,.json" style="display:none" onchange="handleJsonImport(event)">
     <button class="toc-tb-btn" onclick="openTocSettings()" title="設定">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
@@ -3198,6 +3229,131 @@ function openTocSettings(){
 /* ══════════════════════════════════════
    エクスポート
 ══════════════════════════════════════ */
+// エクスポートメニューの開閉
+function toggleExportMenu(){
+  const m = document.getElementById('export-menu');
+  if(!m) return;
+  if(m.classList.contains('show')){
+    m.classList.remove('show');
+  } else {
+    // ボタンの位置に合わせる
+    const btn = document.getElementById('toc-export-btn');
+    if(btn){
+      const rect = btn.getBoundingClientRect();
+      m.style.top = (rect.bottom + 4) + 'px';
+      m.style.right = (window.innerWidth - rect.right) + 'px';
+    }
+    m.classList.add('show');
+    // 外側タップで閉じる
+    setTimeout(()=>{
+      const off = (e)=>{
+        if(!m.contains(e.target) && e.target !== btn && !btn.contains(e.target)){
+          m.classList.remove('show');
+          document.removeEventListener('click', off);
+        }
+      };
+      document.addEventListener('click', off);
+    }, 0);
+  }
+}
+function closeExportMenu(){
+  const m = document.getElementById('export-menu');
+  if(m) m.classList.remove('show');
+}
+
+// 開いている本をJSONとしてエクスポート
+async function exportAsJson(){
+  if(!state.novel){
+    try{ showToast('本が開かれていません'); }catch(_){}
+    return;
+  }
+  // 編集中エピソードを同期
+  if(state.editMode && state.curPage != null){
+    try{ syncEditorToState(state.curPage); }catch(_){}
+    syncCurrentEpisode();
+  }
+  try{
+    const data = {
+      app: 'novel-reader',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      novel: JSON.parse(JSON.stringify(state.novel))
+    };
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const safeTitle = (state.novel.title || 'novel').replace(/[\\/:*?"<>|]/g, '_');
+    a.download = safeTitle + '.json';
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+    try{ showToast('JSONをエクスポートしました'); }catch(_){}
+  }catch(e){
+    console.warn('exportAsJson:', e);
+    try{ showToast('エクスポートに失敗しました'); }catch(_){}
+  }
+}
+
+// JSONファイルから本をインポート
+async function handleJsonImport(event){
+  const input = event.target;
+  const file = input.files && input.files[0];
+  if(!file){ input.value=''; return; }
+  try{
+    const text = await file.text();
+    const data = JSON.parse(text);
+    // 形式チェック：novel フィールドが必須
+    let imported;
+    if(data && data.novel && typeof data.novel === 'object'){
+      imported = data.novel;
+    } else if(data && data.id && Array.isArray(data.episodes)){
+      // 旧形式 or novel オブジェクトを直接渡されたケース
+      imported = data;
+    } else {
+      throw new Error('JSONの形式が認識できません');
+    }
+    if(!imported.episodes || !Array.isArray(imported.episodes)){
+      throw new Error('エピソードデータが見つかりません');
+    }
+    // ID 衝突を回避：既存ライブラリと同じIDなら新規IDを発行
+    const lib = state.library || [];
+    const existing = lib.find(n => n.id === imported.id);
+    let asNew = true;
+    if(existing){
+      // 同じIDの本がある → 上書きするか新規追加するか確認
+      asNew = !confirm('「' + (existing.title || '') + '」と同じIDの本が見つかりました。\n[OK] 上書き / [キャンセル] 新規追加');
+    }
+    if(asNew){
+      imported.id = 'novel-' + Date.now() + '-' + Math.random().toString(36).slice(2,8);
+      imported.title = (imported.title || 'インポート') + ' (インポート)';
+    }
+    imported.updatedAt = new Date().toISOString();
+    if(!imported.createdAt) imported.createdAt = imported.updatedAt;
+    // ライブラリに追加 or 上書き
+    const idx = lib.findIndex(n => n.id === imported.id);
+    if(idx >= 0){
+      state.library[idx] = imported;
+    } else {
+      state.library.push(imported);
+    }
+    await libDbPut(imported);
+    try{ showToast('「' + (imported.title || '') + '」をインポートしました'); }catch(_){}
+    // ライブラリ画面に戻って再描画
+    if(state.editMode) exitEditMode();
+    state.currentNovelId = null;
+    state.currentEpisodeId = null;
+    state.novel = null;
+    showLibrary();
+    if(typeof renderLibrary === 'function') renderLibrary();
+  }catch(e){
+    console.warn('handleJsonImport:', e);
+    try{ showToast('インポートに失敗しました：' + (e.message || '不明なエラー')); }catch(_){}
+  }finally{
+    input.value = ''; // 同じファイルを再選択できるように
+  }
+}
+
 async function exportAsZip(){
   if(!state.novel.episodes||state.novel.episodes.length===0){
     showToast('エクスポートするエピソードがありません');
@@ -7396,6 +7552,8 @@ function hasOpenOverlay(){
   if(previewMod && previewMod.classList.contains('show')) return true;
   const backupMod = document.getElementById('backup-modal-ov');
   if(backupMod && backupMod.classList.contains('show')) return true;
+  const exportMenu = document.getElementById('export-menu');
+  if(exportMenu && exportMenu.classList.contains('show')) return true;
   const indentMenu = document.getElementById('indent-menu');
   if(indentMenu && indentMenu.classList.contains('show')) return true;
   const indentSkip = document.getElementById('indent-skip-popup');
@@ -7416,6 +7574,8 @@ function handleBackNavigation(){
   if(indentSkip && indentSkip.classList.contains('show')){ closeIndentSkipPopup(); return true; }
   const indentMenu = document.getElementById('indent-menu');
   if(indentMenu && indentMenu.classList.contains('show')){ closeIndentMenu(); return true; }
+  const exportMenu = document.getElementById('export-menu');
+  if(exportMenu && exportMenu.classList.contains('show')){ closeExportMenu(); return true; }
   const backupMod = document.getElementById('backup-modal-ov');
   if(backupMod && backupMod.classList.contains('show')){ closeBackupModal(); return true; }
   const previewMod = document.getElementById('preview-modal-ov');
@@ -7779,6 +7939,23 @@ init();
       <button class="preview-btn" onclick="showReplacePreview('all')">本全体 プレビュー</button>
     </div>
   </div>
+</div>
+
+<!-- エクスポート/インポートメニュー -->
+<div id="export-menu">
+  <button class="export-menu-item" onclick="closeExportMenu();exportAsZip();">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    <span>テキストでエクスポート（ZIP）</span>
+  </button>
+  <button class="export-menu-item" onclick="closeExportMenu();exportAsJson();">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+    <span>JSONでエクスポート（バックアップ用）</span>
+  </button>
+  <div class="export-menu-divider"></div>
+  <button class="export-menu-item" onclick="closeExportMenu();document.getElementById('json-import-input').click();">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    <span>JSONからインポート</span>
+  </button>
 </div>
 
 <!-- バックアップ管理モーダル -->
