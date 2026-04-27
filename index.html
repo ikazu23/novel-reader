@@ -347,6 +347,7 @@ mark.sh.current{background:#ff8f00;color:#fff;}
   background:#fff;
   height:100%;
   z-index:5;
+  padding-left:8px;
 }
 /* 区切り・段落ボタンを右端に固定 */
 #eb-fixed-right{
@@ -3291,6 +3292,14 @@ function setupEditorEvents(editor,pi,groupIdx=0,qiOffset=0){
           return;
         }
       }
+      // Backspace: グループの最初の段落の先頭で押された場合、直前のグループと合体
+      if(e.key==='Backspace' && state.subPageIndex > 0){
+        if(isCaretAtGroupStart(pi)){
+          e.preventDefault();
+          mergeWithPrevGroup(pi);
+          return;
+        }
+      }
     }
     // Enter → 段落分割 or 段落内改行（モードによる）、Shift+Enter → 逆の動作
     if(e.key==='Enter'&&!e.isComposing){
@@ -4396,68 +4405,86 @@ const BRACKET_PAIRS = {
 // - 先頭がスキップ記号でも、段落途中で閉じて続きがあれば true（地の文と判断）
 function shouldIndentText(text){
   if(!text) return false;
-  if(text.charAt(0) === INDENT_CHAR) return false; // 既に字下げ済み
-  const first = text.charAt(0);
+  // 段落の先頭が既に字下げ済みでも、他の行は字下げが必要な可能性があるので
+  // ここでは「先頭文字が地の文か（カッコ台詞でないか）」だけを判定する。
+  // 既に字下げ済みの「行」のスキップは addIndentToParaEl が各行ごとに判定する。
+  let first = text.charAt(0);
+  // 先頭が字下げ文字なら、その次の文字を判定対象にする
+  if(first === INDENT_CHAR) first = text.charAt(1);
+  if(!first) return false; // 空段落
   const skipList = (state.settings.indentSkipSymbols || []);
   if(skipList.indexOf(first) === -1) return true; // スキップ対象でない → 字下げ
   // スキップ記号で始まる → カッコペアが段落内で閉じた後に続きがあるかチェック
   const closer = BRACKET_PAIRS[first];
-  if(!closer) return false; // ペアが定義されていない → 字下げしない
-  const closeIdx = text.indexOf(closer, 1);
-  if(closeIdx === -1) return false; // 閉じカッコなし → 純粋な台詞 → 字下げしない
-  // 閉じカッコの後に何か文字（スペース除く）があれば地の文と判断
-  const after = text.substring(closeIdx + 1).trim();
+  if(!closer) return false;
+  // 字下げ文字を除いた本文で閉じカッコを探す
+  const body = text.charAt(0) === INDENT_CHAR ? text.substring(1) : text;
+  const closeIdx = body.indexOf(closer, 1);
+  if(closeIdx === -1) return false;
+  const after = body.substring(closeIdx + 1).trim();
   return after.length > 0;
 }
 
-// 段落のinnerHTMLを<br>で行に分割し、各行の先頭に全角スペースを追加
+// 段落の改行（<br> または \n）で行に分割し、各行の先頭に全角スペースを追加
 // 既に字下げ済みの行はスキップ
+// 行区切り正規表現：<br>系タグ または 改行文字
+const LINE_SPLIT_REGEX = /(<br\s*\/?>|\n)/gi;
+
+// HTMLを行に分割。各要素は { content: 行のHTML, separator: 区切り文字 } のペア
+// 最後の行は separator が空文字
+function splitParaIntoLines(html){
+  const parts = html.split(LINE_SPLIT_REGEX);
+  // splitすると [content, separator, content, separator, ..., content] の順になる
+  const lines = [];
+  for(let i = 0; i < parts.length; i += 2){
+    lines.push({
+      content: parts[i] || '',
+      separator: parts[i + 1] || ''
+    });
+  }
+  return lines;
+}
+
+function joinParaLines(lines){
+  return lines.map(l => l.content + l.separator).join('');
+}
+
 function addIndentToParaEl(el){
   if(!el) return false;
   const html = el.innerHTML;
-  // <br> または <br/> または <br /> で分割
-  const segments = html.split(/<br\s*\/?>/i);
+  const lines = splitParaIntoLines(html);
   let changed = false;
-  const newSegs = segments.map(seg=>{
-    // セグメント先頭の不可視タグを保ったまま、テキストの最初の文字を判定
-    // テキストの最初がINDENT_CHARなら何もしない
+  lines.forEach(line=>{
     const tmp = document.createElement('div');
-    tmp.innerHTML = seg;
+    tmp.innerHTML = line.content;
     const firstText = tmp.textContent || '';
-    if(firstText.charAt(0) === INDENT_CHAR){
-      return seg; // 既に字下げ済み
-    }
+    if(firstText.charAt(0) === INDENT_CHAR) return; // 既に字下げ済み
     changed = true;
-    // 先頭タグの内側、最初のテキストノードの前にINDENT_CHARを挿入
-    // シンプルに、HTMLの最初に置く
-    return INDENT_CHAR + seg;
+    line.content = INDENT_CHAR + line.content;
   });
   if(changed){
-    el.innerHTML = newSegs.join('<br>');
+    el.innerHTML = joinParaLines(lines);
   }
   return changed;
 }
 
-// 段落の各行先頭からINDENT_CHARを除去
 function removeIndentFromParaEl(el){
   if(!el) return false;
   const html = el.innerHTML;
-  const segments = html.split(/<br\s*\/?>/i);
+  const lines = splitParaIntoLines(html);
   let changed = false;
-  const newSegs = segments.map(seg=>{
+  lines.forEach(line=>{
     const tmp = document.createElement('div');
-    tmp.innerHTML = seg;
+    tmp.innerHTML = line.content;
     const firstText = tmp.textContent || '';
-    if(firstText.charAt(0) !== INDENT_CHAR) return seg;
-    // 最初のINDENT_CHARをHTMLから1個だけ削除
-    // textContentの最初の文字 = HTML文字列内で最初のINDENT_CHAR
-    const idx = seg.indexOf(INDENT_CHAR);
-    if(idx === -1) return seg;
+    if(firstText.charAt(0) !== INDENT_CHAR) return;
+    const idx = line.content.indexOf(INDENT_CHAR);
+    if(idx === -1) return;
+    line.content = line.content.substring(0, idx) + line.content.substring(idx + 1);
     changed = true;
-    return seg.substring(0, idx) + seg.substring(idx + 1);
   });
   if(changed){
-    el.innerHTML = newSegs.join('<br>');
+    el.innerHTML = joinParaLines(lines);
   }
   return changed;
 }
@@ -4504,26 +4531,26 @@ function toggleIndentAtCursorLine(el, caretNode, caretOffset){
     html = html.split(MARKER).join('');
     el.innerHTML = html;
     // 段落先頭にトグル
-    const segments = html.split(/<br\s*\/?>/i);
-    if(segments.length === 0) return false;
+    const lines = splitParaIntoLines(html);
+    if(lines.length === 0) return false;
     const tmp = document.createElement('div');
-    tmp.innerHTML = segments[0];
+    tmp.innerHTML = lines[0].content;
     const firstText = tmp.textContent || '';
     if(firstText.charAt(0) === INDENT_CHAR){
-      const idx = segments[0].indexOf(INDENT_CHAR);
-      if(idx >= 0) segments[0] = segments[0].substring(0, idx) + segments[0].substring(idx + 1);
+      const idx = lines[0].content.indexOf(INDENT_CHAR);
+      if(idx >= 0) lines[0].content = lines[0].content.substring(0, idx) + lines[0].content.substring(idx + 1);
     } else {
-      segments[0] = INDENT_CHAR + segments[0];
+      lines[0].content = INDENT_CHAR + lines[0].content;
     }
-    el.innerHTML = segments.join('<br>');
+    el.innerHTML = joinParaLines(lines);
     return true;
   }
-  // <br> で分割
-  const segments = html.split(/<br\s*\/?>/i);
-  // マーカーがあるセグメントを特定
+  // 行に分割（<br> または \n）
+  const lines = splitParaIntoLines(html);
+  // マーカーがある行を特定
   let targetIdx = -1;
-  for(let i = 0; i < segments.length; i++){
-    if(segments[i].indexOf(MARKER) !== -1){ targetIdx = i; break; }
+  for(let i = 0; i < lines.length; i++){
+    if(lines[i].content.indexOf(MARKER) !== -1){ targetIdx = i; break; }
   }
   if(targetIdx === -1){
     // 復元してフォールバック
@@ -4531,23 +4558,23 @@ function toggleIndentAtCursorLine(el, caretNode, caretOffset){
     el.innerHTML = html;
     return false;
   }
-  // ターゲットセグメントの先頭にINDENT_CHARをトグル
+  // ターゲット行の先頭にINDENT_CHARをトグル
   // まずマーカーを除去
-  segments[targetIdx] = segments[targetIdx].split(MARKER).join('');
+  lines[targetIdx].content = lines[targetIdx].content.split(MARKER).join('');
   const tmp = document.createElement('div');
-  tmp.innerHTML = segments[targetIdx];
+  tmp.innerHTML = lines[targetIdx].content;
   const firstText = tmp.textContent || '';
   if(firstText.charAt(0) === INDENT_CHAR){
     // 削除
-    const idx = segments[targetIdx].indexOf(INDENT_CHAR);
+    const idx = lines[targetIdx].content.indexOf(INDENT_CHAR);
     if(idx >= 0){
-      segments[targetIdx] = segments[targetIdx].substring(0, idx) + segments[targetIdx].substring(idx + 1);
+      lines[targetIdx].content = lines[targetIdx].content.substring(0, idx) + lines[targetIdx].content.substring(idx + 1);
     }
   } else {
     // 追加
-    segments[targetIdx] = INDENT_CHAR + segments[targetIdx];
+    lines[targetIdx].content = INDENT_CHAR + lines[targetIdx].content;
   }
-  el.innerHTML = segments.join('<br>');
+  el.innerHTML = joinParaLines(lines);
   return true;
 }
 
@@ -4594,12 +4621,6 @@ function onIndentTap(){
       }
     }
   }
-  // [DEBUG]
-  try{
-    const brCount = el.querySelectorAll('br').length;
-    const nodeType = caretNode ? (caretNode.nodeType === 3 ? 'TEXT' : caretNode.tagName || '?') : 'null';
-    showToast('caret='+caretSrc+' type='+nodeType+' off='+caretOffset+' br='+brCount);
-  }catch(_){}
   // undoスナップショット
   _undoStack.push(JSON.stringify(state.pages));
   if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
@@ -4628,14 +4649,12 @@ function indentAll(){
   if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
   _redoStack.length = 0;
   let count = 0;
-  let totalBr = 0;
   pg.paras.forEach((p, qi)=>{
     if(p.type !== 'text') return;
     // 中央寄せ・右寄せの段落は字下げ対象外（タイトル等の体裁を崩さないため）
     if(p.align === 'center' || p.align === 'right') return;
     const el = getContent(pi, qi);
     if(!el) return;
-    totalBr += el.querySelectorAll('br').length;
     const text = el.textContent || '';
     if(shouldIndentText(text)){
       if(addIndentToParaEl(el)){
@@ -4645,8 +4664,7 @@ function indentAll(){
       }
     }
   });
-  // [DEBUG]
-  try{ showToast('段落数:'+count+' 内BR数:'+totalBr); }catch(_){}
+
   // 直接保存
   syncCurrentEpisode();
   state.novel.updatedAt = new Date().toISOString();
@@ -5518,6 +5536,114 @@ function setupKb(){
 /* ══════════════════════════════════════
    サブページ・グループ操作
 ══════════════════════════════════════ */
+
+// カーソルが現在グループの最初の段落の先頭（offset=0）にあるか判定
+function isCaretAtGroupStart(pi){
+  const sel = window.getSelection();
+  if(!sel || sel.rangeCount === 0) return false;
+  const r = sel.getRangeAt(0);
+  if(!r.collapsed) return false; // 選択範囲があるなら通常の削除を優先
+  if(r.startOffset !== 0) return false;
+  // カーソルがある段落要素を取得
+  let node = r.startContainer;
+  if(node.nodeType === 3){
+    // テキストノードの先頭にいる必要がある
+    if(r.startOffset !== 0) return false;
+    // しかも、そのテキストノードが段落要素の最初の子孫である必要がある
+  }
+  // 段落要素を辿る
+  let paraEl = node;
+  while(paraEl && paraEl !== document.body){
+    if(paraEl.dataset && paraEl.dataset.qi !== undefined) break;
+    paraEl = paraEl.parentNode;
+  }
+  if(!paraEl) return false;
+  const qi = parseInt(paraEl.dataset.qi, 10);
+  if(isNaN(qi)) return false;
+  // この段落が「現在のグループの最初の段落」か確認
+  const pg = state.pages[pi];
+  if(!pg) return false;
+  let g = 0;
+  let firstQiInGroup = -1;
+  for(let i = 0; i < pg.paras.length; i++){
+    const p = pg.paras[i];
+    if(p.type === 'group-break'){ g++; continue; }
+    if(g === state.subPageIndex){
+      firstQiInGroup = i;
+      break;
+    }
+  }
+  if(firstQiInGroup !== qi) return false;
+  // カーソルが段落の最先頭（最初のテキストノードの offset=0）にあるかさらに確認
+  // 段落の最初のテキストノードを探す
+  const walker = document.createTreeWalker(paraEl, NodeFilter.SHOW_TEXT, null);
+  const firstTextNode = walker.nextNode();
+  if(firstTextNode){
+    if(node === firstTextNode && r.startOffset === 0) return true;
+    if(node === paraEl && r.startOffset === 0) return true;
+    // node が paraEl の最初の子で offset=0 の場合も先頭
+    return false;
+  }
+  // テキストノードがない（空段落）→ カーソルが paraEl 内にあれば先頭扱い
+  return paraEl.contains(node);
+}
+
+// 現在のグループを直前のグループに合体（group-break を1つ削除）
+function mergeWithPrevGroup(pi){
+  const pg = state.pages[pi];
+  if(!pg || state.subPageIndex === 0) return;
+  // 編集中のDOMをstateに反映
+  syncEditorToState(pi);
+  // 削除すべき group-break のインデックスを探す
+  // = 現在のグループの直前にある group-break
+  let g = 0;
+  let breakIdx = -1;
+  for(let i = 0; i < pg.paras.length; i++){
+    if(pg.paras[i].type === 'group-break'){
+      g++;
+      if(g === state.subPageIndex){ breakIdx = i; break; }
+    }
+  }
+  if(breakIdx === -1) return;
+  // undoスナップショット
+  _undoStack.push(JSON.stringify(state.pages));
+  if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
+  _redoStack.length = 0;
+  // group-break を削除
+  const firstQiOfCurrent = breakIdx + 1;
+  pg.paras.splice(breakIdx, 1);
+  // グループ番号を1つ前に
+  state.subPageIndex--;
+  // 直接保存
+  syncCurrentEpisode();
+  state.novel.updatedAt = new Date().toISOString();
+  const idx = state.library.findIndex(n => n.id === state.currentNovelId);
+  if(idx >= 0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+  libDbPut(state.novel).catch(e => console.warn('save after merge failed:', e));
+  // 再描画
+  refreshPage(pi);
+  // 合体後、元の最初の段落（合体先のグループ末尾の次）の先頭にカーソルを置く
+  const targetQi = breakIdx; // 削除したbreakの位置 = 元の最初の段落のqiから1引いた位置
+  setTimeout(()=>{
+    const pageEl = document.getElementById(`page-${pi}`);
+    if(!pageEl) return;
+    // 元の「現在グループの最初の段落」だったqiは、breakIdx-1 (削除前のbreakIdx) → 削除後はbreakIdx
+    // しかし state.subPageIndex を1減らした後の新グループでの位置を計算する
+    const targetEl = pageEl.querySelector('[data-qi="'+targetQi+'"]');
+    if(targetEl){
+      try{
+        const range = document.createRange();
+        range.selectNodeContents(targetEl);
+        range.collapse(true);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(range);
+        targetEl.focus();
+      }catch(_){}
+    }
+  }, 50);
+  showToast('グループを合体しました');
+}
 
 function autoAddGroup(pi){
   if(state.ui.transitioning)return;
