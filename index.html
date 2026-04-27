@@ -3135,8 +3135,19 @@ function createPageEl(pi,pg){
     editor.spellcheck=false;
 
     const slice=groupSlices[g];
-    for(let k=0;k<slice.qiList.length;k++){
-      editor.appendChild(buildParaEl(pi,slice.qiList[k],paras[slice.qiList[k]]));
+    if(slice.qiList.length === 0){
+      // 空のグループ（新規エピソード等）：状態にも空段落を1つ追加して描画
+      const newPara = {type:'text', text:'', html:'<br>', align:'left',
+        size:state.settings.fontSize, color:state.settings.lastColor};
+      // qiは現在の paras 末尾に挿入
+      const newQi = paras.length;
+      paras.push(newPara);
+      slice.qiList.push(newQi);
+      editor.appendChild(buildParaEl(pi, newQi, newPara));
+    } else {
+      for(let k=0;k<slice.qiList.length;k++){
+        editor.appendChild(buildParaEl(pi,slice.qiList[k],paras[slice.qiList[k]]));
+      }
     }
     setupEditorEvents(editor,pi,g,slice.qiList[0]||0);
     group.appendChild(editor);
