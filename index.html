@@ -358,6 +358,64 @@ mark.sh.current{background:#ff8f00;color:#fff;}
   height:100%;
   z-index:5;
 }
+/* バックアップ管理モーダル */
+#backup-modal-ov{
+  position:fixed;inset:0;background:rgba(0,0,0,0.4);
+  display:none;align-items:center;justify-content:center;z-index:550;
+}
+#backup-modal-ov.show{display:flex;}
+#backup-modal{
+  background:#fff;border-radius:8px;
+  width:92vw;max-width:520px;max-height:85vh;
+  display:flex;flex-direction:column;
+  box-shadow:0 8px 24px rgba(0,0,0,0.2);
+}
+#backup-modal-header{
+  padding:14px 16px;border-bottom:1px solid #eee;
+  display:flex;align-items:center;justify-content:space-between;
+  font-weight:bold;
+}
+#backup-modal-body{
+  flex:1;overflow-y:auto;padding:14px 16px;
+}
+.backup-novel-section{
+  margin-bottom:18px;border-bottom:1px solid #f0f0f0;padding-bottom:14px;
+}
+.backup-novel-title{
+  font-weight:bold;color:#333;margin-bottom:8px;font-size:13px;
+}
+.backup-gen-row{
+  display:flex;gap:8px;align-items:center;
+  padding:8px 10px;border:1px solid #eee;border-radius:6px;margin-bottom:6px;
+  font-size:12px;
+}
+.backup-gen-info{
+  flex:1;color:#555;
+}
+.backup-gen-info .ts{color:#888;font-size:11px;}
+.backup-gen-restore{
+  background:#3a6d8c;color:#fff;border:none;padding:6px 10px;
+  border-radius:4px;cursor:pointer;font-size:11px;
+}
+.backup-empty{color:#aaa;text-align:center;padding:40px 20px;}
+.backup-novel-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:8px;
+}
+.backup-now-btn{
+  background:#e8f0f5;color:#3a6d8c;
+  border:1px solid #c8d8e0;
+  padding:4px 10px;border-radius:4px;cursor:pointer;
+  font-size:11px;font-family:inherit;
+}
+.backup-now-btn:active{background:#d0e0eb;}
+.backup-now-all{
+  width:100%;background:#3a6d8c;color:#fff;border:none;
+  padding:10px;border-radius:6px;margin-bottom:14px;cursor:pointer;
+  font-size:13px;font-family:inherit;font-weight:bold;
+}
+.backup-now-all:active{background:#2a5d7c;}
+
 /* 置換ルール管理モーダル */
 #replace-modal-ov{
   position:fixed;inset:0;background:rgba(0,0,0,0.4);
@@ -421,6 +479,62 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 #replace-modal-footer .apply-all{
   background:var(--accent);color:#fff;
 }
+#replace-modal-footer .preview-btn{
+  background:#fff;color:#555;border:1px solid #aaa;
+  flex:0.6;
+  min-width:80px;
+}
+/* プレビューモーダル */
+#preview-modal-ov{
+  position:fixed;inset:0;background:rgba(0,0,0,0.5);
+  display:none;align-items:center;justify-content:center;z-index:600;
+}
+#preview-modal-ov.show{display:flex;}
+#preview-modal{
+  background:#fff;border-radius:8px;
+  width:92vw;max-width:520px;max-height:85vh;
+  display:flex;flex-direction:column;
+  box-shadow:0 8px 24px rgba(0,0,0,0.3);
+}
+#preview-modal-header{
+  padding:14px 16px;border-bottom:1px solid #eee;
+  display:flex;align-items:center;justify-content:space-between;
+  font-weight:bold;
+}
+#preview-modal-body{
+  flex:1;overflow-y:auto;padding:14px 16px;font-size:13px;
+}
+.preview-summary{
+  background:#f0f7fb;color:#3a6d8c;
+  padding:10px;border-radius:6px;margin-bottom:14px;
+  font-weight:bold;text-align:center;
+}
+.preview-sample{
+  border:1px solid #eee;border-radius:6px;
+  padding:8px 10px;margin-bottom:8px;
+  font-size:12px;
+}
+.preview-sample .lbl{
+  color:#888;font-size:10px;margin-bottom:2px;
+}
+.preview-sample .before{
+  color:#a04040;background:#fff5f5;padding:4px;border-radius:3px;
+  word-break:break-all;margin-bottom:4px;
+}
+.preview-sample .after{
+  color:#205a30;background:#f0faf0;padding:4px;border-radius:3px;
+  word-break:break-all;
+}
+#preview-modal-footer{
+  padding:12px 16px;border-top:1px solid #eee;
+  display:flex;gap:8px;
+}
+#preview-modal-footer button{
+  flex:1;padding:10px;border-radius:6px;border:none;cursor:pointer;
+  font-size:13px;font-family:inherit;font-weight:bold;
+}
+#preview-modal-footer .cancel{background:#eee;color:#555;}
+#preview-modal-footer .confirm{background:var(--accent);color:#fff;}
 .replace-modal-hint{
   color:#888;font-size:11px;margin-bottom:10px;line-height:1.5;
 }
@@ -1742,6 +1856,21 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
   </div>
 
   <div class="ps" style="margin-top:32px;">
+    <div class="pl">バックアップ</div>
+    <button onclick="openBackupModal()" style="
+      width:100%;background:none;border:1px solid #c8d8e0;
+      color:#3a6d8c;padding:10px;border-radius:8px;
+      font-family:'Noto Sans JP',sans-serif;font-size:12px;
+      cursor:pointer;transition:background .12s;
+    " onmouseover="this.style.background='#f0f7fb'" onmouseout="this.style.background='none'">
+      バックアップ管理
+    </button>
+    <div style="font-size:10px;color:#aaa;margin-top:6px;line-height:1.5;">
+      毎日自動的に各本の状態を5世代まで保存しています。誤って削除や置換した場合に復元できます。
+    </div>
+  </div>
+
+  <div class="ps" style="margin-top:32px;">
     <div class="pl">置換ルール（この本のみ）</div>
     <button onclick="openReplaceModal()" style="
       width:100%;background:none;border:1px solid #c8d8e0;
@@ -1962,6 +2091,8 @@ async function init(){
   loadLibraryName();
   // 最初はライブラリ画面を表示
   showLibrary();
+  // 起動時に自動バックアップ（24時間経過していれば）
+  setTimeout(()=>{ autoBackupAllNovels(); }, 2000);
 }
 
 function saveLibraryName(el){
@@ -1986,13 +2117,16 @@ const DB_NAME='novel-reader-db';
 const DB_STORE='novelData';
 const DB_IMG_STORE='imageStore';
 const DB_LIBRARY_STORE='libraryData'; // 複数小説ライブラリ
+const DB_BACKUP_STORE='backupStore';   // 自動バックアップ
 const DB_KEY='current';
+const BACKUP_MAX_GENERATIONS=5;        // 1冊あたりの最大保持世代
+const BACKUP_INTERVAL_MS=24*60*60*1000; // 24時間
 let _db=null;
 
 function openDB(){
   return new Promise((resolve,reject)=>{
     if(_db){resolve(_db);return;}
-    const req=indexedDB.open(DB_NAME,3); // version 3 for libraryData
+    const req=indexedDB.open(DB_NAME,4); // version 4 for backupStore
     req.onupgradeneeded=(e)=>{
       const db=req.result;
       if(!db.objectStoreNames.contains(DB_STORE)){
@@ -2003,6 +2137,9 @@ function openDB(){
       }
       if(!db.objectStoreNames.contains(DB_LIBRARY_STORE)){
         db.createObjectStore(DB_LIBRARY_STORE);
+      }
+      if(!db.objectStoreNames.contains(DB_BACKUP_STORE)){
+        db.createObjectStore(DB_BACKUP_STORE);
       }
     };
     req.onsuccess=()=>{_db=req.result;resolve(_db);};
@@ -2058,6 +2195,235 @@ function libDbPut(novel){
     tx.onerror=()=>reject(tx.error);
   }));
 }
+
+/* ══════════════════════════════════════
+   自動バックアップ：各本ごとに最大5世代を保持
+══════════════════════════════════════ */
+function backupGetAll(novelId){
+  return openDB().then(db=>new Promise((resolve,reject)=>{
+    const tx=db.transaction(DB_BACKUP_STORE,'readonly');
+    const req=tx.objectStore(DB_BACKUP_STORE).get(novelId);
+    req.onsuccess=()=>resolve(req.result||{generations:[]});
+    req.onerror=()=>reject(req.error);
+  }));
+}
+function backupPutAll(novelId, data){
+  return openDB().then(db=>new Promise((resolve,reject)=>{
+    const tx=db.transaction(DB_BACKUP_STORE,'readwrite');
+    tx.objectStore(DB_BACKUP_STORE).put(data, novelId);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error);
+  }));
+}
+function backupGetAllNovels(){
+  return openDB().then(db=>new Promise((resolve,reject)=>{
+    const tx=db.transaction(DB_BACKUP_STORE,'readonly');
+    const store=tx.objectStore(DB_BACKUP_STORE);
+    const result=[];
+    const req=store.openCursor();
+    req.onsuccess=(e)=>{
+      const cursor=e.target.result;
+      if(cursor){ result.push({id:cursor.key, ...cursor.value}); cursor.continue(); }
+      else resolve(result);
+    };
+    req.onerror=()=>reject(req.error);
+  }));
+}
+async function autoBackup(novel, force, manual){
+  if(!novel || !novel.id) return;
+  try{
+    const data = await backupGetAll(novel.id);
+    const now = Date.now();
+    const lastTs = (data.generations[0] && data.generations[0].ts) || 0;
+    if(!force && (now - lastTs) < BACKUP_INTERVAL_MS) return;
+    const snapshot = {
+      ts: now,
+      iso: new Date(now).toISOString(),
+      title: novel.title || '',
+      manual: !!manual,
+      novel: JSON.parse(JSON.stringify(novel))
+    };
+    data.generations.unshift(snapshot);
+    if(data.generations.length > BACKUP_MAX_GENERATIONS){
+      data.generations = data.generations.slice(0, BACKUP_MAX_GENERATIONS);
+    }
+    await backupPutAll(novel.id, data);
+  }catch(e){ console.warn('autoBackup failed:', e); }
+}
+async function autoBackupAllNovels(){
+  if(!state.library) return;
+  for(const novel of state.library){
+    await autoBackup(novel, false);
+  }
+}
+
+async function openBackupModal(){
+  const ov = document.getElementById('backup-modal-ov');
+  const body = document.getElementById('backup-modal-body');
+  if(!ov || !body) return;
+  body.innerHTML = '<div style="text-align:center;color:#888;padding:20px;">読み込み中...</div>';
+  ov.classList.add('show');
+  await renderBackupModalBody();
+}
+
+async function renderBackupModalBody(){
+  const body = document.getElementById('backup-modal-body');
+  if(!body) return;
+  try{
+    const all = await backupGetAllNovels();
+    const allMap = {};
+    (all || []).forEach(d => { allMap[d.id] = d; });
+    const lib = state.library || [];
+
+    let html = '';
+    // 全本一括バックアップボタン
+    if(lib.length > 0){
+      html += '<button class="backup-now-all" onclick="manualBackupAll()">📦 全ての本を今すぐバックアップ</button>';
+    }
+    if(lib.length === 0 && (!all || all.length === 0)){
+      html += '<div class="backup-empty">本がライブラリに登録されていません</div>';
+      body.innerHTML = html;
+      return;
+    }
+
+    // 現在のライブラリの本を順に表示（バックアップなしでも表示）
+    lib.forEach(novel=>{
+      const novelId = novel.id;
+      const novelData = allMap[novelId];
+      const generations = (novelData && novelData.generations) || [];
+      html += '<div class="backup-novel-section">';
+      html += '<div class="backup-novel-header">';
+      html += '<div class="backup-novel-title">' + escapeHtml(novel.title || '(無題)') + '</div>';
+      html += '<button class="backup-now-btn" onclick="manualBackupOne(\'' + novelId + '\')">今すぐバックアップ</button>';
+      html += '</div>';
+      if(generations.length === 0){
+        html += '<div style="color:#aaa;font-size:11px;">バックアップなし</div>';
+      } else {
+        generations.forEach((gen, idx)=>{
+          const date = new Date(gen.ts);
+          const dstr = date.toLocaleString('ja-JP', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'});
+          const epCount = (gen.novel.episodes || []).length;
+          const manualMark = gen.manual ? ' 🖐' : '';
+          html += '<div class="backup-gen-row">';
+          html += '<div class="backup-gen-info">';
+          html += '<div>' + (idx === 0 ? '最新' : (idx+1)+'世代前') + manualMark + '</div>';
+          html += '<div class="ts">' + dstr + ' / ' + epCount + 'エピソード</div>';
+          html += '</div>';
+          html += '<button class="backup-gen-restore" onclick="restoreFromBackup(\'' + novelId + '\', ' + idx + ')">復元</button>';
+          html += '</div>';
+        });
+      }
+      html += '</div>';
+    });
+
+    // ライブラリにないがバックアップは残っている本
+    (all || []).forEach(novelData=>{
+      const novelId = novelData.id;
+      if(lib.find(n => n.id === novelId)) return; // 既に表示済み
+      const generations = novelData.generations || [];
+      if(generations.length === 0) return;
+      const novelTitle = (generations[0] && generations[0].title) || '(削除された本)';
+      html += '<div class="backup-novel-section">';
+      html += '<div class="backup-novel-header">';
+      html += '<div class="backup-novel-title" style="color:#999;">' + escapeHtml(novelTitle) + '（削除済み）</div>';
+      html += '</div>';
+      generations.forEach((gen, idx)=>{
+        const date = new Date(gen.ts);
+        const dstr = date.toLocaleString('ja-JP', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'});
+        const epCount = (gen.novel.episodes || []).length;
+        const manualMark = gen.manual ? ' 🖐' : '';
+        html += '<div class="backup-gen-row">';
+        html += '<div class="backup-gen-info">';
+        html += '<div>' + (idx === 0 ? '最新' : (idx+1)+'世代前') + manualMark + '</div>';
+        html += '<div class="ts">' + dstr + ' / ' + epCount + 'エピソード</div>';
+        html += '</div>';
+        html += '<button class="backup-gen-restore" onclick="restoreFromBackup(\'' + novelId + '\', ' + idx + ')">復元</button>';
+        html += '</div>';
+      });
+      html += '</div>';
+    });
+
+    body.innerHTML = html;
+  }catch(e){
+    body.innerHTML = '<div class="backup-empty">バックアップの読み込みに失敗しました</div>';
+    console.warn('renderBackupModalBody:', e);
+  }
+}
+
+// 1冊の本を手動でバックアップ
+async function manualBackupOne(novelId){
+  const novel = (state.library || []).find(n => n.id === novelId);
+  if(!novel){ try{ showToast('本が見つかりません'); }catch(_){} return; }
+  // 編集中エピソードのDOMを同期
+  if(state.editMode && state.curPage != null && state.currentNovelId === novelId){
+    try{ syncEditorToState(state.curPage); }catch(_){}
+    syncCurrentEpisode();
+  }
+  await autoBackup(novel, true, true); // force=true, manual=true
+  try{ showToast('「' + (novel.title || '') + '」をバックアップしました'); }catch(_){}
+  await renderBackupModalBody();
+}
+
+// 全本を手動でバックアップ
+async function manualBackupAll(){
+  if(!state.library || state.library.length === 0) return;
+  // 編集中エピソードのDOMを同期
+  if(state.editMode && state.curPage != null){
+    try{ syncEditorToState(state.curPage); }catch(_){}
+    syncCurrentEpisode();
+  }
+  let count = 0;
+  for(const novel of state.library){
+    await autoBackup(novel, true, true);
+    count++;
+  }
+  try{ showToast(count + '冊をバックアップしました'); }catch(_){}
+  await renderBackupModalBody();
+}
+
+function closeBackupModal(){
+  const ov = document.getElementById('backup-modal-ov');
+  if(ov) ov.classList.remove('show');
+}
+
+async function restoreFromBackup(novelId, genIdx){
+  if(!confirm('この時点に復元しますか？\n現在の内容は新しいバックアップとして保存されます。')) return;
+  try{
+    const data = await backupGetAll(novelId);
+    const gen = data.generations[genIdx];
+    if(!gen || !gen.novel){
+      try{ showToast('バックアップが見つかりません'); }catch(_){}
+      return;
+    }
+    // まず現在の状態を新たなバックアップとして強制保存
+    const currentNovel = (state.library || []).find(n => n.id === novelId);
+    if(currentNovel){
+      await autoBackup(currentNovel, true);
+    }
+    // 復元実行
+    const restored = JSON.parse(JSON.stringify(gen.novel));
+    restored.updatedAt = new Date().toISOString();
+    await libDbPut(restored);
+    // state.library を更新
+    const idx = state.library.findIndex(n => n.id === novelId);
+    if(idx >= 0) state.library[idx] = restored;
+    // 開いている本なら state.novel も更新
+    if(state.currentNovelId === novelId){
+      state.novel = JSON.parse(JSON.stringify(restored));
+      // エピソードを開いていれば閉じてライブラリへ
+      state.currentEpisodeId = null;
+    }
+    closeBackupModal();
+    closePanel();
+    try{ showToast('「' + (gen.title || '本') + '」を復元しました'); }catch(_){}
+    showLibrary();
+    renderLibrary();
+  }catch(e){
+    console.warn('restoreFromBackup:', e);
+    try{ showToast('復元に失敗しました'); }catch(_){}
+  }
+}
+
 // 小説1件を削除
 function libDbDelete(novelId){
   return openDB().then(db=>new Promise((resolve,reject)=>{
@@ -5099,27 +5465,26 @@ function runReplace(scope){
       if(!pg.paras) return;
       pg.paras.forEach(p=>{
         if(p.type !== 'text') return;
-        // text と html の両方に置換を適用
-        rules.forEach(rule=>{
-          const from = rule.from;
-          const to = rule.to || '';
-          if(!from) return;
-          // 単純な文字列置換（正規表現ではない）
-          if(p.text){
-            const before = p.text;
-            p.text = p.text.split(from).join(to);
-            if(p.text !== before){
-              totalCount += (before.length - p.text.length === 0
-                ? before.split(from).length - 1
-                : (before.split(from).length - 1));
-            }
+        // text にも置換を適用（プレーンテキスト）
+        let count = 0;
+        if(p.text){
+          const before = p.text;
+          rules.forEach(rule=>{
+            if(!rule.from) return;
+            p.text = p.text.split(rule.from).join(rule.to || '');
+          });
+          if(p.text !== before){
+            rules.forEach(rule=>{
+              if(rule.from) count += before.split(rule.from).length - 1;
+            });
+            totalCount += count;
           }
-          if(p.html){
-            // HTML の場合、テキストノードのみ置換すべきだが、簡易的に文字列置換
-            // タグ名と被る可能性は低いが、念のため山括弧を含む置換は注意が必要
-            p.html = p.html.split(from).join(to);
-          }
-        });
+        }
+        // html はテキストノードのみ置換（タグを壊さない）
+        if(p.html){
+          const r = applyRulesToHtml(p.html, rules);
+          p.html = r.newHtml;
+        }
       });
     });
     // 現在編集中のエピソードならstate.pagesも更新
@@ -5325,6 +5690,145 @@ function convertPronounsInText(text, pronouns, target){
     }
   }
   return { newText: result, count };
+}
+
+// HTML文字列のテキストノードのみに対して、置換ルールを適用する（タグを壊さない）
+// rules: [{from, to}, ...]
+// 戻り値: { newHtml, count }
+function applyRulesToHtml(html, rules){
+  if(!html) return { newHtml: html, count: 0 };
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  let totalCount = 0;
+  const walker = document.createTreeWalker(tmp, NodeFilter.SHOW_TEXT, null);
+  const textNodes = [];
+  let node;
+  while(node = walker.nextNode()) textNodes.push(node);
+  textNodes.forEach(n=>{
+    let txt = n.textContent;
+    rules.forEach(rule=>{
+      if(!rule.from) return;
+      const before = txt;
+      txt = txt.split(rule.from).join(rule.to || '');
+      if(txt !== before){
+        totalCount += before.split(rule.from).length - 1;
+      }
+    });
+    if(txt !== n.textContent) n.textContent = txt;
+  });
+  return { newHtml: tmp.innerHTML, count: totalCount };
+}
+
+// プレビューモーダルを開く
+function showReplacePreview(scope){
+  saveReplaceRulesFromUI();
+  if(!state.novel){
+    try{ showToast('本を開いてから操作してください'); }catch(_){}
+    return;
+  }
+  const rules = getReplaceRules().filter(r => r.from && r.from.length > 0);
+  if(rules.length === 0){
+    try{ showToast('置換ルールがありません'); }catch(_){}
+    return;
+  }
+  if(scope === 'episode' && !state.currentEpisodeId){
+    try{ showToast('エピソードを開いてから実行してください'); }catch(_){}
+    return;
+  }
+  // 編集中エピソードのDOMをstateに同期
+  if(state.editMode && state.curPage != null){
+    try{ syncEditorToState(state.curPage); }catch(_){}
+    syncCurrentEpisode();
+  }
+  const result = previewReplace(scope);
+  const body = document.getElementById('preview-modal-body');
+  const title = document.getElementById('preview-modal-title');
+  const confirmBtn = document.getElementById('preview-confirm-btn');
+  if(!body || !title || !confirmBtn) return;
+  const scopeLabel = scope === 'all' ? '本全体' : 'このエピソード';
+  title.textContent = scopeLabel + ' の置換プレビュー';
+  if(result.totalCount === 0){
+    body.innerHTML = '<div class="preview-summary">変更箇所はありません</div>';
+    confirmBtn.disabled = true;
+    confirmBtn.style.opacity = '0.5';
+  } else {
+    let html = '<div class="preview-summary">' + result.paraCount + '段落 / ' + result.totalCount + '箇所 を置換します</div>';
+    html += '<div style="font-size:11px;color:#888;margin-bottom:8px;">変更前後の例（最大5件）:</div>';
+    result.samples.forEach((s, idx)=>{
+      html += '<div class="preview-sample">';
+      html += '<div class="lbl">サンプル ' + (idx+1) + ' ・変更前</div>';
+      html += '<div class="before">' + escapeHtml(s.before.length > 200 ? s.before.substring(0, 200) + '…' : s.before) + '</div>';
+      html += '<div class="lbl">変更後</div>';
+      html += '<div class="after">' + escapeHtml(s.after.length > 200 ? s.after.substring(0, 200) + '…' : s.after) + '</div>';
+      html += '</div>';
+    });
+    body.innerHTML = html;
+    confirmBtn.disabled = false;
+    confirmBtn.style.opacity = '1';
+    confirmBtn.onclick = ()=>{
+      closeReplacePreview();
+      runReplace(scope);
+    };
+  }
+  const ov = document.getElementById('preview-modal-ov');
+  if(ov) ov.classList.add('show');
+}
+
+function closeReplacePreview(){
+  const ov = document.getElementById('preview-modal-ov');
+  if(ov) ov.classList.remove('show');
+}
+
+// プレビュー：実際の変更内容を集計（state変更なし）
+// 戻り値: { totalCount, paraCount, samples: [{before, after}, ...] }
+function previewReplace(scope){
+  const rules = getReplaceRules().filter(r => r.from && r.from.length > 0);
+  if(rules.length === 0) return { totalCount: 0, paraCount: 0, samples: [] };
+
+  let targetEpisodes;
+  if(scope === 'all'){
+    targetEpisodes = state.novel.episodes || [];
+  } else {
+    if(!state.currentEpisodeId) return { totalCount: 0, paraCount: 0, samples: [] };
+    const ep = state.novel.episodes.find(e => e.id === state.currentEpisodeId);
+    if(!ep) return { totalCount: 0, paraCount: 0, samples: [] };
+    targetEpisodes = [ep];
+  }
+
+  let totalCount = 0;
+  let paraCount = 0;
+  const samples = [];
+  const SAMPLE_MAX = 5;
+
+  targetEpisodes.forEach(ep=>{
+    if(!ep.pages) return;
+    ep.pages.forEach(pg=>{
+      if(!pg.paras) return;
+      pg.paras.forEach(p=>{
+        if(p.type !== 'text') return;
+        const oldText = p.text || '';
+        let newText = oldText;
+        let count = 0;
+        rules.forEach(rule=>{
+          if(!rule.from) return;
+          const before = newText;
+          newText = newText.split(rule.from).join(rule.to || '');
+          if(newText !== before){
+            count += before.split(rule.from).length - 1;
+          }
+        });
+        if(count > 0){
+          totalCount += count;
+          paraCount++;
+          if(samples.length < SAMPLE_MAX){
+            samples.push({ before: oldText, after: newText });
+          }
+        }
+      });
+    });
+  });
+
+  return { totalCount, paraCount, samples };
 }
 
 // HTMLの中のテキストノードのみを変換
@@ -6888,6 +7392,10 @@ function hasOpenOverlay(){
   if(colorPopup && colorPopup.classList.contains('show')) return true;
   const replaceMod = document.getElementById('replace-modal-ov');
   if(replaceMod && replaceMod.classList.contains('show')) return true;
+  const previewMod = document.getElementById('preview-modal-ov');
+  if(previewMod && previewMod.classList.contains('show')) return true;
+  const backupMod = document.getElementById('backup-modal-ov');
+  if(backupMod && backupMod.classList.contains('show')) return true;
   const indentMenu = document.getElementById('indent-menu');
   if(indentMenu && indentMenu.classList.contains('show')) return true;
   const indentSkip = document.getElementById('indent-skip-popup');
@@ -6908,6 +7416,10 @@ function handleBackNavigation(){
   if(indentSkip && indentSkip.classList.contains('show')){ closeIndentSkipPopup(); return true; }
   const indentMenu = document.getElementById('indent-menu');
   if(indentMenu && indentMenu.classList.contains('show')){ closeIndentMenu(); return true; }
+  const backupMod = document.getElementById('backup-modal-ov');
+  if(backupMod && backupMod.classList.contains('show')){ closeBackupModal(); return true; }
+  const previewMod = document.getElementById('preview-modal-ov');
+  if(previewMod && previewMod.classList.contains('show')){ closeReplacePreview(); return true; }
   const replaceMod = document.getElementById('replace-modal-ov');
   if(replaceMod && replaceMod.classList.contains('show')){ closeReplaceModal(); return true; }
   if(typeof _selectionMode !== 'undefined' && _selectionMode && typeof exitSelectionMode === 'function'){ exitSelectionMode(); return true; }
@@ -7263,8 +7775,38 @@ init();
       <button class="pronoun-apply-btn" id="pronoun-apply-btn" onclick="runPronounConvert()" disabled>このエピソードの主語を変換</button>
     </div>
     <div id="replace-modal-footer">
-      <button class="apply-ep" onclick="runReplace('episode')">このエピソードに置換適用</button>
-      <button class="apply-all" onclick="runReplace('all')">本全体に置換適用</button>
+      <button class="preview-btn" onclick="showReplacePreview('episode')">エピソード プレビュー</button>
+      <button class="preview-btn" onclick="showReplacePreview('all')">本全体 プレビュー</button>
+    </div>
+  </div>
+</div>
+
+<!-- バックアップ管理モーダル -->
+<div id="backup-modal-ov">
+  <div id="backup-modal">
+    <div id="backup-modal-header">
+      <span>バックアップ管理</span>
+      <button class="close-btn" onclick="closeBackupModal()" title="閉じる">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="backup-modal-body"></div>
+  </div>
+</div>
+
+<!-- 置換プレビューモーダル -->
+<div id="preview-modal-ov">
+  <div id="preview-modal">
+    <div id="preview-modal-header">
+      <span id="preview-modal-title">置換プレビュー</span>
+      <button class="close-btn" onclick="closeReplacePreview()" title="閉じる">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div id="preview-modal-body"></div>
+    <div id="preview-modal-footer">
+      <button class="cancel" onclick="closeReplacePreview()">キャンセル</button>
+      <button class="confirm" id="preview-confirm-btn">適用する</button>
     </div>
   </div>
 </div>
