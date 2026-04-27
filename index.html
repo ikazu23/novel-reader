@@ -3904,6 +3904,25 @@ function updateNavBtns(){
 ══════════════════════════════════════ */
 function enterEditMode(){
   if(state.editMode)return;
+  // 切替前のスクロール位置を保存：現在画面上部に見えている段落要素を記録
+  const pi = state.curPage;
+  const pageEl = document.getElementById('page-'+pi);
+  let anchorQi = null;
+  let anchorOffsetTop = 0; // 画面上部からのその段落の相対位置
+  if(pageEl){
+    const paraEls = pageEl.querySelectorAll('[data-qi]');
+    const scrollTop = pageEl.scrollTop;
+    // 一番上に見えている段落を探す
+    for(const pe of paraEls){
+      const off = pe.offsetTop;
+      if(off + pe.offsetHeight > scrollTop){
+        anchorQi = parseInt(pe.dataset.qi, 10);
+        anchorOffsetTop = scrollTop - off; // その段落の何px下が画面上端か
+        break;
+      }
+    }
+  }
+
   state.editMode=true;
   document.querySelectorAll('.page-editor').forEach(ed=>{
     ed.contentEditable='true';
@@ -3912,29 +3931,52 @@ function enterEditMode(){
   $.topbar_left_spacer.style.display='none';
   $.topbar_edit_done.style.display='';
   $.viewport.classList.add('edit-mode');
-  // 編集モード入ったら編集バーをデフォルト表示
-  // 現在ページの最初のテキスト段落のスタイルでバーを同期（selParaは設定しない=ユーザーがタップで決める）
-  const pi=state.curPage;
   const paras=state.pages[pi]?.paras||[];
   const firstPara=paras.find(p=>p.type==='text')||paras[0];
   if(firstPara){
     showEB(firstPara);
   } else {
-    // 段落がなくてもバーは出す（未同期で表示）
     $.botbar_edit_row.classList.add('visible');
     state.ui.ebOpen=true;
     placeEB();
   }
-  // 編集バー表示後にbotbarの実高さでviewportの下端を調整
-  // CSS transition (.22s) があるため少し待ってから再測定
   requestAnimationFrame(()=>{
     const botbarH=$.botbar.offsetHeight;
     $.viewport.style.bottom=botbarH+'px';
+    // スクロール位置を復元
+    if(anchorQi !== null){
+      requestAnimationFrame(()=>{
+        const newPageEl = document.getElementById('page-'+pi);
+        if(!newPageEl) return;
+        const newAnchor = newPageEl.querySelector('[data-qi="'+anchorQi+'"]');
+        if(newAnchor){
+          newPageEl.scrollTop = newAnchor.offsetTop + anchorOffsetTop;
+        }
+      });
+    }
   });
 }
 
 function exitEditMode(){
   if(!state.editMode)return;
+  // スクロール位置を保存
+  const pi = state.curPage;
+  const pageEl = document.getElementById('page-'+pi);
+  let anchorQi = null;
+  let anchorOffsetTop = 0;
+  if(pageEl){
+    const paraEls = pageEl.querySelectorAll('[data-qi]');
+    const scrollTop = pageEl.scrollTop;
+    for(const pe of paraEls){
+      const off = pe.offsetTop;
+      if(off + pe.offsetHeight > scrollTop){
+        anchorQi = parseInt(pe.dataset.qi, 10);
+        anchorOffsetTop = scrollTop - off;
+        break;
+      }
+    }
+  }
+
   const ae=document.activeElement;
   if(ae&&ae.isContentEditable)ae.blur();
   hideEB();
@@ -3950,6 +3992,17 @@ function exitEditMode(){
   $.viewport.style.bottom='var(--bot-h)';
   // エピソード保存
   save();
+  // スクロール位置を復元
+  if(anchorQi !== null){
+    requestAnimationFrame(()=>{
+      const newPageEl = document.getElementById('page-'+pi);
+      if(!newPageEl) return;
+      const newAnchor = newPageEl.querySelector('[data-qi="'+anchorQi+'"]');
+      if(newAnchor){
+        newPageEl.scrollTop = newAnchor.offsetTop + anchorOffsetTop;
+      }
+    });
+  }
 }
 
 function setupDoubleTap(){
