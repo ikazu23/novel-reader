@@ -4521,6 +4521,27 @@ function addIndentToParaEl(el){
   return changed;
 }
 
+// 段落の各行末尾に全角スペースを追加（右寄せ用）
+function addIndentToParaElEnd(el){
+  if(!el) return false;
+  const html = el.innerHTML;
+  const lines = splitParaIntoLines(html);
+  let changed = false;
+  lines.forEach(line=>{
+    const tmp = document.createElement('div');
+    tmp.innerHTML = line.content;
+    const lastText = tmp.textContent || '';
+    if(!lastText) return; // 空行はスキップ
+    if(lastText.charAt(lastText.length - 1) === INDENT_CHAR) return; // 既に末尾にスペース
+    changed = true;
+    line.content = line.content + INDENT_CHAR;
+  });
+  if(changed){
+    el.innerHTML = joinParaLines(lines);
+  }
+  return changed;
+}
+
 function removeIndentFromParaEl(el){
   if(!el) return false;
   const html = el.innerHTML;
@@ -4540,6 +4561,88 @@ function removeIndentFromParaEl(el){
     el.innerHTML = joinParaLines(lines);
   }
   return changed;
+}
+
+// カーソル位置にマーカーを挿入 → カーソルがある行の【末尾】にINDENT_CHARをトグル（右寄せ用）
+function toggleIndentAtCursorLineEnd(el, caretNode, caretOffset){
+  if(!el) return false;
+  const MARKER = '\uE000INDENT_CARET_END\uE000';
+  let markerInserted = false;
+  if(caretNode && el.contains(caretNode)){
+    try{
+      const marker = document.createTextNode(MARKER);
+      if(caretNode.nodeType === 3){
+        const before = caretNode.textContent.substring(0, caretOffset);
+        const after = caretNode.textContent.substring(caretOffset);
+        caretNode.textContent = before;
+        if(caretNode.nextSibling){
+          caretNode.parentNode.insertBefore(marker, caretNode.nextSibling);
+          caretNode.parentNode.insertBefore(document.createTextNode(after), caretNode.nextSibling);
+        } else {
+          caretNode.parentNode.appendChild(marker);
+          caretNode.parentNode.appendChild(document.createTextNode(after));
+        }
+      } else {
+        const ref = caretNode.childNodes[caretOffset] || null;
+        if(ref){
+          caretNode.insertBefore(marker, ref);
+        } else {
+          caretNode.appendChild(marker);
+        }
+      }
+      markerInserted = true;
+    }catch(_){}
+  }
+  let html = el.innerHTML;
+  // フォールバック：カーソル位置不明 → 段落全体の末尾にトグル
+  if(!markerInserted || html.indexOf(MARKER) === -1){
+    html = html.split(MARKER).join('');
+    el.innerHTML = html;
+    const lines = splitParaIntoLines(html);
+    if(lines.length === 0) return false;
+    // 最終行の末尾を判定
+    const lastIdx = lines.length - 1;
+    const tmp = document.createElement('div');
+    tmp.innerHTML = lines[lastIdx].content;
+    const lastText = tmp.textContent || '';
+    if(lastText.charAt(lastText.length - 1) === INDENT_CHAR){
+      // 削除：最後のINDENT_CHARを除去
+      const seg = lines[lastIdx].content;
+      const idx = seg.lastIndexOf(INDENT_CHAR);
+      if(idx >= 0) lines[lastIdx].content = seg.substring(0, idx) + seg.substring(idx + 1);
+    } else {
+      lines[lastIdx].content = lines[lastIdx].content + INDENT_CHAR;
+    }
+    el.innerHTML = joinParaLines(lines);
+    return true;
+  }
+  // マーカーを含む行を特定
+  const lines = splitParaIntoLines(html);
+  let targetIdx = -1;
+  for(let i = 0; i < lines.length; i++){
+    if(lines[i].content.indexOf(MARKER) !== -1){ targetIdx = i; break; }
+  }
+  if(targetIdx === -1){
+    html = html.split(MARKER).join('');
+    el.innerHTML = html;
+    return false;
+  }
+  // マーカーを除去
+  lines[targetIdx].content = lines[targetIdx].content.split(MARKER).join('');
+  // ターゲット行の末尾にINDENT_CHARをトグル
+  const tmp = document.createElement('div');
+  tmp.innerHTML = lines[targetIdx].content;
+  const lastText = tmp.textContent || '';
+  if(lastText.charAt(lastText.length - 1) === INDENT_CHAR){
+    // 削除
+    const seg = lines[targetIdx].content;
+    const idx = seg.lastIndexOf(INDENT_CHAR);
+    if(idx >= 0) lines[targetIdx].content = seg.substring(0, idx) + seg.substring(idx + 1);
+  } else {
+    lines[targetIdx].content = lines[targetIdx].content + INDENT_CHAR;
+  }
+  el.innerHTML = joinParaLines(lines);
+  return true;
 }
 
 // カーソル位置にマーカーを挿入してinnerHTMLを取得 → マーカー位置からカーソルがどのセグメントにあるか判定
@@ -4652,17 +4755,19 @@ function onIndentTap(){
   if(!para || para.type!=='text') return;
   const el = getContent(pi, qi);
   if(!el) return;
+  // 中央寄せはスキップ
+  if(para.align === 'center'){
+    try{ showToast('中央寄せの段落は字下げしません'); }catch(_){}
+    return;
+  }
   // カーソル位置の行頭を取得（保存済みcaret > savedRange > 現在のselectionの順）
   let caretNode = null, caretOffset = 0;
-  let caretSrc = 'none';
   if(state.ui.savedCaret && el.contains(state.ui.savedCaret.node)){
     caretNode = state.ui.savedCaret.node;
     caretOffset = state.ui.savedCaret.offset;
-    caretSrc = 'savedCaret';
   } else if(state.ui.savedRange && el.contains(state.ui.savedRange.startContainer)){
     caretNode = state.ui.savedRange.startContainer;
     caretOffset = state.ui.savedRange.startOffset;
-    caretSrc = 'savedRange';
   } else {
     const sel = window.getSelection();
     if(sel && sel.rangeCount > 0){
@@ -4670,7 +4775,6 @@ function onIndentTap(){
       if(el.contains(r.startContainer)){
         caretNode = r.startContainer;
         caretOffset = r.startOffset;
-        caretSrc = 'live';
       }
     }
   }
@@ -4678,8 +4782,13 @@ function onIndentTap(){
   _undoStack.push(JSON.stringify(state.pages));
   if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
   _redoStack.length = 0;
-  // カーソル位置の行頭にトグル（新方式：HTML文字列ベース）
-  toggleIndentAtCursorLine(el, caretNode, caretOffset);
+  if(para.align === 'right'){
+    // 右寄せ：カーソルがある行の末尾にトグル
+    toggleIndentAtCursorLineEnd(el, caretNode, caretOffset);
+  } else {
+    // 左寄せ：カーソルがある行の先頭にトグル
+    toggleIndentAtCursorLine(el, caretNode, caretOffset);
+  }
   para.html = el.innerHTML;
   para.text = el.textContent;
   state.ui.selPara = {pi, qi};
@@ -4704,16 +4813,26 @@ function indentAll(){
   let count = 0;
   pg.paras.forEach((p, qi)=>{
     if(p.type !== 'text') return;
-    // 中央寄せ・右寄せの段落は字下げ対象外（タイトル等の体裁を崩さないため）
-    if(p.align === 'center' || p.align === 'right') return;
+    // 中央寄せはスキップ
+    if(p.align === 'center') return;
     const el = getContent(pi, qi);
     if(!el) return;
     const text = el.textContent || '';
-    if(shouldIndentText(text)){
-      if(addIndentToParaEl(el)){
+    if(p.align === 'right'){
+      // 右寄せ：各行の末尾に全角スペースを追加（地の文判定なしで全行）
+      if(addIndentToParaElEnd(el)){
         p.html = el.innerHTML;
         p.text = el.textContent;
         count++;
+      }
+    } else {
+      // 左寄せ：従来通り行頭に字下げ（地の文判定あり）
+      if(shouldIndentText(text)){
+        if(addIndentToParaEl(el)){
+          p.html = el.innerHTML;
+          p.text = el.textContent;
+          count++;
+        }
       }
     }
   });
