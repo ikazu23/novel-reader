@@ -7320,7 +7320,20 @@ function applyGlobalFont(family,idx){
     b.classList.toggle('active',i===idx);
   });
   debouncedSaveSettings();
-
+  // [DEBUG] 適用後の段落要素の実際の状態
+  setTimeout(()=>{
+    try{
+      const p = document.querySelector('.page-editor p');
+      if(p){
+        const computed = window.getComputedStyle(p).fontFamily;
+        const inline = p.style.fontFamily || '(なし)';
+        const innerHasFont = (p.innerHTML.indexOf('font-family') >= 0) ? 'YES' : 'no';
+        showToast('inline=' + inline.substring(0,15) + ' got=' + computed.substring(0,15) + ' html=' + innerHasFont);
+      } else {
+        showToast('段落要素が見つからない');
+      }
+    }catch(e){ showToast('err: '+e.message); }
+  }, 300);
 }
 function buildFontList(){
   const list=$.font_list;
