@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>小説リーダー</title>
 <link rel="manifest" href="manifest.json">
@@ -1887,6 +1888,47 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
   </div>
 
   <div class="ps" style="margin-top:32px;">
+    <div class="pl">クラウド同期（Google Drive）</div>
+    <div id="gdrive-status" style="font-size:11px;color:#888;margin-bottom:8px;">未接続</div>
+    <button id="gdrive-signin-btn" onclick="gdriveSignIn()" style="
+      width:100%;background:none;border:1px solid #c8d8e0;
+      color:#3a6d8c;padding:10px;border-radius:8px;
+      font-family:'Noto Sans JP',sans-serif;font-size:12px;
+      cursor:pointer;transition:background .12s;
+      margin-bottom:6px;
+    ">
+      Googleアカウントでログイン
+    </button>
+    <button id="gdrive-sync-btn" onclick="gdriveSyncNow()" style="
+      display:none;width:100%;background:#3a6d8c;border:none;
+      color:#fff;padding:10px;border-radius:8px;
+      font-family:'Noto Sans JP',sans-serif;font-size:12px;
+      cursor:pointer;margin-bottom:6px;
+    ">
+      ☁ 今すぐ同期
+    </button>
+    <button id="gdrive-restore-btn" onclick="gdriveRestoreFromCloud()" style="
+      display:none;width:100%;background:none;border:1px solid #c8d8e0;
+      color:#3a6d8c;padding:10px;border-radius:8px;
+      font-family:'Noto Sans JP',sans-serif;font-size:12px;
+      cursor:pointer;margin-bottom:6px;
+    ">
+      ☁ クラウドから復元
+    </button>
+    <button id="gdrive-signout-btn" onclick="gdriveSignOut()" style="
+      display:none;width:100%;background:none;border:1px solid #ddd;
+      color:#999;padding:8px;border-radius:8px;
+      font-family:'Noto Sans JP',sans-serif;font-size:11px;
+      cursor:pointer;
+    ">
+      ログアウト
+    </button>
+    <div style="font-size:10px;color:#aaa;margin-top:6px;line-height:1.5;">
+      編集後30秒で自動的にGoogle Driveにバックアップされます。
+    </div>
+  </div>
+
+  <div class="ps" style="margin-top:32px;">
     <div class="pl">バックアップ</div>
     <button onclick="openBackupModal()" style="
       width:100%;background:none;border:1px solid #c8d8e0;
@@ -2126,6 +2168,8 @@ async function init(){
   setTimeout(()=>{ autoBackupAllNovels(); }, 2000);
   // 保存されたカスタムフォントを読み込む
   loadSavedFonts();
+  // Google Drive同期初期化
+  setTimeout(()=>{ gdriveInit(); }, 1000);
 }
 
 function saveLibraryName(el){
@@ -2375,6 +2419,270 @@ async function loadSavedFonts(){
       });
     }
   }catch(e){ console.warn('loadSavedFonts:', e); }
+}
+
+/* ══════════════════════════════════════
+   Google Drive 自動同期
+══════════════════════════════════════ */
+
+const GDRIVE_CLIENT_ID = '1065503937621-mr4legtegr2rjbt5udr1bm3mqfupnigd.apps.googleusercontent.com';
+const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+const GDRIVE_FILE_NAME = 'novel-reader-data.json';
+let _gdriveTokenClient = null;
+let _gdriveAccessToken = null;
+let _gdriveTokenExpiresAt = 0;
+let _gdriveAutoSyncTimer = null;
+
+// 起動時の Google Identity Services 初期化（gsi/client.js が読み込まれた後）
+function gdriveInit(){
+  if(typeof google === 'undefined' || !google.accounts){
+    // まだロードされていない → リトライ
+    setTimeout(gdriveInit, 500);
+    return;
+  }
+  try{
+    _gdriveTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GDRIVE_CLIENT_ID,
+      scope: GDRIVE_SCOPE,
+      callback: (response)=>{
+        if(response.error){
+          console.warn('OAuth error:', response);
+          updateGdriveUI(false);
+          return;
+        }
+        _gdriveAccessToken = response.access_token;
+        _gdriveTokenExpiresAt = Date.now() + (response.expires_in || 3600) * 1000;
+        // 保存
+        try{ localStorage.setItem('gdrive-signed-in', '1'); }catch(_){}
+        updateGdriveUI(true);
+        try{ showToast('Google Driveに接続しました'); }catch(_){}
+      },
+    });
+    // 以前ログインしていたら自動的にトークン取得（無音で）
+    if(localStorage.getItem('gdrive-signed-in') === '1'){
+      _gdriveTokenClient.requestAccessToken({prompt: ''});
+    }
+  }catch(e){ console.warn('gdriveInit:', e); }
+}
+
+function updateGdriveUI(signedIn){
+  const status = document.getElementById('gdrive-status');
+  const signinBtn = document.getElementById('gdrive-signin-btn');
+  const syncBtn = document.getElementById('gdrive-sync-btn');
+  const restoreBtn = document.getElementById('gdrive-restore-btn');
+  const signoutBtn = document.getElementById('gdrive-signout-btn');
+  if(signedIn){
+    if(status) status.textContent = '接続済み';
+    if(status) status.style.color = '#3a6d8c';
+    if(signinBtn) signinBtn.style.display = 'none';
+    if(syncBtn) syncBtn.style.display = '';
+    if(restoreBtn) restoreBtn.style.display = '';
+    if(signoutBtn) signoutBtn.style.display = '';
+  } else {
+    if(status) status.textContent = '未接続';
+    if(status) status.style.color = '#888';
+    if(signinBtn) signinBtn.style.display = '';
+    if(syncBtn) syncBtn.style.display = 'none';
+    if(restoreBtn) restoreBtn.style.display = 'none';
+    if(signoutBtn) signoutBtn.style.display = 'none';
+  }
+}
+
+function gdriveSignIn(){
+  if(!_gdriveTokenClient){
+    try{ showToast('Googleサービス初期化中。少し待ってから再度お試しください'); }catch(_){}
+    gdriveInit();
+    return;
+  }
+  _gdriveTokenClient.requestAccessToken({prompt: 'consent'});
+}
+
+function gdriveSignOut(){
+  if(_gdriveAccessToken && typeof google !== 'undefined' && google.accounts){
+    try{ google.accounts.oauth2.revoke(_gdriveAccessToken, ()=>{}); }catch(_){}
+  }
+  _gdriveAccessToken = null;
+  _gdriveTokenExpiresAt = 0;
+  try{ localStorage.removeItem('gdrive-signed-in'); }catch(_){}
+  updateGdriveUI(false);
+  try{ showToast('ログアウトしました'); }catch(_){}
+}
+
+function gdriveIsSignedIn(){
+  return !!_gdriveAccessToken && Date.now() < _gdriveTokenExpiresAt;
+}
+
+// アクセストークンが期限切れなら更新（無音）
+function gdriveEnsureToken(){
+  return new Promise((resolve, reject)=>{
+    if(gdriveIsSignedIn()){ resolve(_gdriveAccessToken); return; }
+    if(!_gdriveTokenClient){ reject(new Error('not initialized')); return; }
+    const orig = _gdriveTokenClient.callback;
+    _gdriveTokenClient.callback = (response)=>{
+      _gdriveTokenClient.callback = orig;
+      if(response.error){ reject(response); return; }
+      _gdriveAccessToken = response.access_token;
+      _gdriveTokenExpiresAt = Date.now() + (response.expires_in || 3600) * 1000;
+      resolve(_gdriveAccessToken);
+    };
+    _gdriveTokenClient.requestAccessToken({prompt: ''});
+  });
+}
+
+// アプリ専用フォルダ内の指定ファイルを検索（IDを返す、なければnull）
+async function gdriveFindFile(){
+  await gdriveEnsureToken();
+  const url = 'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name,modifiedTime)&q=' + encodeURIComponent("name='" + GDRIVE_FILE_NAME + "'");
+  const res = await fetch(url, {
+    headers: {'Authorization': 'Bearer ' + _gdriveAccessToken}
+  });
+  if(!res.ok) throw new Error('find file failed: ' + res.status);
+  const data = await res.json();
+  return (data.files && data.files[0]) || null;
+}
+
+// アプリ専用フォルダにファイルを保存（既存があれば上書き）
+async function gdriveUploadData(){
+  await gdriveEnsureToken();
+  // 全ライブラリのスナップショットを作成
+  const payload = {
+    app: 'novel-reader',
+    version: 1,
+    syncedAt: new Date().toISOString(),
+    library: state.library || [],
+    settings: state.settings || {}
+  };
+  const json = JSON.stringify(payload);
+  const existing = await gdriveFindFile();
+
+  // multipart upload
+  const boundary = '-------novel-boundary-' + Date.now();
+  const meta = {
+    name: GDRIVE_FILE_NAME,
+    mimeType: 'application/json'
+  };
+  if(!existing){
+    meta.parents = ['appDataFolder'];
+  }
+  const body =
+    '--' + boundary + '\r\n' +
+    'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+    JSON.stringify(meta) + '\r\n' +
+    '--' + boundary + '\r\n' +
+    'Content-Type: application/json\r\n\r\n' +
+    json + '\r\n' +
+    '--' + boundary + '--';
+
+  const url = existing
+    ? 'https://www.googleapis.com/upload/drive/v3/files/' + existing.id + '?uploadType=multipart'
+    : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+  const method = existing ? 'PATCH' : 'POST';
+  const res = await fetch(url, {
+    method: method,
+    headers: {
+      'Authorization': 'Bearer ' + _gdriveAccessToken,
+      'Content-Type': 'multipart/related; boundary=' + boundary
+    },
+    body: body
+  });
+  if(!res.ok) throw new Error('upload failed: ' + res.status);
+  return await res.json();
+}
+
+// クラウドからデータを取得
+async function gdriveDownloadData(){
+  await gdriveEnsureToken();
+  const file = await gdriveFindFile();
+  if(!file) return null;
+  const res = await fetch('https://www.googleapis.com/drive/v3/files/' + file.id + '?alt=media', {
+    headers: {'Authorization': 'Bearer ' + _gdriveAccessToken}
+  });
+  if(!res.ok) throw new Error('download failed: ' + res.status);
+  return await res.json();
+}
+
+// 「今すぐ同期」ボタン
+async function gdriveSyncNow(){
+  if(!gdriveIsSignedIn()){
+    gdriveSignIn();
+    return;
+  }
+  const btn = document.getElementById('gdrive-sync-btn');
+  if(btn){ btn.disabled = true; btn.textContent = '同期中...'; }
+  try{
+    // 編集中エピソードを同期
+    if(state.editMode && state.curPage != null){
+      try{ syncEditorToState(state.curPage); }catch(_){}
+      syncCurrentEpisode();
+    }
+    await gdriveUploadData();
+    try{ showToast('クラウドに同期しました'); }catch(_){}
+  }catch(e){
+    console.warn('gdriveSyncNow:', e);
+    try{ showToast('同期に失敗しました'); }catch(_){}
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = '☁ 今すぐ同期'; }
+  }
+}
+
+// クラウドから復元
+async function gdriveRestoreFromCloud(){
+  if(!gdriveIsSignedIn()){
+    gdriveSignIn();
+    return;
+  }
+  if(!confirm('クラウドのデータでローカルを上書きしますか？\n（現在の状態は新たなバックアップとして保存されます）')) return;
+  const btn = document.getElementById('gdrive-restore-btn');
+  if(btn){ btn.disabled = true; btn.textContent = '復元中...'; }
+  try{
+    const data = await gdriveDownloadData();
+    if(!data || !data.library){
+      try{ showToast('クラウドにデータがありません'); }catch(_){}
+      return;
+    }
+    // 現在の状態を強制バックアップ
+    if(state.library){
+      for(const novel of state.library){
+        await autoBackup(novel, true, true);
+      }
+    }
+    // ライブラリを置換
+    state.library = data.library;
+    // 各本をDBに保存
+    for(const novel of state.library){
+      await libDbPut(novel);
+    }
+    // 設定もマージ（クラウド優先）
+    if(data.settings){
+      state.settings = Object.assign({}, state.settings, data.settings);
+      try{ debouncedSaveSettings(); }catch(_){}
+    }
+    // 開いている本があれば閉じる
+    if(state.editMode) exitEditMode();
+    state.currentNovelId = null;
+    state.currentEpisodeId = null;
+    state.novel = null;
+    showLibrary();
+    if(typeof renderLibrary === 'function') renderLibrary();
+    try{ showToast('クラウドから復元しました'); }catch(_){}
+  }catch(e){
+    console.warn('gdriveRestoreFromCloud:', e);
+    try{ showToast('復元に失敗しました'); }catch(_){}
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = '☁ クラウドから復元'; }
+  }
+}
+
+// 編集後の自動同期スケジュール（30秒のデバウンス）
+function scheduleGdriveAutoSync(){
+  if(!gdriveIsSignedIn()) return;
+  if(_gdriveAutoSyncTimer) clearTimeout(_gdriveAutoSyncTimer);
+  _gdriveAutoSyncTimer = setTimeout(async ()=>{
+    try{
+      await gdriveUploadData();
+      console.log('[gdrive] auto sync done');
+    }catch(e){ console.warn('auto sync:', e); }
+  }, 30000); // 30秒
 }
 
 async function removeCustomFont(fontName, family){
@@ -2761,6 +3069,8 @@ function save(){
     console.warn('save failed:',e);
     showToast('保存に失敗しました');
   });
+  // クラウド自動同期をスケジュール
+  try{ if(typeof scheduleGdriveAutoSync==='function') scheduleGdriveAutoSync(); }catch(_){}
 }
 
 // 連続呼び出し用デバウンス保存（入力中など）
