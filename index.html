@@ -2124,6 +2124,8 @@ async function init(){
   showLibrary();
   // 起動時に自動バックアップ（24時間経過していれば）
   setTimeout(()=>{ autoBackupAllNovels(); }, 2000);
+  // 保存されたカスタムフォントを読み込む
+  loadSavedFonts();
 }
 
 function saveLibraryName(el){
@@ -2149,6 +2151,7 @@ const DB_STORE='novelData';
 const DB_IMG_STORE='imageStore';
 const DB_LIBRARY_STORE='libraryData'; // 複数小説ライブラリ
 const DB_BACKUP_STORE='backupStore';   // 自動バックアップ
+const DB_FONT_STORE='fontStore';       // ユーザー追加フォント
 const DB_KEY='current';
 const BACKUP_MAX_GENERATIONS=5;        // 1冊あたりの最大保持世代
 const BACKUP_INTERVAL_MS=24*60*60*1000; // 24時間
@@ -2157,7 +2160,7 @@ let _db=null;
 function openDB(){
   return new Promise((resolve,reject)=>{
     if(_db){resolve(_db);return;}
-    const req=indexedDB.open(DB_NAME,4); // version 4 for backupStore
+    const req=indexedDB.open(DB_NAME,5); // version 5 for fontStore
     req.onupgradeneeded=(e)=>{
       const db=req.result;
       if(!db.objectStoreNames.contains(DB_STORE)){
@@ -2171,6 +2174,9 @@ function openDB(){
       }
       if(!db.objectStoreNames.contains(DB_BACKUP_STORE)){
         db.createObjectStore(DB_BACKUP_STORE);
+      }
+      if(!db.objectStoreNames.contains(DB_FONT_STORE)){
+        db.createObjectStore(DB_FONT_STORE);
       }
     };
     req.onsuccess=()=>{_db=req.result;resolve(_db);};
@@ -2286,6 +2292,111 @@ async function autoBackupAllNovels(){
   for(const novel of state.library){
     await autoBackup(novel, false);
   }
+}
+
+/* ══════════════════════════════════════
+   ユーザーフォント永続化
+══════════════════════════════════════ */
+function fontDbPut(name, arrayBuffer){
+  return openDB().then(db=>new Promise((resolve,reject)=>{
+    const tx=db.transaction(DB_FONT_STORE,'readwrite');
+    tx.objectStore(DB_FONT_STORE).put(arrayBuffer, name);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error);
+  }));
+}
+function fontDbGetAll(){
+  return openDB().then(db=>new Promise((resolve,reject)=>{
+    const tx=db.transaction(DB_FONT_STORE,'readonly');
+    const store=tx.objectStore(DB_FONT_STORE);
+    const result=[];
+    const req=store.openCursor();
+    req.onsuccess=(e)=>{
+      const cursor=e.target.result;
+      if(cursor){ result.push({name:cursor.key, buffer:cursor.value}); cursor.continue(); }
+      else resolve(result);
+    };
+    req.onerror=()=>reject(req.error);
+  }));
+}
+function fontDbDelete(name){
+  return openDB().then(db=>new Promise((resolve,reject)=>{
+    const tx=db.transaction(DB_FONT_STORE,'readwrite');
+    tx.objectStore(DB_FONT_STORE).delete(name);
+    tx.oncomplete=()=>resolve();
+    tx.onerror=()=>reject(tx.error);
+  }));
+}
+
+// 保存されたフォントを起動時に読み込み、FONTSリストに追加・FontFaceに登録
+async function loadSavedFonts(){
+  try{
+    const saved = await fontDbGetAll();
+    for(const f of saved){
+      try{
+        const fontFace = new FontFace(f.name, f.buffer);
+        const loaded = await fontFace.load();
+        document.fonts.add(loaded);
+        const family = `'${f.name}',serif`;
+        // 重複チェック
+        if(!FONTS.find(x => x.family === family)){
+          FONTS.push({name:`${f.name}（読込済）`, family, custom:true, fontName:f.name});
+        }
+      }catch(e){ console.warn('font load failed:', f.name, e); }
+    }
+    // フォントリストUIを再描画
+    if($.font_list){
+      $.font_list.innerHTML = '';
+      buildFontList();
+      // 永続化されたフォントには削除ボタンを追加
+      FONTS.forEach((f, i)=>{
+        if(f.custom){
+          const btns = $.font_list.querySelectorAll('.font-btn');
+          if(btns[i]){
+            btns[i].title = '長押しで削除';
+            // 長押しで削除
+            let lpTimer = null;
+            const startLp = ()=>{
+              lpTimer = setTimeout(()=>{
+                if(confirm('「' + f.fontName + '」を削除しますか？')){
+                  removeCustomFont(f.fontName, f.family);
+                }
+              }, 600);
+            };
+            const cancelLp = ()=>{ if(lpTimer){clearTimeout(lpTimer); lpTimer=null;} };
+            btns[i].addEventListener('touchstart', startLp, {passive:true});
+            btns[i].addEventListener('touchend', cancelLp);
+            btns[i].addEventListener('touchmove', cancelLp, {passive:true});
+            btns[i].addEventListener('mousedown', startLp);
+            btns[i].addEventListener('mouseup', cancelLp);
+            btns[i].addEventListener('mouseleave', cancelLp);
+          }
+        }
+      });
+    }
+  }catch(e){ console.warn('loadSavedFonts:', e); }
+}
+
+async function removeCustomFont(fontName, family){
+  try{
+    await fontDbDelete(fontName);
+    // FONTSから除去
+    const idx = FONTS.findIndex(f => f.fontName === fontName);
+    if(idx >= 0){
+      FONTS.splice(idx, 1);
+      // 現在使用中のフォントが削除されたものなら、デフォルトに戻す
+      if(state.settings.fontFamily === family){
+        applyGlobalFont(FONTS[0].family, 0);
+      }
+    }
+    // UIを再描画
+    if($.font_list){
+      $.font_list.innerHTML = '';
+      buildFontList();
+      await loadSavedFonts(); // 再読み込みで残ったカスタムフォント表示
+    }
+    try{ showToast('フォントを削除しました'); }catch(_){}
+  }catch(e){ console.warn('removeCustomFont:', e); }
 }
 
 async function openBackupModal(){
@@ -5000,15 +5111,22 @@ function shouldIndentText(text){
   if(!first) return false; // 空段落
   const skipList = (state.settings.indentSkipSymbols || []);
   if(skipList.indexOf(first) === -1) return true; // スキップ対象でない → 字下げ
-  // スキップ記号で始まる → カッコペアが段落内で閉じた後に続きがあるかチェック
+  // スキップ記号で始まる → 段落末尾を見て、純粋な台詞か地の文かを判定
   const closer = BRACKET_PAIRS[first];
   if(!closer) return false;
-  // 字下げ文字を除いた本文で閉じカッコを探す
+  // 字下げ文字を除いた本文
   const body = text.charAt(0) === INDENT_CHAR ? text.substring(1) : text;
-  const closeIdx = body.indexOf(closer, 1);
-  if(closeIdx === -1) return false;
-  const after = body.substring(closeIdx + 1).trim();
-  return after.length > 0;
+  // 段落の末尾（trim後）を見て、カッコ・空白以外の文字で終わっていれば地の文
+  // 末尾が閉じカッコ群や記号で終わっていれば純粋な台詞 → 字下げしない
+  const trimmed = body.replace(/[\s\u3000]+$/, ''); // 末尾の空白を除去
+  if(trimmed.length === 0) return false;
+  const lastChar = trimmed.charAt(trimmed.length - 1);
+  // 全BRACKET_PAIRSの閉じカッコを集める
+  const allClosers = Object.values(BRACKET_PAIRS);
+  // 末尾が閉じカッコなら台詞 → 字下げしない
+  if(allClosers.indexOf(lastChar) >= 0) return false;
+  // それ以外（地の文として終わっている）→ 字下げする
+  return true;
 }
 
 // 段落の改行（<br> または \n）で行に分割し、各行の先頭に全角スペースを追加
@@ -5386,9 +5504,19 @@ function getParaKind(p){
   if(p.type === 'image') return 'image';
   if(p.type === 'group-break') return 'group';
   if(p.type !== 'text') return 'other';
-  // テキスト：先頭の全角スペースを除いた最初の文字を見る
-  const txt = (p.text != null ? p.text : '').replace(/^　+/, '');
-  if(!txt.trim()) return 'empty';
+  // テキスト：text/html両方から実際のテキスト内容を取得
+  let rawText = (p.text != null ? p.text : '');
+  if(!rawText && p.html){
+    // textが空でもhtmlがあれば、HTMLからテキスト抽出
+    const tmp = document.createElement('div');
+    tmp.innerHTML = p.html;
+    rawText = tmp.textContent || '';
+  }
+  // 全角スペース・通常スペース・改行を除いた残りで判定
+  const stripped = rawText.replace(/[\s\u3000]/g, '');
+  if(!stripped) return 'empty';
+  const txt = rawText.replace(/^[\s\u3000]+/, '');
+  if(!txt) return 'empty';
   const first = txt.charAt(0);
   // BRACKET_PAIRS に登録されている記号で始まれば、その記号を種類とする
   if(BRACKET_PAIRS && BRACKET_PAIRS[first]){
@@ -5408,8 +5536,15 @@ function getParaKind(p){
 function compactSameKindParas(){
   closeIndentMenu();
   const pi = state.curPage;
+  // 編集中ならまずDOMをstateに同期
+  if(state.editMode && pi != null){
+    try{ syncEditorToState(pi); }catch(_){}
+  }
   const pg = state.pages[pi];
-  if(!pg || !pg.paras || pg.paras.length === 0) return;
+  if(!pg || !pg.paras || pg.paras.length === 0){
+    try{ showToast('段落がありません'); }catch(_){}
+    return;
+  }
   // undoスナップショット
   _undoStack.push(JSON.stringify(state.pages));
   if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
@@ -6841,25 +6976,45 @@ function loadFontFile(input){
   if(!file)return;
   const name=file.name.replace(/\.[^.]+$/,'');
   const reader=new FileReader();
-  reader.onload=e=>{
-    const fontFace=new FontFace(name,e.target.result);
-    fontFace.load().then(loaded=>{
+  reader.onload=async e=>{
+    const buffer = e.target.result;
+    try{
+      const fontFace=new FontFace(name, buffer);
+      const loaded = await fontFace.load();
       document.fonts.add(loaded);
       const family=`'${name}',serif`;
-      // フォントリストに追加
-      FONTS.push({name:`${name}（読込済）`,family});
-      const list=$.font_list;
-      const idx=FONTS.length-1;
-      const btn=document.createElement('button');
-      btn.className='font-btn';
-      btn.style.fontFamily=family;
-      btn.textContent=FONTS[idx].name;
-      btn.onclick=()=>applyGlobalFont(family,idx);
-      list.appendChild(btn);
+      // 既に同名フォントがあれば置換、なければ追加
+      let idx = FONTS.findIndex(f => f.family === family);
+      if(idx < 0){
+        FONTS.push({name:`${name}（読込済）`, family, custom:true, fontName:name});
+        idx = FONTS.length - 1;
+      }
+      // IndexedDBに保存（ArrayBufferを再利用するためクローン）
+      try{
+        // FontFace に渡した ArrayBuffer は detach される可能性があるので、再読み込みして保存
+        const reReader = new FileReader();
+        reReader.onload = async ev=>{
+          try{
+            await fontDbPut(name, ev.target.result);
+          }catch(saveErr){ console.warn('font save:', saveErr); }
+        };
+        reReader.readAsArrayBuffer(file);
+      }catch(_){}
+      // フォントリストUIを再構築
+      if($.font_list){
+        $.font_list.innerHTML = '';
+        buildFontList();
+      }
+      // カスタムフォントの長押し削除を設定
+      await loadSavedFonts();
       // 即座に適用
-      applyGlobalFont(family,idx);
-      $.font_load_name.textContent=name;
-    }).catch(()=>alert('フォントの読み込みに失敗しました'));
+      applyGlobalFont(family, idx);
+      if($.font_load_name) $.font_load_name.textContent=name;
+      try{ showToast('フォントを保存しました'); }catch(_){}
+    }catch(err){
+      alert('フォントの読み込みに失敗しました');
+      console.warn('loadFontFile:', err);
+    }
   };
   reader.readAsArrayBuffer(file);
 }
