@@ -7247,32 +7247,80 @@ function applyGlobalFont(family,idx){
   document.querySelectorAll('.page-editor p').forEach(p=>{
     p.style.fontFamily = family;
   });
-  // 全エピソードに保存されている個別fontFamilyもクリア（state.libraryも）
-  if(state.library){
-    state.library.forEach(novel=>{
-      if(!novel.episodes) return;
-      novel.episodes.forEach(ep=>{
-        if(!ep.pages) return;
-        ep.pages.forEach(pg=>{
-          if(!pg.paras) return;
-          pg.paras.forEach(para=>{
-            if(para.type === 'text') delete para.fontFamily;
-          });
+  // 全エピソードに保存されている個別fontFamilyもクリア（state.library と state.novel 両方）
+  const clearFontInNovel = (novel)=>{
+    if(!novel || !novel.episodes) return;
+    novel.episodes.forEach(ep=>{
+      if(!ep.pages) return;
+      ep.pages.forEach(pg=>{
+        if(!pg.paras) return;
+        pg.paras.forEach(para=>{
+          if(para.type === 'text') delete para.fontFamily;
         });
       });
     });
+  };
+  // 現在開いている本（独立コピー）
+  if(state.novel) clearFontInNovel(state.novel);
+  // ライブラリ全体
+  if(state.library){
+    state.library.forEach(clearFontInNovel);
+  }
+  // 段落のhtmlに <span style="font-family: ..."> が残っていれば除去
+  // 各段落要素のstyle.fontFamilyだけでは効かない場合があるため、HTML内の指定もクリア
+  if(state.pages){
+    state.pages.forEach(pg=>{
+      if(!pg.paras) return;
+      pg.paras.forEach(para=>{
+        if(para.type !== 'text' || !para.html) return;
+        // HTML内の font-family 指定を全て除去
+        if(para.html.indexOf('font-family') >= 0){
+          const tmp = document.createElement('div');
+          tmp.innerHTML = para.html;
+          tmp.querySelectorAll('[style*="font-family"]').forEach(el=>{
+            el.style.removeProperty('font-family');
+            if(!el.getAttribute('style')) el.removeAttribute('style');
+          });
+          para.html = tmp.innerHTML;
+        }
+      });
+    });
+  }
+  // 現在開いている本のepisodesのhtmlも同様にクリア
+  if(state.novel && state.novel.episodes){
+    state.novel.episodes.forEach(ep=>{
+      if(!ep.pages) return;
+      ep.pages.forEach(pg=>{
+        if(!pg.paras) return;
+        pg.paras.forEach(para=>{
+          if(para.type !== 'text' || !para.html) return;
+          if(para.html.indexOf('font-family') >= 0){
+            const tmp = document.createElement('div');
+            tmp.innerHTML = para.html;
+            tmp.querySelectorAll('[style*="font-family"]').forEach(el=>{
+              el.style.removeProperty('font-family');
+              if(!el.getAttribute('style')) el.removeAttribute('style');
+            });
+            para.html = tmp.innerHTML;
+          }
+        });
+      });
+    });
+  }
+  // 保存
+  if(state.novel && state.novel.id){
+    try{
+      const idx = state.library.findIndex(n=>n.id===state.novel.id);
+      if(idx>=0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+      libDbPut(state.novel).catch(e=>console.warn(e));
+    }catch(_){}
   }
   renderAllPages();
   document.querySelectorAll('.font-btn').forEach((b,i)=>{
     b.classList.toggle('active',i===idx);
   });
   debouncedSaveSettings();
-  // [DEBUG] フォントが実際に利用可能か確認
-  try{
-    const fontName = family.replace(/^['"]?([^'",]+)['"]?.*/, '$1').trim();
-    const ok = document.fonts.check('16px ' + family);
-    showToast('フォント適用: ' + fontName + (ok ? ' ✓' : ' ⚠未読込'));
-  }catch(_){}
+
 }
 function buildFontList(){
   const list=$.font_list;
