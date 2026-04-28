@@ -2351,17 +2351,39 @@ function fontDbDelete(name){
   }));
 }
 
-// 保存されたフォントを起動時に読み込み、FONTSリストに追加・FontFaceに登録
+// ArrayBuffer を base64 dataURL に変換
+function arrayBufferToDataUrl(buffer, mimeType){
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  for(let i = 0; i < bytes.length; i += chunkSize){
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+  }
+  return 'data:' + mimeType + ';base64,' + btoa(binary);
+}
+
+// CSSの@font-faceルールでフォントを登録（FontFace APIより確実）
+function registerFontViaCSS(fontName, buffer){
+  const dataUrl = arrayBufferToDataUrl(buffer, 'font/ttf');
+  // 既存の同名スタイルがあれば削除
+  const existId = 'custom-font-' + fontName.replace(/[^a-zA-Z0-9]/g, '_');
+  const old = document.getElementById(existId);
+  if(old) old.remove();
+  // 新規追加
+  const style = document.createElement('style');
+  style.id = existId;
+  style.textContent = "@font-face{font-family:'" + fontName + "';src:url('" + dataUrl + "') format('truetype');font-display:swap;}";
+  document.head.appendChild(style);
+}
+
+// 保存されたフォントを起動時に読み込み、FONTSリストに追加・@font-faceに登録
 async function loadSavedFonts(){
   try{
     const saved = await fontDbGetAll();
     for(const f of saved){
       try{
-        const fontFace = new FontFace(f.name, f.buffer);
-        const loaded = await fontFace.load();
-        document.fonts.add(loaded);
+        registerFontViaCSS(f.name, f.buffer);
         const family = `'${f.name}',serif`;
-        // 重複チェック
         if(!FONTS.find(x => x.family === family)){
           FONTS.push({name:`${f.name}（読込済）`, family, custom:true, fontName:f.name});
         }
@@ -7320,20 +7342,7 @@ function applyGlobalFont(family,idx){
     b.classList.toggle('active',i===idx);
   });
   debouncedSaveSettings();
-  // [DEBUG] 適用後の段落要素の実際の状態
-  setTimeout(()=>{
-    try{
-      const p = document.querySelector('.page-editor p');
-      if(p){
-        const computed = window.getComputedStyle(p).fontFamily;
-        const inline = p.style.fontFamily || '(なし)';
-        const innerHasFont = (p.innerHTML.indexOf('font-family') >= 0) ? 'YES' : 'no';
-        showToast('inline=' + inline.substring(0,15) + ' got=' + computed.substring(0,15) + ' html=' + innerHasFont);
-      } else {
-        showToast('段落要素が見つからない');
-      }
-    }catch(e){ showToast('err: '+e.message); }
-  }, 300);
+
 }
 function buildFontList(){
   const list=$.font_list;
@@ -7355,27 +7364,18 @@ function loadFontFile(input){
   reader.onload=async e=>{
     const buffer = e.target.result;
     try{
-      const fontFace=new FontFace(name, buffer);
-      const loaded = await fontFace.load();
-      document.fonts.add(loaded);
+      // @font-face で登録（FontFace APIより日本語グリフ認識が確実）
+      registerFontViaCSS(name, buffer);
       const family=`'${name}',serif`;
-      // 既に同名フォントがあれば置換、なければ追加
       let idx = FONTS.findIndex(f => f.family === family);
       if(idx < 0){
         FONTS.push({name:`${name}（読込済）`, family, custom:true, fontName:name});
         idx = FONTS.length - 1;
       }
-      // IndexedDBに保存（ArrayBufferを再利用するためクローン）
+      // IndexedDBに保存
       try{
-        // FontFace に渡した ArrayBuffer は detach される可能性があるので、再読み込みして保存
-        const reReader = new FileReader();
-        reReader.onload = async ev=>{
-          try{
-            await fontDbPut(name, ev.target.result);
-          }catch(saveErr){ console.warn('font save:', saveErr); }
-        };
-        reReader.readAsArrayBuffer(file);
-      }catch(_){}
+        await fontDbPut(name, buffer);
+      }catch(saveErr){ console.warn('font save:', saveErr); }
       // フォントリストUIを再構築
       if($.font_list){
         $.font_list.innerHTML = '';
