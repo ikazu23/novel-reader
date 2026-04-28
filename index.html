@@ -7292,9 +7292,13 @@ function applyGlobalFont(family,idx){
 function buildFontList(){
   const list=$.font_list;
   if(!list)return;
+  // 現在のフォント設定にマッチするインデックスを探す（無ければ0=明朝体）
+  const currentFamily = (state.settings && state.settings.fontFamily) || FONTS[0].family;
+  let activeIdx = FONTS.findIndex(f => f.family === currentFamily);
+  if(activeIdx < 0) activeIdx = 0;
   FONTS.forEach((f,i)=>{
     const btn=document.createElement('button');
-    btn.className='font-btn'+(i===0?' active':'');
+    btn.className='font-btn'+(i===activeIdx?' active':'');
     btn.style.fontFamily=f.family;
     btn.textContent=f.name;
     btn.onclick=()=>applyGlobalFont(f.family,i);
