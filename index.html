@@ -2508,7 +2508,7 @@ function gdriveSignIn(){
     gdriveInit();
     return;
   }
-  _gdriveTokenClient.requestAccessToken({prompt: 'consent'});
+  _gdriveTokenClient.requestAccessToken({prompt: 'select_account'});
 }
 
 function gdriveSignOut(){
