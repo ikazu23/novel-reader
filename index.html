@@ -3490,12 +3490,10 @@ function renderToc(){
   eps.forEach(ep=>{
     const div=document.createElement('div');
     div.className='toc-ep'+(ep.id===state.novel.lastReadId?' last-read':'');
-    const dateStr=formatDate(ep.date);
     div.innerHTML=`
-      <span class="toc-ep-num">${ep.number.toString().padStart(3,'0')}</span>
+      <span class="toc-ep-num">${ep.number}</span>
       <div class="toc-ep-title">${escapeHtml(ep.title)}</div>
       <div class="toc-ep-meta">
-        <span>${dateStr}</span>
         <span>${(ep.charCount||0).toLocaleString()} 文字</span>
       </div>
     `;
@@ -4011,7 +4009,7 @@ function renderSrItem(hit,q,isTitleHit){
   if(isTitleHit){
     titleHtml=titleHtml.replace(new RegExp(escRe(q),'gi'),m=>`<mark style="background:#ffe082;color:#222;padding:0 2px;border-radius:2px;">${escapeHtml(m)}</mark>`);
   }
-  const numStr=ep.number.toString().padStart(3,'0');
+  const numStr=ep.number.toString();
   const countLabel=hit.bodyMatchCount>0?`本文 ${hit.bodyMatchCount} 件`:'';
   return `
     <div class="toc-sr-item" data-ep-id="${ep.id}">
@@ -4221,6 +4219,34 @@ function setupEditorEvents(editor,pi,groupIdx=0,qiOffset=0){
       clearTimeout(_snapFlushTimer);
       _snapFlushTimer = setTimeout(()=>{ _snapPending = false; }, 1500);
     }
+    // 最後尾以外のグループは、空になっても1行分を残す
+    if (!e.isComposing) {
+      const totalGroups = countGroups(pi);
+      if (groupIdx < totalGroups - 1) {
+        const hasContent = Array.from(editor.childNodes).some(node => {
+          if (node.nodeType === Node.TEXT_NODE) return node.textContent.trim() !== '';
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.dataset && node.dataset.type === 'image') return true;
+            return (node.textContent || '').trim() !== '' ||
+              node.querySelector('img');
+          }
+          return false;
+        });
+        
+        if (!hasContent) {
+          editor.innerHTML = '';
+          const p = document.createElement('p');
+          p.dataset.pi = pi;
+          p.dataset.qi = 0;
+          p.dataset.type = 'text';
+          p.innerHTML = '<br>';
+          p.style.textAlign = 'left';
+          p.style.fontSize = state.settings.fontSize + 'px';
+          p.style.color = state.settings.lastColor;
+          editor.appendChild(p);
+        }
+      }
+    }
     syncEditorToState(pi);
     debouncedSave();
   });
@@ -4233,6 +4259,34 @@ function setupEditorEvents(editor,pi,groupIdx=0,qiOffset=0){
     }
     clearTimeout(_snapFlushTimer);
     _snapFlushTimer = setTimeout(()=>{ _snapPending = false; }, 1500);
+    // 最後尾以外のグループは、空になっても1行分を残す
+    if (!e.isComposing) {
+      const totalGroups = countGroups(pi);
+      if (groupIdx < totalGroups - 1) {
+        const hasContent = Array.from(editor.childNodes).some(node => {
+          if (node.nodeType === Node.TEXT_NODE) return node.textContent.trim() !== '';
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.dataset && node.dataset.type === 'image') return true;
+            return (node.textContent || '').trim() !== '' ||
+              node.querySelector('img');
+          }
+          return false;
+        });
+        
+        if (!hasContent) {
+          editor.innerHTML = '';
+          const p = document.createElement('p');
+          p.dataset.pi = pi;
+          p.dataset.qi = 0;
+          p.dataset.type = 'text';
+          p.innerHTML = '<br>';
+          p.style.textAlign = 'left';
+          p.style.fontSize = state.settings.fontSize + 'px';
+          p.style.color = state.settings.lastColor;
+          editor.appendChild(p);
+        }
+      }
+    }
     syncEditorToState(pi);
     debouncedSave();
   });
@@ -4268,14 +4322,6 @@ function setupEditorEvents(editor,pi,groupIdx=0,qiOffset=0){
         if(gi === total - 1 && total > 1){
           e.preventDefault();
           deleteEmptyGroup(pi, gi);
-          return;
-        }
-      }
-      // Backspace: グループの最初の段落の先頭で押された場合、直前のグループと合体
-      if(e.key==='Backspace' && state.subPageIndex > 0){
-        if(isCaretAtGroupStart(pi)){
-          e.preventDefault();
-          mergeWithPrevGroup(pi);
           return;
         }
       }
@@ -6979,27 +7025,21 @@ function mergeWithPrevGroup(pi){
   showToast('グループを合体しました');
 }
 
-function autoAddGroup(pi){
-  if(state.ui.transitioning)return;
-  if(isCurrentGroupEmpty(pi)){ showToast('現在のグループが空です'); return; }
-
-  // カーソル位置の段落の直後に group-break を挿入
-  const active = getActivePara();
-  let insertAt;
-  if(active && active.pi===pi){
-    insertAt = active.qi + 1;
-  } else {
-    // カーソルなし：現在グループの末尾に挿入
-    const pg = state.pages[pi];
-    let lastQiInGroup = -1;
-    let g = 0;
-    for(let qi=0;qi<pg.paras.length;qi++){
-      if(pg.paras[qi].type==='group-break'){ g++; continue; }
-      if(g===state.subPageIndex) lastQiInGroup=qi;
-    }
-    insertAt = lastQiInGroup + 1;
+function autoAddGroup(pi) {
+  if (state.ui.transitioning) return;
+  if (isCurrentGroupEmpty(pi)) { showToast('現在のグループが空です'); return; }
+  
+  const pg = state.pages[pi];
+  
+  // グループはページの最後尾にのみ追加する
+  const totalGroups = countGroups(pi);
+  if (state.subPageIndex !== totalGroups - 1) {
+    showToast('グループは最後尾にのみ追加できます');
+    return;
   }
-
+  
+  const insertAt = pg.paras.length;
+  
   state.pages[pi].paras.splice(insertAt, 0, {type:'group-break'});
   // 新グループの先頭に空段落を追加（<br>を入れてカーソルが立つようにする）
   state.pages[pi].paras.splice(insertAt+1, 0, {
@@ -7244,6 +7284,20 @@ async function pickAndInsertImage(input){
     }
   }
 
+  // 画像の直前にある空のテキスト段落を削除
+  if (insertIdx > 0) {
+    const prevPara = paras[insertIdx - 1];
+    
+    if (
+      prevPara &&
+      prevPara.type === 'text' &&
+      (prevPara.text || '').trim() === '' &&
+      (prevPara.html || '').replace(/<[^>]*>/g, '').trim() === ''
+    ) {
+      paras.splice(insertIdx - 1, 1);
+      insertIdx--;
+    }
+  }
   paras.splice(insertIdx, 0, {
     type:'image',
     imgName: key,
@@ -7880,15 +7934,29 @@ function showModal(title,onOk){
   };
 }
 function closeModal(){$.modal_ov.classList.remove('show');}
-function openTitleModal(){
-  const cur=$.topbar_title.textContent;
-  $.modal_body.innerHTML=
+function openTitleModal() {
+  const cur = $.topbar_title.textContent;
+  $.modal_body.innerHTML =
     `<input class="mi" id="title-input" value="${cur}" style="min-height:40px;resize:none;">`;
-  showModal('タイトルを編集',()=>{
-    const v=document.getElementById('title-input').value.trim();
-    if(v)$.topbar_title.textContent=v;
+  showModal('タイトルを編集', () => {
+    const v = document.getElementById('title-input').value.trim();
+    if (!v) return;
+    $.topbar_title.textContent = v;
+    
+    if (state.currentEpisodeId) {
+      // エピソードを開いている場合：そのエピソードのタイトルを更新
+      const ep = state.novel.episodes.find(e => e.id === state.currentEpisodeId);
+      if (ep) ep.title = v;
+    } else {
+      // 万一エピソードを開いていない状態で呼ばれた場合：小説タイトルを更新
+      state.novel.title = v;
+      const idx = state.library.findIndex(n => n.id === state.currentNovelId);
+      if (idx >= 0) state.library[idx].title = v;
+    }
+    clearTimeout(_saveTimer);
+    save(); // 即時保存
   });
-  setTimeout(()=>document.getElementById('title-input').focus(),100);
+  setTimeout(() => document.getElementById('title-input').focus(), 100);
 }
 
 /* ══════════════════════════════════════
