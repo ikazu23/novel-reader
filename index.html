@@ -2448,10 +2448,31 @@ let _gdriveAccessToken = null;
 let _gdriveTokenExpiresAt = 0;
 let _gdriveAutoSyncTimer = null;
 
-// 起動時の Google Identity Services 初期化（gsi/client.js が読み込まれた後）
+// アクセストークンをlocalStorageに保存/復元（リロードのたびのポップアップを防ぐ）
+function gdriveSaveTokenToStorage(){
+  try{
+    localStorage.setItem('gdrive-token', JSON.stringify({
+      token: _gdriveAccessToken,
+      expiresAt: _gdriveTokenExpiresAt
+    }));
+  }catch(_){}
+}
+function gdriveLoadTokenFromStorage(){
+  try{
+    const raw = localStorage.getItem('gdrive-token');
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    if(data && data.token && data.expiresAt && Date.now() < data.expiresAt){
+      _gdriveAccessToken = data.token;
+      _gdriveTokenExpiresAt = data.expiresAt;
+      return true;
+    }
+  }catch(_){}
+  return false;
+}
+
 function gdriveInit(){
   if(typeof google === 'undefined' || !google.accounts){
-    // まだロードされていない → リトライ
     setTimeout(gdriveInit, 500);
     return;
   }
@@ -2467,15 +2488,18 @@ function gdriveInit(){
         }
         _gdriveAccessToken = response.access_token;
         _gdriveTokenExpiresAt = Date.now() + (response.expires_in || 3600) * 1000;
-        // 保存
         try{ localStorage.setItem('gdrive-signed-in', '1'); }catch(_){}
+        gdriveSaveTokenToStorage();
         updateGdriveUI(true);
         try{ showToast('Google Driveに接続しました'); }catch(_){}
       },
     });
-    // 以前ログインしていたら自動的にトークン取得（無音で）
     if(localStorage.getItem('gdrive-signed-in') === '1'){
-      _gdriveTokenClient.requestAccessToken({prompt: ''});
+      if(gdriveLoadTokenFromStorage()){
+        updateGdriveUI(true);
+      } else {
+        _gdriveTokenClient.requestAccessToken({prompt: ''});
+      }
     }
   }catch(e){ console.warn('gdriveInit:', e); }
 }
@@ -2517,7 +2541,8 @@ function gdriveSignOut(){
   }
   _gdriveAccessToken = null;
   _gdriveTokenExpiresAt = 0;
-  try{ localStorage.removeItem('gdrive-signed-in'); }catch(_){}
+  try { localStorage.removeItem('gdrive-signed-in'); } catch (_) {}
+  try { localStorage.removeItem('gdrive-token'); } catch (_) {} 
   updateGdriveUI(false);
   try{ showToast('ログアウトしました'); }catch(_){}
 }
@@ -2534,9 +2559,10 @@ function gdriveEnsureToken(){
     const orig = _gdriveTokenClient.callback;
     _gdriveTokenClient.callback = (response)=>{
       _gdriveTokenClient.callback = orig;
-      if(response.error){ reject(response); return; }
+      if (response.error) { reject(response); return; }
       _gdriveAccessToken = response.access_token;
       _gdriveTokenExpiresAt = Date.now() + (response.expires_in || 3600) * 1000;
+      gdriveSaveTokenToStorage();
       resolve(_gdriveAccessToken);
     };
     _gdriveTokenClient.requestAccessToken({prompt: ''});
