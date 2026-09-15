@@ -1,0 +1,12 @@
+{
+  "name": "ikasumi-novel",
+  "version": "1.0.0",
+  "dependencies": {
+    "@capacitor/core": "^6.1.0",
+    "@capacitor/android": "^6.1.0",
+    "@codetrix-studio/capacitor-google-auth": "^3.3.5"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.0"
+  }
+}
