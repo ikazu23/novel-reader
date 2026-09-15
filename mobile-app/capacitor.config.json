@@ -1,12 +1,5 @@
 {
   "appId": "com.k.ikasumi",
   "appName": "イカ墨ノベル",
-  "webDir": "www",
-  "plugins": {
-    "GoogleAuth": {
-      "scopes": ["email", "https://www.googleapis.com/auth/drive.appdata"],
-      "serverClientId": "1065503937621-mr4legtegr2rjbt5udr1bm3mqfupnigd.apps.googleusercontent.com",
-      "forceCodeForRefreshToken": false
-    }
-  }
+  "webDir": "www"
 }
