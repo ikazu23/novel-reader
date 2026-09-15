@@ -8650,18 +8650,18 @@ init();
             provider: 'google',
             options: { scopes: ['email', 'https://www.googleapis.com/auth/drive.appdata'] }
           });
-          // ── 診断用 ──
           if (!res.result || !res.result.accessToken) {
-            alert('accessTokenがnullです。res.result:\n' + JSON.stringify(res.result));
+            alert('accessTokenがnullです: ' + JSON.stringify(res.result));
             updateGdriveUI(false);
             return;
           }
           _gdriveAccessToken = res.result.accessToken.token;
-          _gdriveTokenExpiresAt = new Date(res.result.accessToken.expires).getTime();
-          if (isNaN(_gdriveTokenExpiresAt) || _gdriveTokenExpiresAt < Date.now()) {
-            alert('expiresの値が不正です: ' + res.result.accessToken.expires);
+          let expiresAt = new Date(res.result.accessToken.expires).getTime();
+          if (isNaN(expiresAt)) {
+            // expiresが返らない場合はGoogleの標準的な有効期間(1時間)を仮定して55分に設定
+            expiresAt = Date.now() + 55 * 60 * 1000;
           }
-          // ── ここまで ──
+          _gdriveTokenExpiresAt = expiresAt;
           updateGdriveUI(true);
         } catch (e) {
           alert('Google認証エラー: ' + (e && (e.message || e.errorMessage || JSON.stringify(e))));
