@@ -317,6 +317,27 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 }
 .para-img-wrap.show-delete .para-img-delete{display:block;}
 
+.para-img-move{
+  position:absolute;
+  bottom:6px;
+  background:rgba(0,0,0,0.6);
+  color:#fff;
+  border:none;
+  border-radius:50%;
+  width:28px;height:28px;
+  font-size:13px;line-height:1;
+  cursor:pointer;
+  padding:0;
+  display:none;
+  z-index:5;
+  align-items:center;justify-content:center;
+  box-shadow:0 2px 6px rgba(0,0,0,0.25);
+  font-family:'Noto Sans JP',sans-serif;
+}
+.para-img-move-up{left:6px;}
+.para-img-move-down{left:40px;}
+.para-img-wrap.show-delete .para-img-move{display:flex;}
+
 /* empty editor hint */
 .page-editor:empty::before,
 .page-editor p:only-child:empty::before {
@@ -4189,6 +4210,32 @@ function buildParaEl(pi,qi,para){
       deleteImagePara(pi, para.imgName);
     };
     wrap.appendChild(delBtn);
+    
+    // 上へ移動ボタン
+    const moveUpBtn = document.createElement('button');
+    moveUpBtn.className = 'para-img-move para-img-move-up';
+    moveUpBtn.innerHTML = '▲';
+    moveUpBtn.title = '上へ移動';
+    moveUpBtn.contentEditable = 'false';
+    moveUpBtn.onclick = e => {
+      e.stopPropagation();
+      e.preventDefault();
+      moveImagePara(pi, para.imgName, -1);
+    };
+    wrap.appendChild(moveUpBtn);
+    
+    // 下へ移動ボタン
+    const moveDownBtn = document.createElement('button');
+    moveDownBtn.className = 'para-img-move para-img-move-down';
+    moveDownBtn.innerHTML = '▼';
+    moveDownBtn.title = '下へ移動';
+    moveDownBtn.contentEditable = 'false';
+    moveDownBtn.onclick = e => {
+      e.stopPropagation();
+      e.preventDefault();
+      moveImagePara(pi, para.imgName, 1);
+    };
+    wrap.appendChild(moveDownBtn);
 
     // 画像タップで×ボタンを表示／他の画像のボタンは隠す
     wrap.onclick=e=>{
@@ -7204,6 +7251,28 @@ function deleteEmptyGroup(pi, gi){
 function countGroups(pi){
   const pg=state.pages[pi];if(!pg)return 1;
   return pg.paras.filter(p=>p.type==='group-break').length + 1;
+}
+
+/* ── 挿絵の位置移動（同じグループ内のみ） ── */
+function moveImagePara(pi, imgName, dir) {
+  if (!imgName) return;
+  // 編集中DOMの変更を先にstateに確定
+  if (state.editMode) syncEditorToState(pi);
+  const paras = state.pages[pi].paras;
+  const idx = paras.findIndex(p => p.type === 'image' && p.imgName === imgName);
+  if (idx < 0) return;
+  const swapIdx = idx + dir;
+  // 範囲外、またはグループの境界（group-break）を跨ぐ場合は移動しない
+  if (swapIdx < 0 || swapIdx >= paras.length || paras[swapIdx].type === 'group-break') {
+    showToast('これ以上移動できません');
+    return;
+  }
+  const tmp = paras[idx];
+  paras[idx] = paras[swapIdx];
+  paras[swapIdx] = tmp;
+  refreshPage(pi);
+  debouncedSave();
+  showToast('画像を移動しました');
 }
 
 /* ── 挿絵削除 ── */
