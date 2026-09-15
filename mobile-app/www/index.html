@@ -8631,17 +8631,26 @@ init();
   <div class="isp-list" id="indent-skip-list"></div>
 </div>
 <script>
-  // ネイティブアプリ内ではGoogle公式ログインUIに差し替える
-  document.addEventListener('deviceready', function() {
+  document.addEventListener('deviceready', async function() {
     if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return;
-    const { GoogleAuth } = window.CapacitorGoogleAuth || {};
-    if (!GoogleAuth) return;
+    const { SocialLogin } = window.CapgoSocialLogin || {};
+    if (!SocialLogin) return;
+    
+    await SocialLogin.initialize({
+      google: {
+        webClientId: '1065503937621-mr4legtegr2rjbt5udr1bm3mqfupnigd.apps.googleusercontent.com',
+        mode: 'offline'
+      }
+    });
     
     window.gdriveInit = async function() {
       try {
-        const user = await GoogleAuth.signIn();
-        _gdriveAccessToken = user.authentication.accessToken;
-        _gdriveTokenExpiresAt = Date.now() + 3600 * 1000;
+        const res = await SocialLogin.login({
+          provider: 'google',
+          options: { scopes: ['email', 'https://www.googleapis.com/auth/drive.appdata'] }
+        });
+        _gdriveAccessToken = res.result.accessToken.token;
+        _gdriveTokenExpiresAt = new Date(res.result.accessToken.expires).getTime();
         updateGdriveUI(true);
       } catch (e) {
         console.warn('native google signin:', e);
@@ -8653,14 +8662,11 @@ init();
       if (_gdriveAccessToken && Date.now() < _gdriveTokenExpiresAt) {
         return _gdriveAccessToken;
       }
-      const user = await GoogleAuth.refresh();
-      _gdriveAccessToken = user.accessToken;
-      _gdriveTokenExpiresAt = Date.now() + 3600 * 1000;
-      return _gdriveAccessToken;
+      return window.gdriveInit().then(() => _gdriveAccessToken);
     };
     
     window.gdriveSignOut = async function() {
-      await GoogleAuth.signOut();
+      await SocialLogin.logout({ provider: 'google' });
       _gdriveAccessToken = null;
       updateGdriveUI(false);
     };
