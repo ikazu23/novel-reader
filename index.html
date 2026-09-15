@@ -1909,6 +1909,16 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
     </div>
   </div>
   <div class="ps">
+    <div class="stepper-line">
+      <div class="pl">全体の文字サイズ</div>
+      <div class="stepper-row">
+        <button class="stepper-btn" onclick="adjustAllFontSize(-1)">－</button>
+        <span class="stepper-val">Aa</span>
+        <button class="stepper-btn" onclick="adjustAllFontSize(1)">＋</button>
+      </div>
+    </div>
+  </div>
+  <div class="ps">
     <div class="pl">フォント</div>
     <div class="font-list" id="font-list"></div>
     <div class="font-load-row">
@@ -5285,6 +5295,51 @@ function ebSizeDelta(d){
   const idx = state.library.findIndex(n=>n.id===state.currentNovelId);
   if(idx>=0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
   libDbPut(state.novel).catch(e=>{ console.warn('save failed:',e); });
+}
+
+// この話の全ページ・全グループの文字サイズを、それぞれの現在値から±1pxする
+function adjustAllFontSize(delta) {
+  if (!state.pages || state.pages.length === 0) return;
+  // undoスナップショット
+  _undoStack.push(JSON.stringify(state.pages));
+  if (_undoStack.length > _UNDO_MAX) _undoStack.shift();
+  _redoStack.length = 0;
+  
+  let count = 0;
+  state.pages.forEach((pg, pi) => {
+    pg.paras.forEach((para, qi) => {
+      if (para.type !== 'text') return;
+      const baseSize = (typeof para.size === 'number' && !isNaN(para.size)) ?
+        para.size : state.settings.fontSize;
+      const newSize = Math.min(40, Math.max(10, Math.round(baseSize) + delta));
+      if (newSize === baseSize) return;
+      para.size = newSize;
+      const el = getContent(pi, qi);
+      if (el) {
+        el.style.fontSize = newSize + 'px';
+        // 子孫のfont-size指定を除去（親のサイズをoverrideさせない）
+        el.querySelectorAll('[style*="font-size"]').forEach(child => {
+          child.style.removeProperty('font-size');
+          if (child.tagName === 'SPAN' && (!child.getAttribute('style') || child.getAttribute('style').trim() === '')) {
+            const parent = child.parentNode;
+            while (child.firstChild) parent.insertBefore(child.firstChild, child);
+            parent.removeChild(child);
+          }
+        });
+        para.html = el.innerHTML;
+      }
+      count++;
+    });
+  });
+  
+  // 直接保存
+  syncCurrentEpisode();
+  state.novel.updatedAt = new Date().toISOString();
+  const idx = state.library.findIndex(n => n.id === state.currentNovelId);
+  if (idx >= 0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+  libDbPut(state.novel).catch(e => { console.warn('save failed:', e); });
+  
+  try { showToast(count + '段落のサイズを調整しました'); } catch (_) {}
 }
 
 function applyColorToPara(hex){
@@ -8738,5 +8793,109 @@ init();
   <div class="isp-title">この記号で始まる段落は字下げしない<br>（ただし段落途中で閉じて続きがある場合は字下げ）</div>
   <div class="isp-list" id="indent-skip-list"></div>
 </div>
+<script>
+  (function() {
+    function initNativeGoogleAuth() {
+      if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return;
+      const SocialLogin = window.Capacitor.Plugins && window.Capacitor.Plugins.SocialLogin;
+      if (!SocialLogin) { console.warn('SocialLogin plugin not found'); return; }
+      
+      SocialLogin.initialize({
+        google: {
+          webClientId: '1065503937621-mr4legtegr2rjbt5udr1bm3mqfupnigd.apps.googleusercontent.com',
+          mode: 'online'
+        }
+      });
+      
+      window.gdriveInit = async function() {
+        try {
+          const res = await SocialLogin.login({
+            provider: 'google',
+            options: { scopes: ['email', 'https://www.googleapis.com/auth/drive.appdata'] }
+          });
+          if (!res.result || !res.result.accessToken) {
+            alert('accessTokenがnullです: ' + JSON.stringify(res.result));
+            updateGdriveUI(false);
+            return;
+          }
+          _gdriveAccessToken = res.result.accessToken.token;
+          let expiresAt = new Date(res.result.accessToken.expires).getTime();
+          if (isNaN(expiresAt)) {
+            expiresAt = Date.now() + 55 * 60 * 1000;
+          }
+          _gdriveTokenExpiresAt = expiresAt;
+          updateGdriveUI(true);
+        } catch (e) {
+          alert('Google認証エラー: ' + (e && (e.message || e.errorMessage || JSON.stringify(e))));
+          updateGdriveUI(false);
+        }
+      };
+      
+      window.gdriveSignIn = function() { window.gdriveInit(); };
+      
+      window.gdriveEnsureToken = async function() {
+        if (_gdriveAccessToken && Date.now() < _gdriveTokenExpiresAt) {
+          return _gdriveAccessToken;
+        }
+        try {
+          const res = await SocialLogin.refresh({ provider: 'google', options: {} });
+          if (res && res.result && res.result.accessToken && res.result.accessToken.token) {
+            _gdriveAccessToken = res.result.accessToken.token;
+            let expiresAt = new Date(res.result.accessToken.expires).getTime();
+            if (isNaN(expiresAt)) expiresAt = Date.now() + 55 * 60 * 1000;
+            _gdriveTokenExpiresAt = expiresAt;
+            gdriveSaveTokenToStorage();
+            updateGdriveUI(true);
+            return _gdriveAccessToken;
+          }
+        } catch (e) {
+          console.warn('silent refresh failed:', e);
+        }
+        return window.gdriveInit().then(() => _gdriveAccessToken);
+      };
+      
+      window.gdriveSignOut = async function() {
+        await SocialLogin.logout({ provider: 'google' });
+        _gdriveAccessToken = null;
+        updateGdriveUI(false);
+      };
+    } // ← ここが抜けていた閉じ括弧(initNativeGoogleAuthを閉じる)
+    
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      initNativeGoogleAuth();
+    } else {
+      document.addEventListener('DOMContentLoaded', initNativeGoogleAuth);
+    }
+  })();
+</script>
+<script>
+  (function() {
+    function initNativeBackButton() {
+      if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return;
+      const CapApp = window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+      if (!CapApp) { console.warn('App plugin not found'); return; }
+      
+      CapApp.addListener('backButton', () => {
+        // 既存の画面遷移ロジック（モーダルを閉じる／目次に戻る等）を試す
+        if (handleBackNavigation()) return;
+        
+        // ライブラリ画面（アプリのトップ）まで戻ってきた場合のみ終了確認
+        if (_navState.exitConfirmed) {
+          CapApp.exitApp();
+          return;
+        }
+        _navState.exitConfirmed = true;
+        try { showToast('もう一度戻るボタンで終了'); } catch (_) {}
+        clearTimeout(_navState.exitTimer);
+        _navState.exitTimer = setTimeout(() => { _navState.exitConfirmed = false; }, 2000);
+      });
+    }
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      initNativeBackButton();
+    } else {
+      document.addEventListener('DOMContentLoaded', initNativeBackButton);
+    }
+  })();
+</script>
 </body>
 </html>
