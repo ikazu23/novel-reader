@@ -8631,46 +8631,54 @@ init();
   <div class="isp-list" id="indent-skip-list"></div>
 </div>
 <script>
-  document.addEventListener('deviceready', async function() {
-    if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return;
-    const { SocialLogin } = window.CapgoSocialLogin || {};
-    if (!SocialLogin) return;
-    
-    await SocialLogin.initialize({
-      google: {
-        webClientId: '1065503937621-mr4legtegr2rjbt5udr1bm3mqfupnigd.apps.googleusercontent.com',
-        mode: 'offline'
-      }
-    });
-    
-    window.gdriveInit = async function() {
-      try {
-        const res = await SocialLogin.login({
-          provider: 'google',
-          options: { scopes: ['email', 'https://www.googleapis.com/auth/drive.appdata'] }
-        });
-        _gdriveAccessToken = res.result.accessToken.token;
-        _gdriveTokenExpiresAt = new Date(res.result.accessToken.expires).getTime();
-        updateGdriveUI(true);
-      } catch (e) {
-        console.warn('native google signin:', e);
+  (function() {
+    function initNativeGoogleAuth() {
+      if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return;
+      const SocialLogin = window.Capacitor.Plugins && window.Capacitor.Plugins.SocialLogin;
+      if (!SocialLogin) { console.warn('SocialLogin plugin not found'); return; }
+      
+      SocialLogin.initialize({
+        google: {
+          webClientId: '1065503937621-mr4legtegr2rjbt5udr1bm3mqfupnigd.apps.googleusercontent.com',
+          mode: 'offline'
+        }
+      });
+      
+      window.gdriveInit = async function() {
+        try {
+          const res = await SocialLogin.login({
+            provider: 'google',
+            options: { scopes: ['email', 'https://www.googleapis.com/auth/drive.appdata'] }
+          });
+          _gdriveAccessToken = res.result.accessToken.token;
+          _gdriveTokenExpiresAt = new Date(res.result.accessToken.expires).getTime();
+          updateGdriveUI(true);
+        } catch (e) {
+          console.warn('native google signin:', e);
+          updateGdriveUI(false);
+        }
+      };
+      
+      window.gdriveEnsureToken = async function() {
+        if (_gdriveAccessToken && Date.now() < _gdriveTokenExpiresAt) {
+          return _gdriveAccessToken;
+        }
+        return window.gdriveInit().then(() => _gdriveAccessToken);
+      };
+      
+      window.gdriveSignOut = async function() {
+        await SocialLogin.logout({ provider: 'google' });
+        _gdriveAccessToken = null;
         updateGdriveUI(false);
-      }
-    };
+      };
+    }
     
-    window.gdriveEnsureToken = async function() {
-      if (_gdriveAccessToken && Date.now() < _gdriveTokenExpiresAt) {
-        return _gdriveAccessToken;
-      }
-      return window.gdriveInit().then(() => _gdriveAccessToken);
-    };
-    
-    window.gdriveSignOut = async function() {
-      await SocialLogin.logout({ provider: 'google' });
-      _gdriveAccessToken = null;
-      updateGdriveUI(false);
-    };
-  });
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      initNativeGoogleAuth();
+    } else {
+      document.addEventListener('DOMContentLoaded', initNativeGoogleAuth);
+    }
+  })();
 </script>
 </body>
 </html>
