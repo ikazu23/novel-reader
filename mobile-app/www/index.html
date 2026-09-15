@@ -1634,6 +1634,7 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
     </button>
     <input type="file" id="json-import-input" accept="application/json,.json" style="display:none" onchange="handleJsonImport(event)">
     <input type="file" id="txt-bulk-input" accept=".txt,text/plain" multiple style="display:none" onchange="handleTxtBulkImport(event)">
+    <input type="file" id="zip-bulk-input" accept=".zip,application/zip" style="display:none" onchange="handleZipBulkImport(event)">
     <button class="toc-tb-btn" onclick="openTocSettings()" title="設定">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
@@ -3882,14 +3883,12 @@ async function handleJsonImport(event){
   }
 }
 
-async function handleTxtBulkImport(event){
-  const input = event.target;
-  const files = Array.from(input.files || []).filter(f => /\.txt$/i.test(f.name));
-  if(files.length === 0){ showToast('txtファイルが見つかりません'); input.value=''; return; }
+// txt群の共通処理（ファイル→パース済みデータの配列にしてから呼ぶ）
+async function importParsedEpisodes(parsedRaw){
   if(!state.novel || !state.currentNovelId){
-    showToast('先にインポート先の本を開いてください'); input.value=''; return;
+    showToast('先にインポート先の本を開いてください');
+    return;
   }
-
   function parseFileName(name){
     const base = name.replace(/\.txt$/i, '');
     const m = base.match(/^0*(\d+)\s*[\.\-_　 ]*\s*(.*)$/);
@@ -3902,14 +3901,10 @@ async function handleTxtBulkImport(event){
     return { num: null, title: base || 'タイトルなし' };
   }
 
-  showToast(`${files.length}件を読み込み中...`);
-
-  const parsed = [];
-  for(const file of files){
-    const text = await file.text();
-    const { num, title } = parseFileName(file.name);
-    parsed.push({ num, title, text, fileName: file.name });
-  }
+  const parsed = parsedRaw.map(f=>{
+    const { num, title } = parseFileName(f.fileName);
+    return { num, title, text: f.text, fileName: f.fileName };
+  });
 
   let maxNum = state.novel.episodes.reduce((m,e)=>Math.max(m,e.number),0);
   parsed.sort((a,b)=>{
@@ -3920,8 +3915,6 @@ async function handleTxtBulkImport(event){
   });
   parsed.forEach(p=>{ if(p.num == null){ maxNum += 1; p.num = maxNum; } });
 
-  // confirm()に頼らず自動判定：
-  // 既存話が「空（0文字）」なら無条件で上書き、内容があるものだけ上書き確認する
   let added=0, overwritten=0, skipped=0;
   parsed.forEach(p=>{
     const text = p.text.replace(/\r\n?/g, '\n');
@@ -3956,8 +3949,111 @@ async function handleTxtBulkImport(event){
   clearTimeout(_saveTimer);
   save();
   renderToc();
-  input.value = '';
   showToast(`追加${added}件・上書き${overwritten}件・スキップ${skipped}件`);
+}
+
+async function handleTxtBulkImport(event){
+  const input = event.target;
+  const files = Array.from(input.files || []).filter(f => /\.txt$/i.test(f.name));
+  if(files.length === 0){ showToast('txtファイルが見つかりません'); input.value=''; return; }
+  if(!state.novel || !state.currentNovelId){
+    showToast('先にインポート先の本を開いてください'); input.value=''; return;
+  }
+
+  const parsedRaw = [];
+  const errors = [];
+  for(let i=0;i<files.length;i++){
+    const file = files[i];
+    try{
+      const text = await file.text();
+      parsedRaw.push({ fileName: file.name, text });
+    }catch(e){
+      console.warn('read failed:', file.name, e);
+      errors.push(file.name);
+    }
+    if(i % 50 === 0){
+      showToast(`読み込み中... ${i+1}/${files.length}`);
+      await new Promise(r=>setTimeout(r,0));
+    }
+  }
+  if(errors.length) console.warn('読み込み失敗:', errors);
+
+  await importParsedEpisodes(parsedRaw);
+  if(errors.length) showToast(`一部失敗しました（${errors.length}件）。コンソールを確認してください`);
+  input.value = '';
+}
+
+// ZIPファイルからtxtを一括インポート
+async function handleZipBulkImport(event){
+  const input = event.target;
+  const file = input.files && input.files[0];
+  if(!file){ input.value=''; return; }
+  if(!state.novel || !state.currentNovelId){
+    showToast('先にインポート先の本を開いてください'); input.value=''; return;
+  }
+
+  // JSZip を動的ロード（未読み込みなら）
+  if(!window.JSZip){
+    showToast('ZIPライブラリを読み込み中...');
+    try{
+      await new Promise((resolve,reject)=>{
+        const s=document.createElement('script');
+        s.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+        s.onload=resolve;s.onerror=()=>reject(new Error('JSZip load failed'));
+        document.head.appendChild(s);
+      });
+    }catch(e){
+      showToast('ZIPライブラリの読み込みに失敗しました');
+      input.value=''; return;
+    }
+  }
+
+  showToast('ZIPを展開中...');
+  let zip;
+  try{
+    zip = await JSZip.loadAsync(file);
+  }catch(e){
+    console.error('zip load failed', e);
+    showToast('ZIPファイルの読み込みに失敗しました');
+    input.value=''; return;
+  }
+
+  // zip内の.txtエントリを収集（フォルダ構造は問わない、隠しファイル等は除外）
+  const entries = [];
+  zip.forEach((relPath, zipEntry)=>{
+    if(zipEntry.dir) return;
+    const base = relPath.split('/').pop();
+    if(!base || base.startsWith('.') || base.startsWith('__MACOSX')) return;
+    if(/\.txt$/i.test(base)) entries.push({ relPath, zipEntry, base });
+  });
+
+  if(entries.length === 0){
+    showToast('ZIP内にtxtファイルが見つかりません');
+    input.value=''; return;
+  }
+
+  const parsedRaw = [];
+  const errors = [];
+  for(let i=0;i<entries.length;i++){
+    const { zipEntry, base } = entries[i];
+    try{
+      // 文字コードはUTF-8として読む
+      const text = await zipEntry.async('string');
+      parsedRaw.push({ fileName: base, text });
+    }catch(e){
+      console.warn('zip entry read failed:', base, e);
+      errors.push(base);
+    }
+    if(i % 50 === 0){
+      showToast(`展開中... ${i+1}/${entries.length}`);
+      await new Promise(r=>setTimeout(r,0));
+    }
+  }
+  if(errors.length) console.warn('読み込み失敗:', errors);
+
+  await importParsedEpisodes(parsedRaw);
+  if(errors.length) showToast(`一部失敗しました（${errors.length}件）。コンソールを確認してください`);
+  input.value = '';
 }
 
 async function exportAsZip(){
@@ -8813,6 +8909,11 @@ init();
   <button class="export-menu-item" onclick="closeExportMenu();document.getElementById('txt-bulk-input').click();">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
     <span>テキストを一括インポート（.txt）</span>
+  </button>
+  <div class="export-menu-divider"></div>
+  <button class="export-menu-item" onclick="closeExportMenu();document.getElementById('zip-bulk-input').click();">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    <span>ZIPから一括インポート（.txt同梱）</span>
   </button>
 </div>
 
