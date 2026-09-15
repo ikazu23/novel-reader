@@ -1522,6 +1522,22 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
   border-bottom:1px solid #f3f3f3;
   background:#fafafa;
 }
+.stepper-row{display:flex;align-items:center;gap:14px;}
+.stepper-btn{
+  width:36px;height:36px;border-radius:50%;
+  border:1px solid #ddd;background:#fff;color:#008080;
+  font-size:20px;font-weight:bold;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  -webkit-tap-highlight-color:transparent;
+  transition:background .12s;
+  flex-shrink:0;
+}
+.stepper-btn:active{background:#e8f4f4;}
+.stepper-val{
+  flex:1;text-align:center;
+  font-family:'Noto Sans JP',sans-serif;
+  font-size:15px;font-weight:600;color:#222;
+}
 </style>
 </head>
 <body>
@@ -1869,17 +1885,19 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
   </div>
   <div id="panel-body">
   <div class="ps">
-    <div class="pl">行間</div>
-    <div class="sr">
-      <input type="range" min="1.2" max="3.0" step="0.1" value="2.0" id="global-lineheight" oninput="applyParaLineHeight(this.value)">
-      <span class="sv" id="global-lineheight-val">2.0</span>
+  <div class="pl">行間</div>
+    <div class="stepper-row">
+      <button class="stepper-btn" onclick="adjustLineHeight(-0.1)">－</button>
+      <span class="stepper-val" id="global-lineheight-val">2.0</span>
+      <button class="stepper-btn" onclick="adjustLineHeight(0.1)">＋</button>
     </div>
   </div>
   <div class="ps">
     <div class="pl">段落の余白</div>
-    <div class="sr">
-      <input type="range" min="0" max="60" step="1" value="24" id="global-paraspacing" oninput="applyParaSpacing(this.value)">
-      <span class="sv" id="global-paraspacing-val">24px</span>
+    <div class="stepper-row">
+      <button class="stepper-btn" onclick="adjustParaSpacing(-2)">－</button>
+      <span class="stepper-val" id="global-paraspacing-val">24px</span>
+      <button class="stepper-btn" onclick="adjustParaSpacing(2)">＋</button>
     </div>
   </div>
   <div class="ps">
@@ -7431,6 +7449,18 @@ async function pickAndInsertImage(input){
 
   // 同じ画像を続けて選べるようリセット
   input.value = '';
+}
+
+function adjustLineHeight(delta){
+  let val = (state.settings.lineHeight != null ? state.settings.lineHeight : 2.0) + delta;
+  val = Math.round(val * 10) / 10; // 浮動小数点の誤差防止
+  val = Math.min(3.0, Math.max(1.2, val));
+  applyParaLineHeight(val);
+}
+function adjustParaSpacing(delta){
+  let val = (state.settings.paraSpacing != null ? state.settings.paraSpacing : 24) + delta;
+  val = Math.min(60, Math.max(0, val));
+  applyParaSpacing(val);
 }
 
 /* ══════════════════════════════════════
