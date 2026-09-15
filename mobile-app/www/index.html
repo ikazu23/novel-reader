@@ -4481,7 +4481,7 @@ function syncEditorToState(pi){
 
   groups.forEach((grp,g)=>{
     // グループ間に group-break を挿入（最初のグループは不要）
-    if(g>0) newParas.push({type:'group-break'});
+    if(g>0){ newParas.push({type:'group-break'}); globalQi++; }
 
     const editorId = g===0 ? `editor-${pi}` : `editor-${pi}-g${g}`;
     const editor=document.getElementById(editorId)||grp.querySelector('.page-editor');
@@ -4700,7 +4700,8 @@ function renumberEditor(pi){
   if(!pageEl)return;
   let qi=0;
   const groups=pageEl.querySelectorAll('.subpage-group');
-  groups.forEach(grp=>{
+  groups.forEach((grp,g)=>{
+    if(g>0) qi++; // グループ境界（group-break）の分の枠を1つ空ける
     const editor=grp.querySelector('.page-editor');
     if(!editor)return;
     editor.childNodes.forEach(n=>{
