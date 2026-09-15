@@ -1909,6 +1909,16 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
     </div>
   </div>
   <div class="ps">
+    <div class="stepper-line">
+      <div class="pl">全体の文字サイズ</div>
+      <div class="stepper-row">
+        <button class="stepper-btn" onclick="adjustAllFontSize(-1)">－</button>
+        <span class="stepper-val">Aa</span>
+        <button class="stepper-btn" onclick="adjustAllFontSize(1)">＋</button>
+      </div>
+    </div>
+  </div>
+  <div class="ps">
     <div class="pl">フォント</div>
     <div class="font-list" id="font-list"></div>
     <div class="font-load-row">
@@ -5285,6 +5295,51 @@ function ebSizeDelta(d){
   const idx = state.library.findIndex(n=>n.id===state.currentNovelId);
   if(idx>=0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
   libDbPut(state.novel).catch(e=>{ console.warn('save failed:',e); });
+}
+
+// この話の全ページ・全グループの文字サイズを、それぞれの現在値から±1pxする
+function adjustAllFontSize(delta) {
+  if (!state.pages || state.pages.length === 0) return;
+  // undoスナップショット
+  _undoStack.push(JSON.stringify(state.pages));
+  if (_undoStack.length > _UNDO_MAX) _undoStack.shift();
+  _redoStack.length = 0;
+  
+  let count = 0;
+  state.pages.forEach((pg, pi) => {
+    pg.paras.forEach((para, qi) => {
+      if (para.type !== 'text') return;
+      const baseSize = (typeof para.size === 'number' && !isNaN(para.size)) ?
+        para.size : state.settings.fontSize;
+      const newSize = Math.min(40, Math.max(10, Math.round(baseSize) + delta));
+      if (newSize === baseSize) return;
+      para.size = newSize;
+      const el = getContent(pi, qi);
+      if (el) {
+        el.style.fontSize = newSize + 'px';
+        // 子孫のfont-size指定を除去（親のサイズをoverrideさせない）
+        el.querySelectorAll('[style*="font-size"]').forEach(child => {
+          child.style.removeProperty('font-size');
+          if (child.tagName === 'SPAN' && (!child.getAttribute('style') || child.getAttribute('style').trim() === '')) {
+            const parent = child.parentNode;
+            while (child.firstChild) parent.insertBefore(child.firstChild, child);
+            parent.removeChild(child);
+          }
+        });
+        para.html = el.innerHTML;
+      }
+      count++;
+    });
+  });
+  
+  // 直接保存
+  syncCurrentEpisode();
+  state.novel.updatedAt = new Date().toISOString();
+  const idx = state.library.findIndex(n => n.id === state.currentNovelId);
+  if (idx >= 0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+  libDbPut(state.novel).catch(e => { console.warn('save failed:', e); });
+  
+  try { showToast(count + '段落のサイズを調整しました'); } catch (_) {}
 }
 
 function applyColorToPara(hex){
