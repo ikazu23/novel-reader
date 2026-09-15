@@ -1522,11 +1522,15 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
   border-bottom:1px solid #f3f3f3;
   background:#fafafa;
 }
-.stepper-row{display:flex;align-items:center;gap:14px;}
+.stepper-line{
+  display:flex;align-items:center;justify-content:space-between;
+}
+.stepper-line .pl{margin-bottom:0;}
+.stepper-row{display:flex;align-items:center;gap:8px;}
 .stepper-btn{
-  width:36px;height:36px;border-radius:50%;
+  width:32px;height:32px;border-radius:50%;
   border:1px solid #ddd;background:#fff;color:#008080;
-  font-size:20px;font-weight:bold;cursor:pointer;
+  font-size:18px;font-weight:500;cursor:pointer;
   display:flex;align-items:center;justify-content:center;
   -webkit-tap-highlight-color:transparent;
   transition:background .12s;
@@ -1534,9 +1538,9 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
 }
 .stepper-btn:active{background:#e8f4f4;}
 .stepper-val{
-  flex:1;text-align:center;
+  min-width:44px;text-align:center;
   font-family:'Noto Sans JP',sans-serif;
-  font-size:15px;font-weight:600;color:#222;
+  font-size:14px;font-weight:500;color:#222;
 }
 </style>
 </head>
@@ -1885,19 +1889,23 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
   </div>
   <div id="panel-body">
   <div class="ps">
-  <div class="pl">行間</div>
-    <div class="stepper-row">
-      <button class="stepper-btn" onclick="adjustLineHeight(-0.1)">－</button>
-      <span class="stepper-val" id="global-lineheight-val">2.0</span>
-      <button class="stepper-btn" onclick="adjustLineHeight(0.1)">＋</button>
+    <div class="stepper-line">
+      <div class="pl">行間</div>
+      <div class="stepper-row">
+        <button class="stepper-btn" onclick="adjustLineHeight(-0.1)">－</button>
+        <span class="stepper-val" id="global-lineheight-val">2.0</span>
+        <button class="stepper-btn" onclick="adjustLineHeight(0.1)">＋</button>
+      </div>
     </div>
   </div>
   <div class="ps">
-    <div class="pl">段落の余白</div>
-    <div class="stepper-row">
-      <button class="stepper-btn" onclick="adjustParaSpacing(-2)">－</button>
-      <span class="stepper-val" id="global-paraspacing-val">24px</span>
-      <button class="stepper-btn" onclick="adjustParaSpacing(2)">＋</button>
+    <div class="stepper-line">
+      <div class="pl">段落の余白</div>
+      <div class="stepper-row">
+        <button class="stepper-btn" onclick="adjustParaSpacing(-2)">－</button>
+        <span class="stepper-val" id="global-paraspacing-val">24px</span>
+        <button class="stepper-btn" onclick="adjustParaSpacing(2)">＋</button>
+      </div>
     </div>
   </div>
   <div class="ps">
