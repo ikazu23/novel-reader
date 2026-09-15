@@ -8024,7 +8024,7 @@ function onSrchKey(e){
 // グローバルキー操作
 document.addEventListener('keydown',e=>{
   if(state.ui.search.open)return; // 検索中は無効
-  // Ctrl+Z/Y は編集中でも有効
+  if($.modal_ov && $.modal_ov.classList.contains('show'))return; // モーダル表示中は無効
   if((e.ctrlKey||e.metaKey)&&(e.key==='z'||e.key==='Z')){e.preventDefault();edUndo();return;}
   if((e.ctrlKey||e.metaKey)&&(e.key==='y'||e.key==='Y')){e.preventDefault();edRedo();return;}
   if(document.activeElement&&document.activeElement.isContentEditable)return;
@@ -8125,6 +8125,8 @@ function showModal(title,onOk){
 function closeModal(){$.modal_ov.classList.remove('show');}
 function openTitleModal() {
   const cur = $.topbar_title.textContent;
+  const targetEpisodeId = state.currentEpisodeId; // ← 開いた時点のエピソードIDを固定
+  const targetNovelId = state.currentNovelId;
   $.modal_body.innerHTML =
     `<input class="mi" id="title-input" value="${cur}" style="min-height:40px;resize:none;">`;
   showModal('タイトルを編集', () => {
@@ -8132,14 +8134,14 @@ function openTitleModal() {
     if (!v) return;
     $.topbar_title.textContent = v;
     
-    if (state.currentEpisodeId) {
-      // エピソードを開いている場合：そのエピソードのタイトルを更新
-      const ep = state.novel.episodes.find(e => e.id === state.currentEpisodeId);
+    if (targetEpisodeId) {
+      // エピソードを開いている場合：固定しておいたIDのエピソードのタイトルを更新
+      const ep = state.novel.episodes.find(e => e.id === targetEpisodeId);
       if (ep) ep.title = v;
     } else {
       // 万一エピソードを開いていない状態で呼ばれた場合：小説タイトルを更新
       state.novel.title = v;
-      const idx = state.library.findIndex(n => n.id === state.currentNovelId);
+      const idx = state.library.findIndex(n => n.id === targetNovelId);
       if (idx >= 0) state.library[idx].title = v;
     }
     clearTimeout(_saveTimer);
