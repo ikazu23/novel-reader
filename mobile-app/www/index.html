@@ -3890,10 +3890,8 @@ async function handleTxtBulkImport(event){
     showToast('先にインポート先の本を開いてください'); input.value=''; return;
   }
 
-  // ファイル名 → {話数, タイトル}
   function parseFileName(name){
     const base = name.replace(/\.txt$/i, '');
-    // 先頭の数字（001/01/1）＋ 区切り（. _ - スペース 全角スペース、なくてもOK）＋ 残り
     const m = base.match(/^0*(\d+)\s*[\.\-_　 ]*\s*(.*)$/);
     if(m){
       const num = parseInt(m[1], 10);
@@ -3913,7 +3911,6 @@ async function handleTxtBulkImport(event){
     parsed.push({ num, title, text, fileName: file.name });
   }
 
-  // 番号が取れなかったものは末尾に自動採番
   let maxNum = state.novel.episodes.reduce((m,e)=>Math.max(m,e.number),0);
   parsed.sort((a,b)=>{
     if(a.num == null && b.num == null) return a.fileName.localeCompare(b.fileName,'ja');
@@ -3923,15 +3920,9 @@ async function handleTxtBulkImport(event){
   });
   parsed.forEach(p=>{ if(p.num == null){ maxNum += 1; p.num = maxNum; } });
 
-  // 既存話数と重複してたら確認
-  const existingNums = new Set(state.novel.episodes.map(e=>e.number));
-  const dupCount = parsed.filter(p=>existingNums.has(p.num)).length;
-  let overwrite = false;
-  if(dupCount > 0){
-    overwrite = confirm(`${dupCount}件が既存の話数と重複しています。\n[OK] 上書きする / [キャンセル] 重複分はスキップ`);
-  }
-
-  let added=0, skipped=0, overwritten=0;
+  // confirm()に頼らず自動判定：
+  // 既存話が「空（0文字）」なら無条件で上書き、内容があるものだけ上書き確認する
+  let added=0, overwritten=0, skipped=0;
   parsed.forEach(p=>{
     const text = p.text.replace(/\r\n?/g, '\n');
     const lines = text.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
@@ -3945,11 +3936,15 @@ async function handleTxtBulkImport(event){
 
     const existingIdx = state.novel.episodes.findIndex(e=>e.number===p.num);
     if(existingIdx >= 0){
-      if(!overwrite){ skipped++; return; }
       const ep = state.novel.episodes[existingIdx];
-      ep.title = p.title; ep.pages = pages; ep.charCount = countChars(pages);
-      ep.date = new Date().toISOString();
-      overwritten++;
+      const isEmptyPlaceholder = !ep.charCount || ep.charCount === 0;
+      if(isEmptyPlaceholder){
+        ep.title = p.title; ep.pages = pages; ep.charCount = countChars(pages);
+        ep.date = new Date().toISOString();
+        overwritten++;
+      } else {
+        skipped++;
+      }
     } else {
       const ep = makeEpisode(p.num, p.title, pages);
       ep.charCount = countChars(pages);
