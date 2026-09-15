@@ -8654,7 +8654,7 @@ init();
           _gdriveTokenExpiresAt = new Date(res.result.accessToken.expires).getTime();
           updateGdriveUI(true);
         } catch (e) {
-          console.warn('native google signin:', e);
+          alert('Google認証エラー: ' + (e && (e.message || e.errorMessage || JSON.stringify(e))));
           updateGdriveUI(false);
         }
       };
