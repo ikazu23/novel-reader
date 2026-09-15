@@ -4,6 +4,7 @@
   "dependencies": {
     "@capacitor/core": "^6.1.0",
     "@capacitor/android": "^6.1.0",
+    "@capacitor/app": "^6.0.0",
     "@capgo/capacitor-social-login": "^6.0.0"
   },
   "devDependencies": {
