@@ -8658,7 +8658,6 @@ init();
           _gdriveAccessToken = res.result.accessToken.token;
           let expiresAt = new Date(res.result.accessToken.expires).getTime();
           if (isNaN(expiresAt)) {
-            // expiresが返らない場合はGoogleの標準的な有効期間(1時間)を仮定して55分に設定
             expiresAt = Date.now() + 55 * 60 * 1000;
           }
           _gdriveTokenExpiresAt = expiresAt;
@@ -8669,28 +8668,35 @@ init();
         }
       };
       
+      window.gdriveSignIn = function() { window.gdriveInit(); };
+      
       window.gdriveEnsureToken = async function() {
-      if (_gdriveAccessToken && Date.now() < _gdriveTokenExpiresAt) {
-        return _gdriveAccessToken;
-      }
-      // まずは画面を出さずに裏で更新を試みる
-      try {
-        const res = await SocialLogin.refresh({ provider: 'google', options: {} });
-        if (res && res.result && res.result.accessToken && res.result.accessToken.token) {
-          _gdriveAccessToken = res.result.accessToken.token;
-          let expiresAt = new Date(res.result.accessToken.expires).getTime();
-          if (isNaN(expiresAt)) expiresAt = Date.now() + 55 * 60 * 1000;
-          _gdriveTokenExpiresAt = expiresAt;
-          gdriveSaveTokenToStorage();
-          updateGdriveUI(true);
+        if (_gdriveAccessToken && Date.now() < _gdriveTokenExpiresAt) {
           return _gdriveAccessToken;
         }
-      } catch (e) {
-        console.warn('silent refresh failed:', e);
-      }
-      // 裏での更新に失敗した場合のみ、通常のログイン画面を出す
-      return window.gdriveInit().then(() => _gdriveAccessToken);
-    };
+        try {
+          const res = await SocialLogin.refresh({ provider: 'google', options: {} });
+          if (res && res.result && res.result.accessToken && res.result.accessToken.token) {
+            _gdriveAccessToken = res.result.accessToken.token;
+            let expiresAt = new Date(res.result.accessToken.expires).getTime();
+            if (isNaN(expiresAt)) expiresAt = Date.now() + 55 * 60 * 1000;
+            _gdriveTokenExpiresAt = expiresAt;
+            gdriveSaveTokenToStorage();
+            updateGdriveUI(true);
+            return _gdriveAccessToken;
+          }
+        } catch (e) {
+          console.warn('silent refresh failed:', e);
+        }
+        return window.gdriveInit().then(() => _gdriveAccessToken);
+      };
+      
+      window.gdriveSignOut = async function() {
+        await SocialLogin.logout({ provider: 'google' });
+        _gdriveAccessToken = null;
+        updateGdriveUI(false);
+      };
+    } // ← ここが抜けていた閉じ括弧(initNativeGoogleAuthを閉じる)
     
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
       initNativeGoogleAuth();
