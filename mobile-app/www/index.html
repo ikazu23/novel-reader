@@ -8810,6 +8810,33 @@ init();
       });
       
       window.gdriveInit = async function() {
+        // 起動時の自動呼び出し：サイレント復元のみ。ここでは絶対にログイン画面を出さない
+        try {
+          if (gdriveLoadTokenFromStorage()) {
+            updateGdriveUI(true);
+            return;
+          }
+          if (localStorage.getItem('gdrive-signed-in') === '1') {
+            const res = await SocialLogin.refresh({ provider: 'google', options: {} });
+            if (res && res.result && res.result.accessToken && res.result.accessToken.token) {
+              _gdriveAccessToken = res.result.accessToken.token;
+              let expiresAt = new Date(res.result.accessToken.expires).getTime();
+              if (isNaN(expiresAt)) expiresAt = Date.now() + 55 * 60 * 1000;
+              _gdriveTokenExpiresAt = expiresAt;
+              gdriveSaveTokenToStorage();
+              updateGdriveUI(true);
+              return;
+            }
+          }
+          updateGdriveUI(false);
+        } catch (e) {
+          console.warn('gdriveInit (silent) failed:', e);
+          updateGdriveUI(false);
+        }
+      };
+      
+      // 「Googleでログイン」ボタンを押した時だけ、対話的ログイン画面を出す
+      window.gdriveSignIn = async function() {
         try {
           const res = await SocialLogin.login({
             provider: 'google',
@@ -8826,14 +8853,15 @@ init();
             expiresAt = Date.now() + 55 * 60 * 1000;
           }
           _gdriveTokenExpiresAt = expiresAt;
+          try { localStorage.setItem('gdrive-signed-in', '1'); } catch (_) {}
+          gdriveSaveTokenToStorage();
           updateGdriveUI(true);
+          try { showToast('Google Driveに接続しました'); } catch (_) {}
         } catch (e) {
           alert('Google認証エラー: ' + (e && (e.message || e.errorMessage || JSON.stringify(e))));
           updateGdriveUI(false);
         }
       };
-      
-      window.gdriveSignIn = function() { window.gdriveInit(); };
       
       window.gdriveEnsureToken = async function() {
         if (_gdriveAccessToken && Date.now() < _gdriveTokenExpiresAt) {
@@ -8853,15 +8881,19 @@ init();
         } catch (e) {
           console.warn('silent refresh failed:', e);
         }
-        return window.gdriveInit().then(() => _gdriveAccessToken);
+        await window.gdriveSignIn();
+        return _gdriveAccessToken;
       };
       
       window.gdriveSignOut = async function() {
         await SocialLogin.logout({ provider: 'google' });
         _gdriveAccessToken = null;
+        _gdriveTokenExpiresAt = 0;
+        try { localStorage.removeItem('gdrive-signed-in'); } catch (_) {}
+        try { localStorage.removeItem('gdrive-token'); } catch (_) {}
         updateGdriveUI(false);
       };
-    } // ← ここが抜けていた閉じ括弧(initNativeGoogleAuthを閉じる)
+    } // ← initNativeGoogleAuthを閉じる（ここが抜けていました）
     
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
       initNativeGoogleAuth();
