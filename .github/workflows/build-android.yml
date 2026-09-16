@@ -32,6 +32,12 @@ jobs:
         working-directory: mobile-app
         run: npx cap add android
 
+      - name: Enable Jetifier for legacy Cordova plugins
+        working-directory: mobile-app/android
+        run: |
+          echo "android.enableJetifier=true" >> gradle.properties
+          cat gradle.properties
+
       - name: Sync
         working-directory: mobile-app
         run: npx cap sync android
