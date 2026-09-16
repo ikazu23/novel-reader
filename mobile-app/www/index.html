@@ -1970,11 +1970,21 @@ body.library-mode #tts-control-bar{display:none !important;}
   </div>
   <div class="ps">
     <div class="stepper-line">
-      <div class="pl">全体の文字サイズ</div>
+      <div class="pl">この話の文字サイズ</div>
       <div class="stepper-row">
         <button class="stepper-btn" onclick="adjustAllFontSize(-1)">－</button>
         <span class="stepper-val">Aa</span>
         <button class="stepper-btn" onclick="adjustAllFontSize(1)">＋</button>
+      </div>
+    </div>
+  </div>
+  <div class="ps">
+    <div class="stepper-line">
+      <div class="pl">全話の文字サイズ</div>
+      <div class="stepper-row">
+        <button class="stepper-btn" onclick="adjustAllEpisodesFontSize(-1)">－</button>
+        <span class="stepper-val">Aa</span>
+        <button class="stepper-btn" onclick="adjustAllEpisodesFontSize(1)">＋</button>
       </div>
     </div>
   </div>
@@ -5985,6 +5995,73 @@ function adjustAllFontSize(delta) {
   libDbPut(state.novel).catch(e => { console.warn('save failed:', e); });
   
   try { showToast(count + '段落のサイズを調整しました'); } catch (_) {}
+}
+
+// 本に含まれる全エピソードの文字サイズを、それぞれの現在値から±1pxする
+function adjustAllEpisodesFontSize(delta) {
+  if (!state.novel || !state.novel.episodes || state.novel.episodes.length === 0) return;
+  // 編集中なら先にDOMをstateへ同期
+  if (state.editMode && state.curPage != null) {
+    try { syncEditorToState(state.curPage); } catch (_) {}
+  }
+  // undoスナップショット（現在開いているエピソードのみ対象）
+  _undoStack.push(JSON.stringify(state.pages));
+  if (_undoStack.length > _UNDO_MAX) _undoStack.shift();
+  _redoStack.length = 0;
+  
+  let paraCount = 0;
+  
+  state.novel.episodes.forEach(ep => {
+    const isCurrent = ep.id === state.currentEpisodeId;
+    const pages = isCurrent ? state.pages : ep.pages;
+    if (!pages) return;
+    pages.forEach((pg, pi) => {
+      pg.paras.forEach((para, qi) => {
+        if (para.type !== 'text') return;
+        const baseSize = (typeof para.size === 'number' && !isNaN(para.size)) ?
+          para.size : state.settings.fontSize;
+        const newSize = Math.min(40, Math.max(10, Math.round(baseSize) + delta));
+        if (newSize === baseSize) return;
+        para.size = newSize;
+        paraCount++;
+        if (isCurrent) {
+          const el = getContent(pi, qi);
+          if (el) {
+            el.style.fontSize = newSize + 'px';
+            el.querySelectorAll('[style*="font-size"]').forEach(child => {
+              child.style.removeProperty('font-size');
+              if (child.tagName === 'SPAN' && (!child.getAttribute('style') || child.getAttribute('style').trim() === '')) {
+                const parent = child.parentNode;
+                while (child.firstChild) parent.insertBefore(child.firstChild, child);
+                parent.removeChild(child);
+              }
+            });
+            para.html = el.innerHTML;
+          }
+        } else if (para.html) {
+          // 表示していないエピソードは、子孫のfont-size指定だけ除去しておく
+          // （親側のpara.sizeを上書きしないように）
+          const tmp = document.createElement('div');
+          tmp.innerHTML = para.html;
+          tmp.querySelectorAll('[style*="font-size"]').forEach(child => {
+            child.style.removeProperty('font-size');
+          });
+          para.html = tmp.innerHTML;
+        }
+      });
+    });
+  });
+  
+  // 現在編集中エピソードをnovel.episodesへ反映
+  syncCurrentEpisode();
+  state.novel.updatedAt = new Date().toISOString();
+  const idx = state.library.findIndex(n => n.id === state.currentNovelId);
+  if (idx >= 0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+  libDbPut(state.novel).catch(e => { console.warn('save failed:', e); });
+  
+  try {
+    showToast(state.novel.episodes.length + '話・' + paraCount + '段落のサイズを調整しました');
+  } catch (_) {}
 }
 
 function applyColorToPara(hex){
