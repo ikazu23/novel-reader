@@ -2280,6 +2280,7 @@ async function init(){
   setupKb();
   setupColorBtnLongPress();
   setupDoubleTap();
+  setupMediaSession();
   state.readingMode = localStorage.getItem('readingMode') === '1';
   document.getElementById('topbar-reading-mode')
   .classList.toggle('active', state.readingMode);
@@ -9268,6 +9269,53 @@ init();
 state.tts = { queue: [], idx: 0, audio: null, playing: false };
 const TTS_CHUNK_MAX_CHARS = 1400; // 5000byte制限への安全マージン
 
+/* ── バックグラウンド再生対応（メディアセッション） ── */
+function setupMediaSession() {
+  if (!('mediaSession' in navigator)) return;
+  try {
+    navigator.mediaSession.setActionHandler('play', () => { if (!state.tts.playing) toggleTtsPlayback(); });
+    navigator.mediaSession.setActionHandler('pause', () => { if (state.tts.playing) toggleTtsPlayback(); });
+    navigator.mediaSession.setActionHandler('previoustrack', () => { ttsSkip(-1); });
+    navigator.mediaSession.setActionHandler('nexttrack', () => { ttsSkip(1); });
+    navigator.mediaSession.setActionHandler('stop', () => { ttsStopAndHide(); });
+  } catch (e) { console.warn('setupMediaSession:', e); }
+}
+
+function updateMediaSessionMetadata() {
+  if (!('mediaSession' in navigator)) return;
+  try {
+    const novelTitle = (state.novel && state.novel.title) || '小説';
+    const ep = state.novel && state.novel.episodes && state.novel.episodes.find(e => e.id === state.currentEpisodeId);
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: (ep && ep.title) || novelTitle,
+      artist: novelTitle,
+      album: '小説リーダー',
+    });
+    navigator.mediaSession.playbackState = state.tts.playing ? 'playing' : 'paused';
+  } catch (e) { console.warn('updateMediaSessionMetadata:', e); }
+}
+
+/* ── バックグラウンド実行（ネイティブアプリ、プラグイン導入済みの場合のみ動作） ── */
+async function enableBackgroundMode() {
+  const BackgroundMode = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundMode;
+  if (!BackgroundMode) return;
+  try {
+    await BackgroundMode.enable();
+    await BackgroundMode.setDefaults({
+      title: '小説リーダー',
+      text: '読み上げ再生中',
+      hidden: false,
+      silent: false,
+    });
+  } catch (e) { console.warn('enableBackgroundMode:', e); }
+}
+
+async function disableBackgroundMode() {
+  const BackgroundMode = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundMode;
+  if (!BackgroundMode) return;
+  try { await BackgroundMode.disable(); } catch (e) { console.warn('disableBackgroundMode:', e); }
+}
+
 function saveTtsApiKey(el){
   state.settings.ttsApiKey = el.value.trim();
   debouncedSaveSettings();
@@ -9353,6 +9401,8 @@ async function startTtsForCurrentGroup() {
   document.getElementById('topbar-tts').classList.add('active');
   updateTtsPlayPauseIcon();
   updateTtsBarVisibility();
+  updateMediaSessionMetadata();
+  enableBackgroundMode();
   await playNextTtsChunk();
 }
 
@@ -9452,6 +9502,7 @@ function toggleTtsPlayback() {
   }
   updateTtsPlayPauseIcon();
   updateTtsBarVisibility();
+  updateMediaSessionMetadata();
 }
 
 function stopTts(){
@@ -9469,6 +9520,10 @@ function stopTts(){
   clearTtsHighlight();
   updateTtsPlayPauseIcon();
   updateTtsBarVisibility();
+  if('mediaSession' in navigator){
+    try{ navigator.mediaSession.playbackState = 'none'; }catch(e){}
+  }
+  disableBackgroundMode();
 }
 
 function stopCurrentAudioOnly(){
