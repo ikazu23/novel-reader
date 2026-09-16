@@ -9277,26 +9277,35 @@ function getGroupPlainTexts(pi, g){
   return { texts, qis };
 }
 
-function chunkTextsForTts(texts, qis){
+function buildEpisodeTtsQueue(fromPi, fromG) {
+  const items = [];
+  for (let pi = fromPi; pi < state.pages.length; pi++) {
+    const totalGroups = countGroups(pi);
+    const startG = (pi === fromPi) ? fromG : 0;
+    for (let g = startG; g < totalGroups; g++) {
+      const { texts, qis } = getGroupPlainTexts(pi, g);
+      texts.forEach((t, i) => {
+        items.push({ pi, g, qi: qis[i], text: t });
+      });
+    }
+  }
   const chunks = [];
-  const outQis = [];
-  texts.forEach((t, i)=>{
-    const qi = qis ? qis[i] : null;
-    if(t.length <= TTS_CHUNK_MAX_CHARS){
-      chunks.push(t); outQis.push(qi);
+  items.forEach(item => {
+    let remaining = item.text;
+    if (remaining.length <= TTS_CHUNK_MAX_CHARS) {
+      chunks.push({ pi: item.pi, g: item.g, qi: item.qi, text: remaining });
       return;
     }
-    let remaining = t;
-    while(remaining.length > TTS_CHUNK_MAX_CHARS){
+    while (remaining.length > TTS_CHUNK_MAX_CHARS) {
       let cut = remaining.lastIndexOf('。', TTS_CHUNK_MAX_CHARS);
-      if(cut < TTS_CHUNK_MAX_CHARS * 0.5) cut = TTS_CHUNK_MAX_CHARS;
+      if (cut < TTS_CHUNK_MAX_CHARS * 0.5) cut = TTS_CHUNK_MAX_CHARS;
       else cut += 1;
-      chunks.push(remaining.slice(0, cut)); outQis.push(qi);
+      chunks.push({ pi: item.pi, g: item.g, qi: item.qi, text: remaining.slice(0, cut) });
       remaining = remaining.slice(cut);
     }
-    if(remaining){ chunks.push(remaining); outQis.push(qi); }
+    if (remaining) chunks.push({ pi: item.pi, g: item.g, qi: item.qi, text: remaining });
   });
-  return { chunks, qis: outQis };
+  return chunks;
 }
 
 async function synthesizeChirp(text) {
@@ -9323,11 +9332,9 @@ async function synthesizeChirp(text) {
 
 async function startTtsForCurrentGroup() {
   stopTts();
-  const { texts, qis } = getGroupPlainTexts(state.curPage, state.subPageIndex);
-  if (texts.length === 0) { showToast('読み上げるテキストがありません'); return; }
-  const chunked = chunkTextsForTts(texts, qis);
-  state.tts.queue = chunked.chunks;
-  state.tts.qiList = chunked.qis;
+  const queue = buildEpisodeTtsQueue(state.curPage, state.subPageIndex);
+  if (queue.length === 0) { showToast('読み上げるテキストがありません'); return; }
+  state.tts.queue = queue;
   state.tts.idx = 0;
   state.tts.playing = true;
   document.getElementById('topbar-tts').classList.add('active');
@@ -9343,8 +9350,10 @@ async function playNextTtsChunk(){
     showToast('読み上げが終わりました');
     return;
   }
-  const text = state.tts.queue[state.tts.idx];
+  const item = state.tts.queue[state.tts.idx];
+  ttsJumpToGroup(item.pi, item.g);
   updateTtsHighlight();
+  const text = item.text;
   const engine = state.settings.ttsEngine || 'device';
   const useCloud = engine === 'cloud' && !!state.settings.ttsApiKey;
 
@@ -9435,13 +9444,12 @@ function stopCurrentAudioOnly(){
   if(NativeTts){ NativeTts.stop().catch(()=>{}); }
 }
 
-function updateTtsHighlight(){
+function updateTtsHighlight() {
   clearTtsHighlight();
-  if(!state.tts.qiList || state.tts.qiList.length === 0) return;
-  const qi = state.tts.qiList[state.tts.idx];
-  if(qi == null) return;
-  const el = getContent(state.curPage, qi);
-  if(el){
+  const item = state.tts.queue && state.tts.queue[state.tts.idx];
+  if (!item || item.qi == null) return;
+  const el = getContent(item.pi, item.qi);
+  if (el) {
     el.classList.add('tts-reading');
     state.tts._highlightEl = el;
   }
@@ -9475,13 +9483,33 @@ function ttsStopAndHide(){
   updateTtsBarVisibility();
 }
 
-function ttsGoToGroup(pi, g){
-  const total = countGroups(pi);
-  if(g < 0 || g >= total) return false;
-  state.subPageIndex = g;
-  refreshPage(pi);
-  updateSubPageDots(pi, g, total);
-  return true;
+function switchToGroup(pi, g, animate){
+  const pageEl = document.getElementById(`page-${pi}`);
+  if(!pageEl) return;
+  const groups = pageEl.querySelectorAll('.subpage-group');
+  groups.forEach((el,i)=>{
+    el.classList.remove('active','fade-in','slide-up');
+    if(i===g){
+      el.classList.add('active');
+      if(animate){ void el.offsetWidth; el.classList.add('fade-in'); }
+    }
+  });
+  if(pi === state.curPage) state.subPageIndex = g;
+  pageEl.scrollTop = 0;
+  updateSubPageDots(pi, g, groups.length);
+}
+
+function ttsJumpToGroup(pi, g){
+  const changingPage = (pi !== state.curPage);
+  if(changingPage){
+    const oldEl = document.getElementById(`page-${state.curPage}`);
+    const newEl = document.getElementById(`page-${pi}`);
+    if(oldEl) oldEl.className = 'page hidden';
+    if(newEl) newEl.className = 'page cur';
+    state.curPage = pi;
+    updatePageIndicator();
+  }
+  switchToGroup(pi, g, !changingPage);
 }
 
 function ttsSkip(dir){
@@ -9490,42 +9518,20 @@ function ttsSkip(dir){
     return;
   }
   stopCurrentAudioOnly();
-  if(dir > 0){
-    if(state.tts.idx + 1 < state.tts.queue.length){
-      state.tts.idx++; state.tts.playing = true;
-      playNextTtsChunk(); updateTtsPlayPauseIcon();
-      return;
-    }
-    const totalGroups = countGroups(state.curPage);
-    if(state.subPageIndex + 1 < totalGroups){
-      ttsGoToGroup(state.curPage, state.subPageIndex + 1);
-      startTtsForCurrentGroup();
-    } else if(state.curPage + 1 < state.pages.length){
-      goToPage(state.curPage + 1);
-      setTimeout(()=>{ state.subPageIndex = 0; startTtsForCurrentGroup(); }, 480);
-    } else {
-      showToast('これが最後です'); stopTts();
-    }
-  } else {
-    if(state.tts.idx > 0){
-      state.tts.idx--; state.tts.playing = true;
-      playNextTtsChunk(); updateTtsPlayPauseIcon();
-      return;
-    }
-    if(state.subPageIndex > 0){
-      ttsGoToGroup(state.curPage, state.subPageIndex - 1);
-      startTtsForCurrentGroup();
-    } else if(state.curPage > 0){
-      goToPage(state.curPage - 1);
-      setTimeout(()=>{
-        const g = Math.max(0, countGroups(state.curPage) - 1);
-        state.subPageIndex = g;
-        startTtsForCurrentGroup();
-      }, 480);
-    } else {
-      showToast('これが最初です');
-    }
+  const newIdx = state.tts.idx + dir;
+  if(newIdx < 0){
+    showToast('これが最初です');
+    return;
   }
+  if(newIdx >= state.tts.queue.length){
+    showToast('これが最後です');
+    stopTts();
+    return;
+  }
+  state.tts.idx = newIdx;
+  state.tts.playing = true;
+  playNextTtsChunk();
+  updateTtsPlayPauseIcon();
 }
 
 function ttsCycleRate() {
