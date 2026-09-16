@@ -5247,6 +5247,8 @@ function enterEditMode(){
   }
 
   state.editMode=true;
+  updateTtsBarVisibility();
+  clearTtsHighlight();
   document.querySelectorAll('.page-editor').forEach(ed=>{
     ed.contentEditable='true';
   });
@@ -5315,6 +5317,8 @@ function exitEditMode(){
   $.viewport.style.bottom='var(--bot-h)';
   // エピソード保存
   save();
+  updateTtsBarVisibility();
+  updateTtsHighlight();
   // スクロール位置を復元
   if(anchorQi !== null){
     requestAnimationFrame(()=>{
@@ -5399,6 +5403,24 @@ async function speakWithDeviceTts(text) {
     utter.onerror = () => reject(new Error('端末音声の再生に失敗しました'));
     speechSynthesis.speak(utter);
   });
+}
+
+function updateTtsBarVisibility() {
+  // テスト用の簡易版（本物のTTSバーがまだ無いので、queueの有無だけ見る）
+  const hasQueue = !!(state.tts.queue && state.tts.queue.length > 0);
+  console.log('[tts] bar visibility:', hasQueue && !state.editMode);
+}
+
+function clearTtsHighlight() {
+  document.querySelectorAll('.tts-reading').forEach(e => e.classList.remove('tts-reading'));
+}
+
+function updateTtsHighlight() {
+  clearTtsHighlight();
+  const item = state.tts.queue && state.tts.queue[state.tts.idx];
+  if (!item || item.qi == null) return;
+  const el = getContent(item.pi, item.qi);
+  if (el) el.classList.add('tts-reading');
 }
 
 function stopTts() {
