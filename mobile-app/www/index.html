@@ -1605,6 +1605,26 @@ body.library-mode #tts-control-bar{display:none !important;}
   margin-left:-8px;margin-right:-8px;padding-left:8px;padding-right:8px;
   transition:background .25s ease;
 }
+
+.furigana-rule-row{
+  display:flex;gap:6px;align-items:center;margin-bottom:8px;
+}
+.furigana-rule-row input{
+  flex:1;min-width:0;padding:6px 8px;
+  border:1px solid #ccc;border-radius:4px;
+  font-size:13px;font-family:inherit;
+}
+.furigana-rule-row .arrow{color:#888;font-size:14px;flex-shrink:0;}
+.furigana-rule-row .del-btn{
+  background:none;border:1px solid #e0c0c0;color:#c54040;
+  padding:4px 8px;border-radius:4px;cursor:pointer;
+  font-size:11px;flex-shrink:0;
+}
+#furigana-add-btn{
+  margin-top:4px;width:100%;
+  background:none;border:1px dashed #aaa;color:#555;
+  padding:8px;border-radius:4px;cursor:pointer;font-size:13px;
+}
 </style>
 </head>
 <body>
@@ -5811,6 +5831,20 @@ function stopTts(){
 state.tts.queue = [];
 state.tts.idx = 0;
 
+// 読み上げ用テキストに、登録済みの読み方辞書を適用する
+function applyFuriganaForTts(text) {
+  if (!state.novel) return text;
+  const rules = getFuriganaRules().filter(r => r.word && r.reading);
+  if (rules.length === 0) return text;
+  // 長い単語から先にマッチさせる（短い単語が長い単語の一部を壊さないように）
+  const sorted = rules.slice().sort((a, b) => b.word.length - a.word.length);
+  let result = text;
+  sorted.forEach(rule => {
+    result = result.split(rule.word).join(rule.reading);
+  });
+  return result;
+}
+
 // 現在のグループのテキスト段落を取得
 function getGroupPlainTexts(pi, g){
   const texts = [];
@@ -5823,8 +5857,12 @@ function getGroupPlainTexts(pi, g){
     if(p.type === 'group-break'){ cur++; continue; }
     if(cur !== g){ if(cur > g) break; continue; }
     if(p.type !== 'text') continue;
-    const t = (p.text || (p.html||'').replace(/<[^>]+>/g,'')).trim();
-    if(t){ texts.push(t); qis.push(qi); }
+    let t = (p.text || (p.html || '').replace(/<[^>]+>/g, '')).trim();
+    if (t) {
+      t = applyFuriganaForTts(t);
+      texts.push(t);
+      qis.push(qi);
+    }
   }
   return { texts, qis };
 }
@@ -7037,22 +7075,112 @@ function getReplaceRules(){
   return state.novel.replaceRules;
 }
 
-function openReplaceModal(){
-  if(!state.novel){
-    try{ showToast('本を開いてから操作してください'); }catch(_){}
+function applyFuriganaForTts(text) {
+  if (!state.novel) return text;
+  const rules = getFuriganaRules().filter(r => r.word); // readingは空でもOK（読み飛ばし用）
+  if (rules.length === 0) return text;
+  const sorted = rules.slice().sort((a, b) => b.word.length - a.word.length);
+  let result = text;
+  sorted.forEach(rule => {
+    result = result.split(rule.word).join(rule.reading || '');
+  });
+  return result;
+}
+
+function renderFuriganaRules() {
+  const list = document.getElementById('furigana-rules-list');
+  if (!list) return;
+  list.innerHTML = '';
+  const rules = getFuriganaRules();
+  if (rules.length === 0) rules.push({ word: '', reading: '' });
+  rules.forEach((rule, idx) => {
+    list.appendChild(createFuriganaRuleRow(rule, idx));
+  });
+}
+
+function createFuriganaRuleRow(rule, idx) {
+  const row = document.createElement('div');
+  row.className = 'furigana-rule-row';
+  row.dataset.idx = idx;
+  const inputWord = document.createElement('input');
+  inputWord.type = 'text';
+  inputWord.placeholder = '単語（例：今日）';
+  inputWord.value = rule.word || '';
+  inputWord.dataset.field = 'word';
+  const arrow = document.createElement('span');
+  arrow.className = 'arrow';
+  arrow.textContent = '→';
+  const inputReading = document.createElement('input');
+  inputReading.type = 'text';
+  inputReading.placeholder = '読み方（空欄で読み飛ばす）';
+  inputReading.value = rule.reading || '';
+  inputReading.dataset.field = 'reading';
+  const delBtn = document.createElement('button');
+  delBtn.className = 'del-btn';
+  delBtn.textContent = '削除';
+  delBtn.onclick = () => {
+    saveFuriganaRulesFromUI();
+    const rules = getFuriganaRules();
+    const i = parseInt(row.dataset.idx, 10);
+    if (!isNaN(i)) rules.splice(i, 1);
+    renderFuriganaRules();
+  };
+  row.appendChild(inputWord);
+  row.appendChild(arrow);
+  row.appendChild(inputReading);
+  row.appendChild(delBtn);
+  return row;
+}
+
+function addFuriganaRuleRow() {
+  saveFuriganaRulesFromUI();
+  const rules = getFuriganaRules();
+  rules.push({ word: '', reading: '' });
+  renderFuriganaRules();
+  setTimeout(() => {
+    const list = document.getElementById('furigana-rules-list');
+    const lastRow = list && list.lastElementChild;
+    const firstInput = lastRow && lastRow.querySelector('input[data-field="word"]');
+    if (firstInput) firstInput.focus();
+  }, 0);
+}
+
+function saveFuriganaRulesFromUI() {
+  if (!state.novel) return;
+  const list = document.getElementById('furigana-rules-list');
+  if (!list) return;
+  const newRules = [];
+  list.querySelectorAll('.furigana-rule-row').forEach(row => {
+    const word = row.querySelector('input[data-field="word"]').value.trim();
+    const reading = row.querySelector('input[data-field="reading"]').value.trim();
+    newRules.push({ word, reading });
+  });
+  state.novel.furiganaRules = newRules;
+  try {
+    state.novel.updatedAt = new Date().toISOString();
+    const idx = state.library.findIndex(n => n.id === state.currentNovelId);
+    if (idx >= 0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+    libDbPut(state.novel).catch(e => { console.warn('save furiganaRules failed:', e); });
+  } catch (e) { console.warn(e); }
+}
+
+function openReplaceModal() {
+  if (!state.novel) {
+    try { showToast('本を開いてから操作してください'); } catch (_) {}
     return;
   }
   renderReplaceRules();
   renderPronounList();
+  renderFuriganaRules();
   const ov = document.getElementById('replace-modal-ov');
-  if(ov) ov.classList.add('show');
+  if (ov) ov.classList.add('show');
 }
 
-function closeReplaceModal(){
-  // 入力中のルールを保存
+function closeReplaceModal() {
   saveReplaceRulesFromUI();
+  saveFuriganaRulesFromUI();
   const ov = document.getElementById('replace-modal-ov');
-  if(ov) ov.classList.remove('show');
+  if (ov) ov.classList.remove('show');
 }
 
 function renderReplaceRules(){
@@ -9607,7 +9735,8 @@ init();
     <div id="replace-modal-body">
       <div class="replace-section-title">置換ルール（この本のみ）</div>
       <div class="replace-modal-hint">
-        各行の左に「置換前」、右に「置換後」を入力してください。空欄の行は無視されます。
+        本文の表示は変えず、読み上げ時だけ指定した読み方をします。例：「主人公」→「しゅじんこう」<br>
+        読み方を空欄のまま登録すると、その単語（記号）は読み上げ時に読み飛ばされます。例：「＊＊＊」→ 空欄
       </div>
       <div id="replace-rules-list"></div>
       <button id="replace-add-btn" onclick="addReplaceRuleRow()">＋ ルールを追加</button>
@@ -9624,6 +9753,12 @@ init();
       </div>
       <div id="pronoun-target-info"></div>
       <button class="pronoun-apply-btn" id="pronoun-apply-btn" onclick="runPronounConvert()" disabled>このエピソードの主語を変換</button>
+      <div class="replace-section-title">読み方辞書（音声読み上げ専用・この本のみ）</div>
+      <div class="replace-modal-hint">
+        本文の表示は変えず、読み上げ時だけ指定した読み方をします。例：「主人公」→「しゅじんこう」
+      </div>
+      <div id="furigana-rules-list"></div>
+      <button id="furigana-add-btn" onclick="addFuriganaRuleRow()">＋ 読み方を追加</button>
     </div>
     <div id="replace-modal-footer">
       <button class="preview-btn" onclick="showReplacePreview('episode')">エピソード プレビュー</button>
