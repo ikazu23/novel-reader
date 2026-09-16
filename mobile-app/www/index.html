@@ -5535,9 +5535,27 @@ function toggleTtsPlayback() {
 }
 
 function ttsSkip(dir) {
-  if (!state.tts.queue || state.tts.queue.length === 0) return;
+  if (!state.tts.queue || state.tts.queue.length === 0) {
+    showToast('再生中ではありません');
+    return;
+  }
+  stopCurrentAudioOnly();
   const newIdx = state.tts.idx + dir;
-  if (newIdx < 0 || newIdx >= state.tts.queue.length) { showToast('これ以上進めません'); return; }
+  if (newIdx < 0) {
+    showToast('これが最初です');
+    return;
+  }
+  if (newIdx >= state.tts.queue.length) {
+    if (state.settings.ttsAutoNextEpisode) {
+      state.tts.playing = true;
+      updateTtsPlayPauseIcon();
+      tryAutoPlayNextEpisode();
+    } else {
+      showToast('これが最後です');
+      stopTts();
+    }
+    return;
+  }
   state.tts.idx = newIdx;
   state.tts.playing = true;
   playNextTtsChunk();
@@ -5594,6 +5612,13 @@ function updateTtsEngineUI() {
 function saveTtsApiKey(el) {
   state.settings.ttsApiKey = el.value.trim();
   debouncedSaveSettings();
+}
+
+function stopCurrentAudioOnly() {
+  if (state.tts.audio) { try { state.tts.audio.pause(); } catch (_) {} state.tts.audio = null; }
+  if ('speechSynthesis' in window) { try { speechSynthesis.cancel(); } catch (_) {} }
+  const NativeTts = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
+  if (NativeTts) { NativeTts.stop().catch(() => {}); }
 }
 
 function stopTts(){
