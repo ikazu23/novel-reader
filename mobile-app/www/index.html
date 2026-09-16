@@ -3302,6 +3302,7 @@ async function resumeLastEpisode(){
    ライブラリ画面
 ══════════════════════════════════════ */
 function showLibrary(){
+  stopTts();
   // 編集中なら保存
   if(state.editMode) exitEditMode();
   clearTimeout(_saveTimer);
@@ -3526,6 +3527,7 @@ async function deleteNovel(novelId){
 
 // ── 目次画面 ──
 function showToc(){
+  stopTts();
   // 編集モード解除（exitEditMode内でsave済み）
   if(state.editMode)exitEditMode();
   // エピソード編集中のみ保存（openNovel経由のときはcurrentEpisodeIdがnullなので保存しない）
@@ -3714,6 +3716,7 @@ function addEpisode(){
 function openEpisode(id, startPos='first'){
   const ep=state.novel.episodes.find(e=>e.id===id);
   if(!ep)return;
+  stopTts();
   // 直前エピソードを即時保存（currentEpisodeId が変わる前に実行）
   clearTimeout(_saveTimer);
   if(state.editMode) syncEditorToState(state.curPage);
@@ -5126,6 +5129,7 @@ function updateSubPageDots(pi,sg,groupCount){
 // dir: 縦=±1, 横スワイプ=±1 (axis:'h'/'v')
 function goPage(dir, axis='v'){
   if(state.ui.transitioning)return;
+  stopTts();
   const next=state.curPage+dir;
   if(next<0){
     // 先頭ページより前 → 前のエピソードへ
@@ -5395,6 +5399,18 @@ async function speakWithDeviceTts(text) {
     utter.onerror = () => reject(new Error('端末音声の再生に失敗しました'));
     speechSynthesis.speak(utter);
   });
+}
+
+function stopTts() {
+  state.tts.playing = false;
+  state.tts.queue = [];
+  state.tts.idx = 0;
+  if ('speechSynthesis' in window) { speechSynthesis.cancel(); }
+  const NativeTts = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
+  if (NativeTts) { NativeTts.stop().catch(() => {}); }
+  if ('mediaSession' in navigator) {
+    try { navigator.mediaSession.playbackState = 'none'; } catch (e) {}
+  }
 }
 
 state.tts.queue = [];
