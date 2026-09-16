@@ -2400,6 +2400,7 @@ async function init(){
   setupColorBtnLongPress();
   setupDoubleTap();
   setupMediaSession();
+  setupNativeTtsQueueListeners();
   state.readingMode = localStorage.getItem('readingMode') === '1';
   document.getElementById('topbar-reading-mode')
   .classList.toggle('active', state.readingMode);
@@ -5753,17 +5754,13 @@ function toggleTtsPlayback() {
     stopTts();
   } else {
     if (state.tts.queue && state.tts.queue.length > 0 && state.tts.idx < state.tts.queue.length) {
-      nativePlaybackStart(state.novel ? state.novel.title : '', '読み上げ中…');
-      state.tts.playing = true;
-      playNextTtsChunk();
+      resumeTtsPlayback();
     } else {
       if (!state.currentEpisodeId) { showToast('エピソードを開いてから使ってください'); return; }
       state.tts.queue = buildEpisodeTtsQueue(state.curPage, state.subPageIndex);
       if (state.tts.queue.length === 0) { showToast('読み上げるテキストがありません'); return; }
       state.tts.idx = 0;
-      nativePlaybackStart(state.novel ? state.novel.title : '', '読み上げ中…');
-      state.tts.playing = true;
-      playNextTtsChunk();
+      resumeTtsPlayback();
     }
     document.getElementById('topbar-tts').classList.add('active');
     updateTtsPlayPauseIcon();
@@ -5771,17 +5768,76 @@ function toggleTtsPlayback() {
   }
 }
 
+function nativeTtsQueueSupported() {
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.Playback && window.Capacitor.Plugins.Playback.speakQueue);
+}
+
+function resumeTtsPlayback() {
+  nativePlaybackStart(state.novel ? state.novel.title : '', '読み上げ中…');
+  state.tts.playing = true;
+  const engine = state.settings.ttsEngine || 'device';
+  if (engine === 'device' && nativeTtsQueueSupported()) {
+    startNativeQueuePlayback();
+  } else {
+    playNextTtsChunk();
+  }
+}
+
+function startNativeQueuePlayback() {
+  const remaining = state.tts.queue.slice(state.tts.idx);
+  if (remaining.length === 0) {
+    state.tts.playing = false;
+    updateTtsPlayPauseIcon();
+    updateTtsBarVisibility();
+    return;
+  }
+  state.tts._queueBaseIdx = state.tts.idx;
+  const texts = remaining.map(item => item.text);
+  const rate = state.settings.ttsRate || 1;
+  window.Capacitor.Plugins.Playback.speakQueue({ texts, rate }).catch(e => {
+    console.warn('speakQueue failed, falling back:', e);
+    playNextTtsChunk();
+  });
+}
+
+function setupNativeTtsQueueListeners() {
+  if (!nativeTtsQueueSupported()) return;
+  window.Capacitor.Plugins.Playback.addListener('utteranceStart', (data) => {
+    const offset = parseInt(data.id, 10);
+    if (isNaN(offset)) return;
+    const baseIdx = state.tts._queueBaseIdx != null ? state.tts._queueBaseIdx : state.tts.idx;
+    const realIdx = baseIdx + offset;
+    if (realIdx >= state.tts.queue.length) return;
+    state.tts.idx = realIdx;
+    const item = state.tts.queue[realIdx];
+    ttsJumpToGroup(item.pi, item.g);
+    updateTtsHighlight();
+  });
+  window.Capacitor.Plugins.Playback.addListener('queueDone', () => {
+    if (state.settings.ttsAutoNextEpisode) {
+      tryAutoPlayNextEpisode();
+    } else {
+      state.tts.playing = false;
+      showToast('読み上げが終わりました');
+      updateTtsPlayPauseIcon();
+      updateTtsBarVisibility();
+    }
+  });
+}
+
 function ttsSkip(dir) {
   if (!state.tts.queue || state.tts.queue.length === 0) {
     showToast('再生中ではありません');
     return;
   }
-  stopCurrentAudioOnly();
-  const newIdx = state.tts.idx + dir;
-  if (newIdx < 0) {
-    showToast('これが最初です');
-    return;
+  const usingNativeQueue = (state.settings.ttsEngine || 'device') === 'device' && nativeTtsQueueSupported();
+  if (usingNativeQueue) {
+    window.Capacitor.Plugins.Playback.stopSpeaking().catch(() => {});
+  } else {
+    stopCurrentAudioOnly();
   }
+  const newIdx = state.tts.idx + dir;
+  if (newIdx < 0) { showToast('これが最初です'); return; }
   if (newIdx >= state.tts.queue.length) {
     if (state.settings.ttsAutoNextEpisode) {
       state.tts.playing = true;
@@ -5796,7 +5852,11 @@ function ttsSkip(dir) {
   state.tts.idx = newIdx;
   state.tts.playing = true;
   updateTtsPlayPauseIcon();
-  setTimeout(() => { playNextTtsChunk(); }, 80); // ← ここだけ変更（80ms待ってから再生）
+  if (usingNativeQueue) {
+    startNativeQueuePlayback();
+  } else {
+    setTimeout(() => { playNextTtsChunk(); }, 80);
+  }
 }
 
 function ttsCycleRate() {
@@ -5878,6 +5938,9 @@ function stopTts(){
   if('speechSynthesis' in window){ speechSynthesis.cancel(); }
   const NativeTts = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
   if(NativeTts){ NativeTts.stop().catch(()=>{}); }
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Playback && window.Capacitor.Plugins.Playback.stopSpeaking) {
+    window.Capacitor.Plugins.Playback.stopSpeaking().catch(() => {});
+  }
   state.tts.playing = false;
   _ttsLastGroupKey = null;
   state.tts.queue = [];
@@ -5896,6 +5959,31 @@ state.tts.queue = [];
 state.tts.idx = 0;
 let _ttsLastGroupKey = null;
 
+/* ══════════════════════════════════════
+   Android Chrome/WebView バグ対策：
+   speechSynthesis は約15秒で内部的に一時停止してしまう不具合があり、
+   画面消灯・バックグラウンド時に特に発生しやすい。
+   定期的にpause→resumeしてタイマーをリセットし、再生を継続させる。
+══════════════════════════════════════ */
+setInterval(() => {
+  if (!('speechSynthesis' in window)) return;
+  if (!state.tts.playing) return;
+  const NativeTts = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
+  if (NativeTts) return; // ネイティブTTSプラグイン使用時はWeb Speech APIを使っていないので対象外
+  if (speechSynthesis.speaking) {
+    speechSynthesis.pause();
+    speechSynthesis.resume();
+  }
+}, 10000);
+
+// バックグラウンドから復帰した際、再生が一時停止したままなら明示的に再開
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && state.tts.playing) {
+    if ('speechSynthesis' in window && speechSynthesis.paused) {
+      speechSynthesis.resume();
+    }
+  }
+});
 
 // 現在のグループのテキスト段落を取得
 function getGroupPlainTexts(pi, g){
@@ -6036,7 +6124,12 @@ async function tryAutoPlayNextEpisode() {
   updateTtsPlayPauseIcon();
   updateTtsBarVisibility();
   
-  playNextTtsChunk();
+  const engine = state.settings.ttsEngine || 'device';
+  if (engine === 'device' && nativeTtsQueueSupported()) {
+    startNativeQueuePlayback();
+  } else {
+    playNextTtsChunk();
+  }
 }
 
 function ttsTestStartFull() {
