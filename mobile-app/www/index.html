@@ -6939,38 +6939,42 @@ function runReplace(scope){
   }
 
   let totalCount = 0;
-  targetEpisodes.forEach(ep=>{
-    if(!ep.pages) return;
-    ep.pages.forEach(pg=>{
-      if(!pg.paras) return;
-      pg.paras.forEach(p=>{
-        if(p.type !== 'text') return;
-        // text にも置換を適用（プレーンテキスト）
-        let count = 0;
-        if(p.text){
+  targetEpisodes.forEach(ep => {
+    if (!ep.pages) return;
+    ep.pages.forEach(pg => {
+      if (!pg.paras) return;
+      pg.paras.forEach(p => {
+        if (p.type !== 'text') return;
+        
+        if (p.html) {
+          // htmlを正として置換（タグを壊さずテキストノードのみ）
+          const r = applyRulesToHtml(p.html, rules);
+          if (r.newHtml !== p.html) {
+            p.html = r.newHtml;
+            totalCount += r.count;
+            // textはhtmlから再抽出して常に同期させる
+            const tmp = document.createElement('div');
+            tmp.innerHTML = p.html;
+            p.text = tmp.textContent || '';
+          }
+        } else if (p.text) {
+          // htmlを持たない段落のみtextを直接置換
           const before = p.text;
-          rules.forEach(rule=>{
-            if(!rule.from) return;
+          rules.forEach(rule => {
+            if (!rule.from) return;
             p.text = p.text.split(rule.from).join(rule.to || '');
           });
-          if(p.text !== before){
-            rules.forEach(rule=>{
-              if(rule.from) count += before.split(rule.from).length - 1;
+          if (p.text !== before) {
+            rules.forEach(rule => {
+              if (rule.from) totalCount += before.split(rule.from).length - 1;
             });
-            totalCount += count;
           }
-        }
-        // html はテキストノードのみ置換（タグを壊さない）
-        if(p.html){
-          const r = applyRulesToHtml(p.html, rules);
-          p.html = r.newHtml;
         }
       });
     });
-    // 現在編集中のエピソードならstate.pagesも更新
-    if(scope === 'all' && ep.id === state.currentEpisodeId){
+    if (scope === 'all' && ep.id === state.currentEpisodeId) {
       state.pages = JSON.parse(JSON.stringify(ep.pages));
-    } else if(scope === 'episode'){
+    } else if (scope === 'episode') {
       state.pages = JSON.parse(JSON.stringify(ep.pages));
     }
   });
@@ -8266,18 +8270,38 @@ function loadFontFile(input){
   };
   reader.readAsArrayBuffer(file);
 }
-function applyTheme(idx){
-  const t=THEMES[idx];
-  if(!t)return;
-  state.settings.themeIdx=idx;
-  document.documentElement.style.setProperty('--bg',t.bg);
-  document.documentElement.style.setProperty('--ink',t.ink);
-  document.querySelectorAll('.page').forEach(p=>p.style.background=t.bg);
-  // ボタンのactive状態
-  const cont=$.theme_btns;
-  if(cont){
-    cont.querySelectorAll('.ob').forEach((b,i)=>b.classList.toggle('active',i===idx));
+
+function applyTheme(idx) {
+  const t = THEMES[idx];
+  if (!t) return;
+  state.settings.themeIdx = idx;
+  document.documentElement.style.setProperty('--bg', t.bg);
+  document.documentElement.style.setProperty('--ink', t.ink);
+  document.querySelectorAll('.page').forEach(p => p.style.background = t.bg);
+  const cont = $.theme_btns;
+  if (cont) {
+    cont.querySelectorAll('.ob').forEach((b, i) => b.classList.toggle('active', i === idx));
   }
+  // 背景画像が設定されていれば、テーマの明暗に応じてオーバーレイ色を自動追従
+  if (state.novel && state.novel.bg && state.novel.bg.fileName) {
+    const wantColor = isDarkThemeIdx(idx) ? 'black' : 'white';
+    if ((state.novel.bg.overlayColor || 'white') !== wantColor) {
+      setOverlayColor(wantColor);
+    }
+  }
+}
+
+// テーマ背景色の明度からダークテーマかどうかを判定（インデックス直書きを避ける）
+function isDarkThemeIdx(idx) {
+  const t = THEMES[idx];
+  if (!t) return false;
+  const hex = t.bg.replace('#', '');
+  if (hex.length !== 6) return false;
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  return brightness < 128;
 }
 
 function buildThemeBtns(){
