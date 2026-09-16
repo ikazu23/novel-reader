@@ -5442,25 +5442,21 @@ async function speakWithDeviceTts(text) {
   const rate = state.settings.ttsRate || 1;
   const NativeTts = window.Capacitor && window.Capacitor.isNativePlatform() &&
     window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
-  
+
   if (NativeTts) {
     await NativeTts.speak({
-      text: text,
-      lang: 'ja-JP',
-      rate: rate,
-      pitch: 1.0,
-      volume: 1.0,
-      category: 'ambient',
+      text: text, lang: 'ja-JP', rate: rate,
+      pitch: 1.0, volume: 1.0, category: 'ambient',
     });
     return;
   }
-  
+
   return new Promise((resolve, reject) => {
     if (!('speechSynthesis' in window)) {
       reject(new Error('この端末は音声合成に対応していません'));
       return;
     }
-    speechSynthesis.cancel();
+    // ↓ ここにあった speechSynthesis.cancel(); を削除
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = 'ja-JP';
     utter.rate = rate;
