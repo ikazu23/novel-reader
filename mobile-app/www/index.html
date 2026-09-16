@@ -253,15 +253,18 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 }
 /* 閲覧モード時のダブルタップヒント（初回のみ薄く表示） */
 #dbtap-hint{
-  position:fixed;bottom:60px;left:50%;transform:translateX(-50%);
-  background:rgba(0,0,0,.55);color:#fff;
-  font-family:'Noto Sans JP',sans-serif;font-size:12px;
-  padding:6px 16px;border-radius:20px;
+  position:fixed;bottom:60px;left:50%;transform:translateX(-50%) translateY(6px);
+  background:rgba(255,255,255,0.96);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  color:#333;
+  font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:500;
+  padding:7px 18px;border-radius:20px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.14),0 0 0 1px rgba(0,0,0,0.05);
   pointer-events:none;
-  opacity:0;transition:opacity .4s;
+  opacity:0;transition:opacity .4s,transform .4s;
   z-index:80;white-space:nowrap;
 }
-#dbtap-hint.show{opacity:1;}
+#dbtap-hint.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
 /* ══════ PAGE LABEL ══════ */
 .pnl{position:absolute;top:8px;right:10px;color:#ccc;font-size:11px;font-family:'Noto Sans JP',sans-serif;pointer-events:none;user-select:none;}
@@ -5757,9 +5760,17 @@ async function tryAutoPlayNextEpisode() {
   showToast('次の話へ移ります…');
   await new Promise(res => setTimeout(res, TTS_NEXT_EPISODE_DELAY_MS));
   if (!state.tts.playing) return;
-  openEpisode(next.id, 'first');
+  
+  openEpisode(next.id, 'first'); // 内部でstopTts()が走り、playing/queueがリセットされる
+  
+  // ↓ ここでリセットされた状態を再構築する
   state.tts.queue = buildEpisodeTtsQueue(state.curPage, state.subPageIndex);
   state.tts.idx = 0;
+  state.tts.playing = true;
+  document.getElementById('topbar-tts').classList.add('active');
+  updateTtsPlayPauseIcon();
+  updateTtsBarVisibility();
+  
   playNextTtsChunk();
 }
 
@@ -8607,24 +8618,32 @@ function toggleEnterMode(){
 }
 
 // シンプルな通知トースト
-function showToast(msg){
-  let t=document.getElementById('app-toast');
-  if(!t){
-    t=document.createElement('div');
-    t.id='app-toast';
-    t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#fff;font-family:\'Noto Sans JP\',sans-serif;font-size:12px;padding:8px 18px;border-radius:20px;z-index:900;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;';
+function showToast(msg) {
+  let t = document.getElementById('app-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'app-toast';
+    t.style.cssText = 'position:fixed;bottom:80px;left:50%;' +
+      'transform:translateX(-50%) translateY(6px);' +
+      'background:rgba(255,255,255,0.96);' +
+      'backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);' +
+      'color:#333;font-family:\'Noto Sans JP\',sans-serif;' +
+      'font-size:12.5px;font-weight:500;padding:9px 20px;' +
+      'border-radius:22px;' +
+      'box-shadow:0 4px 18px rgba(0,0,0,0.14),0 0 0 1px rgba(0,0,0,0.05);' +
+      'z-index:900;opacity:0;transition:opacity .25s,transform .25s;' +
+      'pointer-events:none;white-space:nowrap;max-width:80vw;' +
+      'overflow:hidden;text-overflow:ellipsis;';
     document.body.appendChild(t);
   }
-  t.textContent=msg;
-  t.style.opacity='1';
+  t.textContent = msg;
+  t.style.opacity = '1';
+  t.style.transform = 'translateX(-50%) translateY(0)';
   clearTimeout(t._timer);
-  t._timer=setTimeout(()=>{t.style.opacity='0';},1600);
-}
-function getActiveEditor(){
-  const ae=document.activeElement;
-  if(ae&&ae.isContentEditable)return ae;
-  // フォーカスがなければ現在ページの先頭エディタ
-  return document.getElementById(`editor-${state.curPage}`)||null;
+  t._timer = setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(-50%) translateY(6px)';
+  }, 1600);
 }
 
 /* ══════════════════════════════════════
@@ -9268,28 +9287,31 @@ function showUpdateBanner(worker){
   banner.id = 'update-banner';
   banner.style.cssText = `
     position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
-    background:#1a1a1a;color:#fff;padding:12px 16px 12px 18px;
-    border-radius:24px;box-shadow:0 4px 20px rgba(0,0,0,0.3);
+    background:rgba(255,255,255,0.97);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    color:#222;padding:12px 14px 12px 18px;
+    border-radius:24px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.16),0 0 0 1px rgba(0,0,0,0.05);
     display:flex;align-items:center;gap:12px;
     font-family:'Noto Sans JP',sans-serif;font-size:13px;
     z-index:9999;white-space:nowrap;
     animation:updBanIn .3s cubic-bezier(.25,.46,.45,.94) both;
   `;
   banner.innerHTML = `
-    <span>新しいバージョンがあります</span>
-    <button id="update-btn" style="
-      background:#11d1d1;color:#fff;border:none;
-      padding:6px 14px;border-radius:18px;
-      font-family:inherit;font-size:12px;font-weight:600;
-      cursor:pointer;-webkit-tap-highlight-color:transparent;
-    ">更新</button>
-    <button id="update-close" style="
-      background:none;border:none;color:#888;
-      width:24px;height:24px;cursor:pointer;font-size:18px;
-      display:flex;align-items:center;justify-content:center;
-      -webkit-tap-highlight-color:transparent;
-    ">×</button>
-  `;
+      <span>新しいバージョンがあります</span>
+      <button id="update-btn" style="
+        background:var(--accent);color:#fff;border:none;
+        padding:6px 14px;border-radius:18px;
+        font-family:inherit;font-size:12px;font-weight:600;
+        cursor:pointer;-webkit-tap-highlight-color:transparent;
+      ">更新</button>
+      <button id="update-close" style="
+        background:none;border:none;color:#aaa;
+        width:24px;height:24px;cursor:pointer;font-size:18px;
+        display:flex;align-items:center;justify-content:center;
+        -webkit-tap-highlight-color:transparent;
+      ">×</button>
+    `;
   // アニメーション用CSS
   if(!document.getElementById('update-banner-style')){
     const st = document.createElement('style');
