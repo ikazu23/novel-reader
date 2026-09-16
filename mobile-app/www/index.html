@@ -9419,6 +9419,20 @@ function setupGlobalListeners(){
     if(state.editMode && _saveTimer != null) flushSave();
   }, 30000);
 
+  /* ── 側面パネル内の入力欄：初回タップでキーボードが開かない端末への対策 ── */
+  const panelBodyEl = document.getElementById('panel-body');
+  if (panelBodyEl) {
+    panelBodyEl.addEventListener('touchend', e => {
+      const t = e.target;
+      if (t && (t.tagName === 'INPUT') &&
+        (t.type === 'text' || t.type === 'password' || t.type === 'search') &&
+        document.activeElement !== t) {
+        // Android WebViewで初回タップ時にfocus()が乗らない端末があるための明示的な再フォーカス
+        setTimeout(() => { t.focus(); }, 0);
+      }
+    }, { passive: true });
+  }
+
   /* ── 字下げボタンの長押し検出 ── */
   setupIndentLongPress();
 
