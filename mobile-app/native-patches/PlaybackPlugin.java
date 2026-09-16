@@ -42,7 +42,7 @@ public class PlaybackPlugin extends Plugin {
     @PluginMethod
     public void speakQueue(PluginCall call) {
         JSArray texts = call.getArray("texts");
-        float rate = (float) call.getDouble("rate", 1.0);
+        float rate = call.getDouble("rate", 1.0).floatValue();
         if (texts == null || texts.length() == 0) {
             call.resolve();
             return;
