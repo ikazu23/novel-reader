@@ -5515,24 +5515,23 @@ function updateTtsPlayPauseIcon() {
 
 function toggleTtsPlayback() {
   if (state.tts.playing) {
-    state.tts.playing = false;
-    if ('speechSynthesis' in window) speechSynthesis.pause();
-    const NativeTts = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
-    if (NativeTts) NativeTts.stop().catch(() => {});
-  } else if (state.tts.queue && state.tts.queue.length > 0 && state.tts.idx < state.tts.queue.length) {
-    state.tts.playing = true;
-    playNextTtsChunk();
+    stopTts(); // 再生中に押したら完全に停止して元のビューワー表示に戻す
   } else {
-    if (!state.currentEpisodeId) { showToast('エピソードを開いてから使ってください'); return; }
-    state.tts.queue = buildEpisodeTtsQueue(state.curPage, state.subPageIndex);
-    if (state.tts.queue.length === 0) { showToast('読み上げるテキストがありません'); return; }
-    state.tts.idx = 0;
-    state.tts.playing = true;
-    playNextTtsChunk();
+    if (state.tts.queue && state.tts.queue.length > 0 && state.tts.idx < state.tts.queue.length) {
+      state.tts.playing = true;
+      playNextTtsChunk();
+    } else {
+      if (!state.currentEpisodeId) { showToast('エピソードを開いてから使ってください'); return; }
+      state.tts.queue = buildEpisodeTtsQueue(state.curPage, state.subPageIndex);
+      if (state.tts.queue.length === 0) { showToast('読み上げるテキストがありません'); return; }
+      state.tts.idx = 0;
+      state.tts.playing = true;
+      playNextTtsChunk();
+    }
+    document.getElementById('topbar-tts').classList.add('active');
+    updateTtsPlayPauseIcon();
+    updateTtsBarVisibility();
   }
-  document.getElementById('topbar-tts').classList.toggle('active', state.tts.playing);
-  updateTtsPlayPauseIcon();
-  updateTtsBarVisibility();
 }
 
 function ttsSkip(dir) {
@@ -5597,15 +5596,21 @@ function saveTtsApiKey(el) {
   debouncedSaveSettings();
 }
 
-function stopTts() {
+function stopTts(){
+  if(state.tts.audio){ state.tts.audio.pause(); state.tts.audio = null; }
+  if('speechSynthesis' in window){ speechSynthesis.cancel(); }
+  const NativeTts = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
+  if(NativeTts){ NativeTts.stop().catch(()=>{}); }
   state.tts.playing = false;
   state.tts.queue = [];
   state.tts.idx = 0;
-  if ('speechSynthesis' in window) { speechSynthesis.cancel(); }
-  const NativeTts = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
-  if (NativeTts) { NativeTts.stop().catch(() => {}); }
-  if ('mediaSession' in navigator) {
-    try { navigator.mediaSession.playbackState = 'none'; } catch (e) {}
+  const btn = document.getElementById('topbar-tts');
+  if(btn) btn.classList.remove('active');
+  clearTtsHighlight();
+  updateTtsPlayPauseIcon();
+  updateTtsBarVisibility();
+  if('mediaSession' in navigator){
+    try{ navigator.mediaSession.playbackState = 'none'; }catch(e){}
   }
 }
 
