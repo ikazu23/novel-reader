@@ -5558,8 +5558,8 @@ function ttsSkip(dir) {
   }
   state.tts.idx = newIdx;
   state.tts.playing = true;
-  playNextTtsChunk();
   updateTtsPlayPauseIcon();
+  setTimeout(() => { playNextTtsChunk(); }, 80); // ← ここだけ変更（80ms待ってから再生）
 }
 
 function ttsCycleRate() {
