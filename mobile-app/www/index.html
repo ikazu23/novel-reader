@@ -5474,6 +5474,30 @@ async function speakWithDeviceTts(text) {
   });
 }
 
+const TTS_CHUNK_MAX_CHARS = 1400; // APIの1リクエストあたりの文字数制限への安全マージン
+
+async function synthesizeChirp(text) {
+  const apiKey = state.settings.ttsApiKey;
+  if (!apiKey) { showToast('設定画面でAPIキーを入力してください'); throw new Error('no api key'); }
+  const voiceName = state.settings.ttsVoice || 'ja-JP-Standard-A';
+  const rate = state.settings.ttsRate || 1;
+  const res = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + apiKey, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      input: { text },
+      voice: { languageCode: 'ja-JP', name: voiceName },
+      audioConfig: { audioEncoding: 'MP3' }
+    })
+  });
+  if (!res.ok) {
+    console.warn('TTS API error:', await res.text());
+    throw new Error('TTS API error: ' + res.status);
+  }
+  const data = await res.json();
+  return data.audioContent;
+}
+
 function updateTtsBarVisibility() {
   const bar = document.getElementById('tts-control-bar');
   if (!bar) return;
@@ -5652,25 +5676,42 @@ function ttsJumpToGroup(pi, g){
   switchToGroup(pi, g, !changingPage);
 }
 
-async function playNextTtsChunk() {
-  if (!state.tts.playing) return;
+async function playNextTtsChunk(){
+  if(!state.tts.playing) return;
   if (state.tts.idx >= state.tts.queue.length) {
     if (state.settings.ttsAutoNextEpisode) {
       await tryAutoPlayNextEpisode();
     } else {
       state.tts.playing = false;
       showToast('読み上げが終わりました');
+      updateTtsPlayPauseIcon();
+      updateTtsBarVisibility();
     }
     return;
   }
   const item = state.tts.queue[state.tts.idx];
   ttsJumpToGroup(item.pi, item.g);
   updateTtsHighlight();
-  try {
-    await speakWithDeviceTts(item.text);
-    state.tts.idx++;
-    playNextTtsChunk();
-  } catch (e) {
+  const text = item.text;
+  const engine = state.settings.ttsEngine || 'device';
+  const useCloud = engine === 'cloud' && !!state.settings.ttsApiKey;
+
+  try{
+    if(useCloud){
+      showToast('音声を生成中...');
+      const audioContent = await synthesizeChirp(text);
+      const audio = new Audio('data:audio/mp3;base64,' + audioContent);
+      audio.playbackRate = state.settings.ttsRate || 1;
+      state.tts.audio = audio;
+      audio.onended = () => { state.tts.idx++; playNextTtsChunk(); };
+      audio.onerror = () => { showToast('再生に失敗しました'); state.tts.playing = false; };
+      await audio.play();
+    } else {
+      await speakWithDeviceTts(text);
+      state.tts.idx++;
+      playNextTtsChunk();
+    }
+  }catch(e){
     showToast('読み上げに失敗しました: ' + e.message);
     state.tts.playing = false;
   }
