@@ -2014,6 +2014,11 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
       すべてのデータをリセット
     </button>
   </div>
+  <div class="ps" style="margin-top:32px;">
+    <button onclick="ttsTestStart()" style="width:100%;padding:10px;background:#e8f0f5;color:#3a6d8c;border:none;border-radius:8px;">
+      TTSテスト再生
+    </button>
+  </div>
   </div><!-- /panel-body -->
 </div>
 
@@ -2204,6 +2209,7 @@ async function init(){
   setupKb();
   setupColorBtnLongPress();
   setupDoubleTap();
+  setupMediaSession();
   state.readingMode = localStorage.getItem('readingMode') === '1';
   document.getElementById('topbar-reading-mode')
   .classList.toggle('active', state.readingMode);
@@ -5337,6 +5343,76 @@ function setupDoubleTap(){
     if(state.editMode)return;
     enterEditMode();
   });
+}
+
+function setupMediaSession() {
+  if (!('mediaSession' in navigator)) return;
+  try {
+    navigator.mediaSession.setActionHandler('play', () => { if (!state.tts.playing) ttsTestStart(); });
+    navigator.mediaSession.setActionHandler('pause', () => { speechSynthesis.pause(); state.tts.playing = false; });
+    navigator.mediaSession.setActionHandler('previoustrack', () => {});
+    navigator.mediaSession.setActionHandler('nexttrack', () => {});
+    navigator.mediaSession.setActionHandler('stop', () => { speechSynthesis.cancel(); state.tts.playing = false; });
+  } catch (e) { console.warn('setupMediaSession:', e); }
+}
+
+state.tts = { playing: false, deviceUtter: null };
+
+async function speakWithDeviceTts(text) {
+  const rate = state.settings.ttsRate || 1;
+  const NativeTts = window.Capacitor && window.Capacitor.isNativePlatform() &&
+    window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
+  
+  if (NativeTts) {
+    await NativeTts.speak({
+      text: text,
+      lang: 'ja-JP',
+      rate: rate,
+      pitch: 1.0,
+      volume: 1.0,
+      category: 'ambient',
+    });
+    return;
+  }
+  
+  return new Promise((resolve, reject) => {
+    if (!('speechSynthesis' in window)) {
+      reject(new Error('この端末は音声合成に対応していません'));
+      return;
+    }
+    speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'ja-JP';
+    utter.rate = rate;
+    const voices = speechSynthesis.getVoices();
+    const jaVoice = voices.find(v => v.lang === 'ja-JP') || voices.find(v => v.lang && v.lang.startsWith('ja'));
+    if (jaVoice) utter.voice = jaVoice;
+    state.tts.deviceUtter = utter;
+    utter.onend = resolve;
+    utter.onerror = () => reject(new Error('端末音声の再生に失敗しました'));
+    speechSynthesis.speak(utter);
+  });
+}
+
+// ── テスト用：実再生に合わせてmediaSessionの状態も更新する ──
+function ttsTestStart() {
+  state.tts.playing = true;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: 'TTSテスト', artist: '小説リーダー', album: '小説リーダー'
+    });
+    navigator.mediaSession.playbackState = 'playing';
+  } catch (e) {}
+  speakWithDeviceTts('これはテキスト読み上げのテストです。この文章が最後まで再生されれば、この段階までは問題ありません。')
+    .then(() => {
+      state.tts.playing = false;
+      try { navigator.mediaSession.playbackState = 'paused'; } catch (e) {}
+      showToast('TTSテスト完了');
+    })
+    .catch(e => {
+      state.tts.playing = false;
+      showToast('TTSテスト失敗: ' + e.message);
+    });
 }
 
 /* ══════════════════════════════════════
