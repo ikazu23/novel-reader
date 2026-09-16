@@ -1568,6 +1568,13 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
   font-family:'Noto Sans JP',sans-serif;
   font-size:13px;font-weight:400;color:#555;
 }
+.page-editor p.tts-reading{
+  background:rgba(0,128,128,0.10);
+  border-radius:6px;
+  margin-left:-8px;margin-right:-8px;
+  padding-left:8px;padding-right:8px;
+  transition:background .25s ease;
+}
 </style>
 </head>
 <body>
@@ -5356,6 +5363,7 @@ function enterEditMode(){
 
   state.editMode=true;
   updateTtsBarVisibility();
+  clearTtsHighlight();
   document.querySelectorAll('.page-editor').forEach(ed=>{
     ed.contentEditable='true';
   });
@@ -5424,6 +5432,9 @@ function exitEditMode(){
   $.viewport.style.bottom='var(--bot-h)';
   // エピソード保存
   save();
+  updateTtsBarVisibility();
+  updateTtsHighlight();
+
   // スクロール位置を復元
   if(anchorQi !== null){
     requestAnimationFrame(()=>{
@@ -9251,33 +9262,41 @@ function saveTtsApiKey(el){
 
 function getGroupPlainTexts(pi, g){
   const texts = [];
-  getGroupParas(pi, g).forEach(p=>{
-    if(p.type !== 'text') return;
+  const qis = [];
+  const pg = state.pages[pi];
+  if(!pg) return { texts, qis };
+  let cur = 0;
+  for(let qi=0; qi<pg.paras.length; qi++){
+    const p = pg.paras[qi];
+    if(p.type === 'group-break'){ cur++; continue; }
+    if(cur !== g){ if(cur > g) break; continue; }
+    if(p.type !== 'text') continue;
     const t = (p.text || (p.html||'').replace(/<[^>]+>/g,'')).trim();
-    if(t) texts.push(t);
-  });
-  return texts;
+    if(t){ texts.push(t); qis.push(qi); }
+  }
+  return { texts, qis };
 }
 
-function chunkTextsForTts(texts) {
+function chunkTextsForTts(texts, qis){
   const chunks = [];
-  texts.forEach(t => {
-    if (t.length <= TTS_CHUNK_MAX_CHARS) {
-      chunks.push(t);
+  const outQis = [];
+  texts.forEach((t, i)=>{
+    const qi = qis ? qis[i] : null;
+    if(t.length <= TTS_CHUNK_MAX_CHARS){
+      chunks.push(t); outQis.push(qi);
       return;
     }
-    // 極端に長い段落だけ句点区切りで分割
     let remaining = t;
-    while (remaining.length > TTS_CHUNK_MAX_CHARS) {
+    while(remaining.length > TTS_CHUNK_MAX_CHARS){
       let cut = remaining.lastIndexOf('。', TTS_CHUNK_MAX_CHARS);
-      if (cut < TTS_CHUNK_MAX_CHARS * 0.5) cut = TTS_CHUNK_MAX_CHARS;
+      if(cut < TTS_CHUNK_MAX_CHARS * 0.5) cut = TTS_CHUNK_MAX_CHARS;
       else cut += 1;
-      chunks.push(remaining.slice(0, cut));
+      chunks.push(remaining.slice(0, cut)); outQis.push(qi);
       remaining = remaining.slice(cut);
     }
-    if (remaining) chunks.push(remaining);
+    if(remaining){ chunks.push(remaining); outQis.push(qi); }
   });
-  return chunks;
+  return { chunks, qis: outQis };
 }
 
 async function synthesizeChirp(text) {
@@ -9304,9 +9323,11 @@ async function synthesizeChirp(text) {
 
 async function startTtsForCurrentGroup() {
   stopTts();
-  const texts = getGroupPlainTexts(state.curPage, state.subPageIndex);
+  const { texts, qis } = getGroupPlainTexts(state.curPage, state.subPageIndex);
   if (texts.length === 0) { showToast('読み上げるテキストがありません'); return; }
-  state.tts.queue = chunkTextsForTts(texts);
+  const chunked = chunkTextsForTts(texts, qis);
+  state.tts.queue = chunked.chunks;
+  state.tts.qiList = chunked.qis;
   state.tts.idx = 0;
   state.tts.playing = true;
   document.getElementById('topbar-tts').classList.add('active');
@@ -9323,6 +9344,7 @@ async function playNextTtsChunk(){
     return;
   }
   const text = state.tts.queue[state.tts.idx];
+  updateTtsHighlight();
   const engine = state.settings.ttsEngine || 'device';
   const useCloud = engine === 'cloud' && !!state.settings.ttsApiKey;
 
@@ -9397,9 +9419,11 @@ function stopTts(){
   state.tts.deviceUtter = null;
   state.tts.playing = false;
   state.tts.queue = [];
+  state.tts.qiList = [];
   state.tts.idx = 0;
   const btn = document.getElementById('topbar-tts');
   if(btn) btn.classList.remove('active');
+  clearTtsHighlight();
   updateTtsPlayPauseIcon();
   updateTtsBarVisibility();
 }
@@ -9409,6 +9433,26 @@ function stopCurrentAudioOnly(){
   if('speechSynthesis' in window){ try{ speechSynthesis.cancel(); }catch(_){} }
   const NativeTts = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
   if(NativeTts){ NativeTts.stop().catch(()=>{}); }
+}
+
+function updateTtsHighlight(){
+  clearTtsHighlight();
+  if(!state.tts.qiList || state.tts.qiList.length === 0) return;
+  const qi = state.tts.qiList[state.tts.idx];
+  if(qi == null) return;
+  const el = getContent(state.curPage, qi);
+  if(el){
+    el.classList.add('tts-reading');
+    state.tts._highlightEl = el;
+  }
+}
+
+function clearTtsHighlight(){
+  if(state.tts._highlightEl){
+    state.tts._highlightEl.classList.remove('tts-reading');
+    state.tts._highlightEl = null;
+  }
+  document.querySelectorAll('.tts-reading').forEach(e=>e.classList.remove('tts-reading'));
 }
 
 function updateTtsPlayPauseIcon(){
