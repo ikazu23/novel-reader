@@ -9295,19 +9295,25 @@ function updateMediaSessionMetadata() {
   } catch (e) { console.warn('updateMediaSessionMetadata:', e); }
 }
 
+
 /* ── バックグラウンド実行（ネイティブアプリ、プラグイン導入済みの場合のみ動作） ── */
+function getCordovaBackgroundMode() {
+  return window.cordova && window.cordova.plugins && window.cordova.plugins.backgroundMode;
+}
+
 async function enableBackgroundMode() {
-  const BackgroundMode = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundMode;
-  if (!BackgroundMode) return;
+  const bm = getCordovaBackgroundMode();
+  if (!bm) return;
   try {
-    await BackgroundMode.enable();
-    await BackgroundMode.setDefaults({
-      title: '小説リーダー',
-      text: '読み上げ再生中',
-      hidden: false,
-      silent: false,
-    });
+    bm.setDefaults({ title: '小説リーダー', text: '読み上げ再生中', silent: false });
+    bm.enable();
   } catch (e) { console.warn('enableBackgroundMode:', e); }
+}
+
+async function disableBackgroundMode() {
+  const bm = getCordovaBackgroundMode();
+  if (!bm) return;
+  try { bm.disable(); } catch (e) { console.warn('disableBackgroundMode:', e); }
 }
 
 async function disableBackgroundMode() {
