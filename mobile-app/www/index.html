@@ -1675,6 +1675,31 @@ body.library-mode #tts-control-bar{display:none !important;}
   background:none;border:1px dashed #aaa;color:#555;
   padding:8px;border-radius:4px;cursor:pointer;font-size:13px;
 }
+
+/* ふりがな表示 */
+.page-editor ruby{ ruby-position: over; }
+.page-editor rt{
+  font-size: 0.5em;
+  font-family:'Noto Sans JP',sans-serif;
+  color: inherit;
+  opacity: .8;
+  user-select:none; -webkit-user-select:none;
+}
+
+/* トグルスイッチ */
+.toggle-switch{ position:relative; width:44px; height:24px; flex-shrink:0; }
+.toggle-switch input{ opacity:0; width:0; height:0; }
+.toggle-switch .slider{
+  position:absolute; inset:0; background:#ddd; border-radius:24px;
+  cursor:pointer; transition:background .2s;
+}
+.toggle-switch .slider::before{
+  content:''; position:absolute; height:18px; width:18px; left:3px; top:3px;
+  background:#fff; border-radius:50%; transition:transform .2s;
+  box-shadow:0 1px 3px rgba(0,0,0,.3);
+}
+.toggle-switch input:checked + .slider{ background:var(--accent); }
+.toggle-switch input:checked + .slider::before{ transform:translateX(20px); }
 </style>
 </head>
 <body>
@@ -2246,6 +2271,13 @@ body.library-mode #tts-control-bar{display:none !important;}
     <details class="replace-accordion" id="acc-furigana">
       <summary class="replace-section-title">読み方辞書（読み上げ専用）</summary>
       <div class="replace-accordion-body">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <span style="font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#555;">本文にふりがなを表示</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="furigana-display-toggle" checked onchange="toggleFuriganaDisplay(this)">
+            <span class="slider"></span>
+          </label>
+        </div>
         <div class="replace-modal-hint">
           本文の表示は変えず、読み上げ時だけ指定した読み方をします。空欄で登録すると読み飛ばします。
         </div>
@@ -2434,6 +2466,7 @@ const state = {
     paraSpacing: 24,       // 段落間の余白（px）
     indentSkipSymbols: ['「','『','（','〈','《','【','［','＜','<'],  // 字下げ除外記号
     pronounList: ['俺','私','僕'], // 一人称リスト（追加可）
+    showFurigana: true,
     // bg は小説ごとに novel.bg として管理
   },
   // UI/セッション状態（永続化しない）
@@ -2759,6 +2792,65 @@ async function loadSavedFonts(){
       });
     }
   }catch(e){ console.warn('loadSavedFonts:', e); }
+}
+
+
+function getActiveFuriganaRulesForPara(para){
+  if(!state.novel) return [];
+  const indivRules = (Array.isArray(para.furigana)?para.furigana:[]).filter(r=>r.word && r.reading);
+  const indivWords = new Set(indivRules.map(r=>r.word));
+  const globalRules = getFuriganaRules().filter(r=>r.word && r.reading && !indivWords.has(r.word));
+  return [...indivRules, ...globalRules].sort((a,b)=>b.word.length-a.word.length);
+}
+
+function buildFuriganaDisplayHtml(para){
+  const html = para.html || '';
+  if(!html) return html;
+  const rules = getActiveFuriganaRulesForPara(para);
+  if(rules.length === 0) return html;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  const walker = document.createTreeWalker(tmp, NodeFilter.SHOW_TEXT, null);
+  const textNodes = [];
+  let n; while(n = walker.nextNode()) textNodes.push(n);
+  textNodes.forEach(node=>{
+    const text = node.textContent;
+    if(!text) return;
+    let i = 0, matchedAny = false, buffer = '';
+    const frag = document.createDocumentFragment();
+    const flush = ()=>{ if(buffer){ frag.appendChild(document.createTextNode(buffer)); buffer=''; } };
+    while(i < text.length){
+      let foundRule = null;
+      for(const rule of rules){
+        if(rule.word.length>0 && text.substr(i, rule.word.length) === rule.word){ foundRule = rule; break; }
+      }
+      if(foundRule){
+        matchedAny = true; flush();
+        const ruby = document.createElement('ruby');
+        ruby.appendChild(document.createTextNode(foundRule.word));
+        const rt = document.createElement('rt');
+        rt.textContent = foundRule.reading;
+        ruby.appendChild(rt);
+        frag.appendChild(ruby);
+        i += foundRule.word.length;
+      } else {
+        buffer += text.charAt(i); i++;
+      }
+    }
+    flush();
+    if(matchedAny) node.parentNode.replaceChild(frag, node);
+  });
+  return tmp.innerHTML;
+}
+
+function shouldShowFuriganaDisplay(){
+  return !state.editMode && state.settings.showFurigana !== false;
+}
+
+function toggleFuriganaDisplay(el){
+  state.settings.showFurigana = el.checked;
+  debouncedSaveSettings();
+  if(!state.editMode) state.pages.forEach((_,pi)=>refreshPage(pi));
 }
 
 /* ══════════════════════════════════════
@@ -3385,6 +3477,10 @@ function debouncedSaveSettings(){
 // 読み込んだ設定値をUIに反映する（init時に1回呼ぶ）
 function applyLoadedSettings(){
   const s=state.settings;
+  if (s.showFurigana == null) s.showFurigana = true;
+  const furiganaToggleEl = document.getElementById('furigana-display-toggle');
+  if (furiganaToggleEl) furiganaToggleEl.checked = s.showFurigana;
+  
   // テーマ
   applyTheme(s.themeIdx||0);
   // 行間・段落間の初期反映
@@ -4738,8 +4834,8 @@ function buildParaEl(pi,qi,para){
   }else{
     const p=document.createElement('p');
     p.dataset.pi=pi; p.dataset.qi=qi; p.dataset.type='text';
-    if(typeof para.html==='string' && para.html!==''){
-      p.innerHTML=para.html;
+    if (typeof para.html === 'string' && para.html !== '') {
+      p.innerHTML = shouldShowFuriganaDisplay() ? buildFuriganaDisplayHtml(para) : para.html;
     }else if(para.text){
       p.textContent=para.text;
     }else{
@@ -5513,6 +5609,7 @@ function enterEditMode(){
   state.editMode=true;
   updateTtsBarVisibility();
   clearTtsHighlight();
+  state.pages.forEach((_,pi)=>refreshPage(pi)); // ふりがなを外して編集可能な生HTMLに戻す
   document.querySelectorAll('.page-editor').forEach(ed=>{
     ed.contentEditable='true';
   });
@@ -5581,6 +5678,7 @@ function exitEditMode(){
   $.viewport.style.bottom='var(--bot-h)';
   // エピソード保存
   save();
+  state.pages.forEach((_,pi)=>refreshPage(pi)); // ふりがな表示を再適用
   updateTtsBarVisibility();
   updateTtsHighlight();
   // スクロール位置を復元
@@ -7686,6 +7784,7 @@ function saveFuriganaRulesFromUI() {
     if (idx >= 0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
     libDbPut(state.novel).catch(e => { console.warn('save furiganaRules failed:', e); });
   } catch (e) { console.warn(e); }
+  if(!state.editMode) state.pages.forEach((_,pi)=>refreshPage(pi));
 }
 
 function openReplaceModalSection(sectionId) {
