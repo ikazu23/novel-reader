@@ -7,9 +7,16 @@ import ee.forgr.capacitor.social.login.ModifiedMainActivityForSocialLoginPlugin;
 import com.getcapacitor.PluginHandle;
 import com.getcapacitor.Plugin;
 import android.content.Intent;
+import android.os.Bundle;
 import android.util.Log;
 
 public class MainActivity extends BridgeActivity implements ModifiedMainActivityForSocialLoginPlugin {
+
+  @Override
+  public void onCreate(Bundle savedInstanceState) {
+    registerPlugin(PlaybackPlugin.class);
+    super.onCreate(savedInstanceState);
+  }
 
   @Override
   public void onActivityResult(int requestCode, int resultCode, Intent data) {
