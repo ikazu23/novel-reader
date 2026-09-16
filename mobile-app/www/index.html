@@ -2018,6 +2018,9 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
     <button onclick="ttsTestStart()" style="width:100%;padding:10px;background:#e8f0f5;color:#3a6d8c;border:none;border-radius:8px;">
       TTSテスト再生
     </button>
+    <button onclick="ttsTestStartFull()" style="width:100%;padding:10px;margin-top:8px;background:#e8f0f5;color:#3a6d8c;border:none;border-radius:8px;">
+    TTSテスト再生（全話通し）
+  </button>
   </div>
   </div><!-- /panel-body -->
 </div>
@@ -5392,6 +5395,104 @@ async function speakWithDeviceTts(text) {
     utter.onerror = () => reject(new Error('端末音声の再生に失敗しました'));
     speechSynthesis.speak(utter);
   });
+}
+
+state.tts.queue = [];
+state.tts.idx = 0;
+
+// 現在のグループのテキスト段落を取得
+function getGroupPlainTexts(pi, g){
+  const texts = [];
+  const qis = [];
+  const pg = state.pages[pi];
+  if(!pg) return { texts, qis };
+  let cur = 0;
+  for(let qi=0; qi<pg.paras.length; qi++){
+    const p = pg.paras[qi];
+    if(p.type === 'group-break'){ cur++; continue; }
+    if(cur !== g){ if(cur > g) break; continue; }
+    if(p.type !== 'text') continue;
+    const t = (p.text || (p.html||'').replace(/<[^>]+>/g,'')).trim();
+    if(t){ texts.push(t); qis.push(qi); }
+  }
+  return { texts, qis };
+}
+
+// 現在ページ以降、全ページ・全グループ分の読み上げキューを作る
+function buildEpisodeTtsQueue(fromPi, fromG) {
+  const items = [];
+  for (let pi = fromPi; pi < state.pages.length; pi++) {
+    const totalGroups = countGroups(pi);
+    const startG = (pi === fromPi) ? fromG : 0;
+    for (let g = startG; g < totalGroups; g++) {
+      const { texts, qis } = getGroupPlainTexts(pi, g);
+      texts.forEach((t, i) => {
+        items.push({ pi, g, qi: qis[i], text: t });
+      });
+    }
+  }
+  return items;
+}
+
+// ページ・グループを読み上げに合わせて切り替え（アニメーションなしで直接差し替え）
+function switchToGroup(pi, g, animate){
+  const pageEl = document.getElementById(`page-${pi}`);
+  if(!pageEl) return;
+  const groups = pageEl.querySelectorAll('.subpage-group');
+  groups.forEach((el,i)=>{
+    el.classList.remove('active','fade-in','slide-up');
+    if(i===g){
+      el.classList.add('active');
+      if(animate){ void el.offsetWidth; el.classList.add('fade-in'); }
+    }
+  });
+  if(pi === state.curPage) state.subPageIndex = g;
+  pageEl.scrollTop = 0;
+  updateSubPageDots(pi, g, groups.length);
+}
+
+function ttsJumpToGroup(pi, g){
+  const changingPage = (pi !== state.curPage);
+  if(changingPage){
+    const oldEl = document.getElementById(`page-${state.curPage}`);
+    const newEl = document.getElementById(`page-${pi}`);
+    if(oldEl) oldEl.className = 'page hidden';
+    if(newEl) newEl.className = 'page cur';
+    state.curPage = pi;
+    updatePageIndicator();
+  }
+  switchToGroup(pi, g, !changingPage);
+}
+
+async function playNextTtsChunk(){
+  if(!state.tts.playing) return;
+  if (state.tts.idx >= state.tts.queue.length) {
+    state.tts.playing = false;
+    showToast('読み上げが終わりました（テスト完了）');
+    return;
+  }
+  const item = state.tts.queue[state.tts.idx];
+  ttsJumpToGroup(item.pi, item.g);
+  try{
+    await speakWithDeviceTts(item.text);
+    state.tts.idx++;
+    playNextTtsChunk();
+  }catch(e){
+    showToast('読み上げに失敗しました: ' + e.message);
+    state.tts.playing = false;
+  }
+}
+
+function ttsTestStartFull() {
+  state.tts.queue = buildEpisodeTtsQueue(state.curPage, state.subPageIndex);
+  if (state.tts.queue.length === 0) { showToast('テキストがありません'); return; }
+  state.tts.idx = 0;
+  state.tts.playing = true;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({ title: 'TTSテスト', artist: '小説リーダー' });
+    navigator.mediaSession.playbackState = 'playing';
+  } catch (e) {}
+  playNextTtsChunk();
 }
 
 // ── テスト用：実再生に合わせてmediaSessionの状態も更新する ──
