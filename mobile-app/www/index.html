@@ -5478,6 +5478,21 @@ function setupDoubleTap(){
   });
 }
 
+function nativePlaybackStart(title, text){
+  try{
+    if(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.Playback){
+      window.Capacitor.Plugins.Playback.start({ title: title || '小説リーダー', text: text || '読み上げ中…' });
+    }
+  }catch(e){ console.warn('nativePlaybackStart:', e); }
+}
+function nativePlaybackStop(){
+  try{
+    if(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.Playback){
+      window.Capacitor.Plugins.Playback.stop();
+    }
+  }catch(e){ console.warn('nativePlaybackStop:', e); }
+}
+
 function setupMediaSession() {
   if (!('mediaSession' in navigator)) return;
   try {
@@ -5664,9 +5679,10 @@ function updateTtsPlayPauseIcon() {
 
 function toggleTtsPlayback() {
   if (state.tts.playing) {
-    stopTts(); // 再生中に押したら完全に停止して元のビューワー表示に戻す
+    stopTts();
   } else {
     if (state.tts.queue && state.tts.queue.length > 0 && state.tts.idx < state.tts.queue.length) {
+      nativePlaybackStart(state.novel ? state.novel.title : '', '読み上げ中…');
       state.tts.playing = true;
       playNextTtsChunk();
     } else {
@@ -5674,6 +5690,7 @@ function toggleTtsPlayback() {
       state.tts.queue = buildEpisodeTtsQueue(state.curPage, state.subPageIndex);
       if (state.tts.queue.length === 0) { showToast('読み上げるテキストがありません'); return; }
       state.tts.idx = 0;
+      nativePlaybackStart(state.novel ? state.novel.title : '', '読み上げ中…');
       state.tts.playing = true;
       playNextTtsChunk();
     }
@@ -5773,6 +5790,7 @@ function stopCurrentAudioOnly() {
 }
 
 function stopTts(){
+  nativePlaybackStop();
   if(state.tts.audio){ state.tts.audio.pause(); state.tts.audio = null; }
   if('speechSynthesis' in window){ speechSynthesis.cancel(); }
   const NativeTts = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
