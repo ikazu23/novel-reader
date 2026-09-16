@@ -607,6 +607,21 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 .replace-modal-hint{
   color:#888;font-size:11px;margin-bottom:10px;line-height:1.5;
 }
+
+.replace-accordion{
+  border:1px solid #eee;border-radius:8px;margin-bottom:14px;overflow:hidden;
+}
+.replace-accordion summary.replace-section-title{
+  margin:0;padding:12px 14px;border-top:none;cursor:pointer;
+  list-style:none;display:flex;align-items:center;justify-content:space-between;
+  user-select:none;-webkit-tap-highlight-color:transparent;
+}
+.replace-accordion summary.replace-section-title::-webkit-details-marker{display:none;}
+.replace-accordion summary.replace-section-title::after{
+  content:'▾';color:#aaa;font-size:12px;transition:transform .2s;flex-shrink:0;margin-left:8px;
+}
+.replace-accordion[open] summary.replace-section-title::after{transform:rotate(180deg);}
+.replace-accordion-body{padding:0 14px 14px;}
 .replace-section-title{
   font-size:13px;font-weight:bold;color:#555;
   margin:18px 0 6px;padding-top:14px;
@@ -2137,13 +2152,37 @@ body.library-mode #tts-control-bar{display:none !important;}
 
   <div class="ps" style="margin-top:32px;">
     <div class="pl">置換ルール（この本のみ）</div>
-    <button onclick="openReplaceModal()" style="
-      width:100%;background:none;border:1px solid #c8d8e0;
-      color:#3a6d8c;padding:10px;border-radius:8px;
-      font-family:'Noto Sans JP',sans-serif;font-size:12px;
-      cursor:pointer;transition:background .12s;
-    " onmouseover="this.style.background='#f0f7fb'" onmouseout="this.style.background='none'">
+    <button onclick="openReplaceModalSection('acc-replace')" style="
+        width:100%;background:none;border:1px solid #c8d8e0;
+        color:#3a6d8c;padding:10px;border-radius:8px;
+        font-family:'Noto Sans JP',sans-serif;font-size:12px;
+        cursor:pointer;transition:background .12s;
+      " onmouseover="this.style.background='#f0f7fb'" onmouseout="this.style.background='none'">
       置換ルールを編集
+    </button>
+  </div>
+  
+  <div class="ps" style="margin-top:32px;">
+    <div class="pl">一人称（主語）変換（この本のみ）</div>
+    <button onclick="openReplaceModalSection('acc-pronoun')" style="
+        width:100%;background:none;border:1px solid #c8d8e0;
+        color:#3a6d8c;padding:10px;border-radius:8px;
+        font-family:'Noto Sans JP',sans-serif;font-size:12px;
+        cursor:pointer;transition:background .12s;
+      " onmouseover="this.style.background='#f0f7fb'" onmouseout="this.style.background='none'">
+      一人称変換を編集
+    </button>
+  </div>
+  
+  <div class="ps" style="margin-top:32px;">
+    <div class="pl">読み方辞書（この本のみ）</div>
+    <button onclick="openReplaceModalSection('acc-furigana')" style="
+        width:100%;background:none;border:1px solid #c8d8e0;
+        color:#3a6d8c;padding:10px;border-radius:8px;
+        font-family:'Noto Sans JP',sans-serif;font-size:12px;
+        cursor:pointer;transition:background .12s;
+      " onmouseover="this.style.background='#f0f7fb'" onmouseout="this.style.background='none'">
+      読み方辞書を編集
     </button>
   </div>
 
@@ -7159,16 +7198,16 @@ function saveFuriganaRulesFromUI() {
   } catch (e) { console.warn(e); }
 }
 
-function openReplaceModal() {
-  if (!state.novel) {
-    try { showToast('本を開いてから操作してください'); } catch (_) {}
-    return;
-  }
-  renderReplaceRules();
-  renderPronounList();
-  renderFuriganaRules();
-  const ov = document.getElementById('replace-modal-ov');
-  if (ov) ov.classList.add('show');
+function openReplaceModalSection(sectionId) {
+  openReplaceModal();
+  setTimeout(() => {
+    document.querySelectorAll('.replace-accordion').forEach(d => d.removeAttribute('open'));
+    const target = document.getElementById(sectionId);
+    if (target) {
+      target.setAttribute('open', '');
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 50);
 }
 
 function closeReplaceModal() {
@@ -9719,6 +9758,7 @@ function showUpdateBanner(worker){
 init();
 </script>
 
+
 <!-- 置換ルール管理モーダル -->
 <div id="replace-modal-ov">
   <div id="replace-modal">
@@ -9729,32 +9769,45 @@ init();
       </button>
     </div>
     <div id="replace-modal-body">
-      <div class="replace-section-title">置換ルール（この本のみ）</div>
-      <div class="replace-modal-hint">
-        本文の表示は変えず、読み上げ時だけ指定した読み方をします。例：「主人公」→「しゅじんこう」<br>
-        読み方を空欄のまま登録すると、その単語（記号）は読み上げ時に読み飛ばされます。例：「＊＊＊」→ 空欄
-      </div>
-      <div id="replace-rules-list"></div>
-      <button id="replace-add-btn" onclick="addReplaceRuleRow()">＋ ルールを追加</button>
+      <details class="replace-accordion" id="acc-replace" open>
+        <summary class="replace-section-title">置換ルール（この本のみ）</summary>
+        <div class="replace-accordion-body">
+          <div class="replace-modal-hint">
+            本文の表示は変えず、読み上げ時だけ指定した読み方をします。例：「主人公」→「しゅじんこう」<br>
+            読み方を空欄のまま登録すると、その単語（記号）は読み上げ時に読み飛ばされます。例：「＊＊＊」→ 空欄
+          </div>
+          <div id="replace-rules-list"></div>
+          <button id="replace-add-btn" onclick="addReplaceRuleRow()">＋ ルールを追加</button>
+        </div>
+      </details>
 
-      <div class="replace-section-title">主語（一人称）変換</div>
-      <div class="replace-modal-hint">
-        地の文の中の一人称を一括変換します。チップをタップで変換先に指定。✕で削除（デフォルト以外）。<br>
-        ※「は」「が」「を」「、」「。」など主語を示す文字が直後にある場合のみ変換します。「俺様」「俺たち」などは変換されません（必要に応じて個別追加してください）。
-      </div>
-      <div id="pronoun-list"></div>
-      <div id="pronoun-add-row">
-        <input type="text" id="pronoun-add-input" placeholder="一人称を追加（例：拙者）" maxlength="10">
-        <button onclick="addPronoun()">＋追加</button>
-      </div>
-      <div id="pronoun-target-info"></div>
-      <button class="pronoun-apply-btn" id="pronoun-apply-btn" onclick="runPronounConvert()" disabled>このエピソードの主語を変換</button>
-      <div class="replace-section-title">読み方辞書（音声読み上げ専用・この本のみ）</div>
-      <div class="replace-modal-hint">
-        本文の表示は変えず、読み上げ時だけ指定した読み方をします。例：「主人公」→「しゅじんこう」
-      </div>
-      <div id="furigana-rules-list"></div>
-      <button id="furigana-add-btn" onclick="addFuriganaRuleRow()">＋ 読み方を追加</button>
+      <details class="replace-accordion" id="acc-pronoun">
+        <summary class="replace-section-title">一人称（主語）変換</summary>
+        <div class="replace-accordion-body">
+          <div class="replace-modal-hint">
+            地の文の中の一人称を一括変換します。チップをタップで変換先に指定。✕で削除（デフォルト以外）。<br>
+            ※「は」「が」「を」「、」「。」など主語を示す文字が直後にある場合のみ変換します。「俺様」「俺たち」などは変換されません（必要に応じて個別追加してください）。
+          </div>
+          <div id="pronoun-list"></div>
+          <div id="pronoun-add-row">
+            <input type="text" id="pronoun-add-input" placeholder="一人称を追加（例：拙者）" maxlength="10">
+            <button onclick="addPronoun()">＋追加</button>
+          </div>
+          <div id="pronoun-target-info"></div>
+          <button class="pronoun-apply-btn" id="pronoun-apply-btn" onclick="runPronounConvert()" disabled>このエピソードの主語を変換</button>
+        </div>
+      </details>
+
+      <details class="replace-accordion" id="acc-furigana">
+        <summary class="replace-section-title">読み方辞書（音声読み上げ専用・この本のみ）</summary>
+        <div class="replace-accordion-body">
+          <div class="replace-modal-hint">
+            本文の表示は変えず、読み上げ時だけ指定した読み方をします。例：「主人公」→「しゅじんこう」
+          </div>
+          <div id="furigana-rules-list"></div>
+          <button id="furigana-add-btn" onclick="addFuriganaRuleRow()">＋ 読み方を追加</button>
+        </div>
+      </details>
     </div>
     <div id="replace-modal-footer">
       <button class="preview-btn" onclick="showReplacePreview('episode')">エピソード プレビュー</button>
