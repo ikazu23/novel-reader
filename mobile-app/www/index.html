@@ -5358,7 +5358,23 @@ function setupMediaSession() {
 
 state.tts = { playing: false, deviceUtter: null };
 
-function speakWithDeviceTts(text) {
+async function speakWithDeviceTts(text) {
+  const rate = state.settings.ttsRate || 1;
+  const NativeTts = window.Capacitor && window.Capacitor.isNativePlatform() &&
+    window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
+  
+  if (NativeTts) {
+    await NativeTts.speak({
+      text: text,
+      lang: 'ja-JP',
+      rate: rate,
+      pitch: 1.0,
+      volume: 1.0,
+      category: 'ambient',
+    });
+    return;
+  }
+  
   return new Promise((resolve, reject) => {
     if (!('speechSynthesis' in window)) {
       reject(new Error('この端末は音声合成に対応していません'));
@@ -5367,7 +5383,7 @@ function speakWithDeviceTts(text) {
     speechSynthesis.cancel();
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang = 'ja-JP';
-    utter.rate = 1;
+    utter.rate = rate;
     const voices = speechSynthesis.getVoices();
     const jaVoice = voices.find(v => v.lang === 'ja-JP') || voices.find(v => v.lang && v.lang.startsWith('ja'));
     if (jaVoice) utter.voice = jaVoice;
