@@ -1963,6 +1963,22 @@ body.library-mode #tts-control-bar{display:none !important;}
     </div>
   </div>
   <div class="ps">
+  <div class="pl">読み上げエンジン</div>
+  <div class="pr" id="tts-engine-btns">
+    <button class="ob" id="tts-eng-device" onclick="setTtsEngine('device')">端末音声（無料）</button>
+    <button class="ob" id="tts-eng-cloud" onclick="setTtsEngine('cloud')">Google Cloud（制作中）</button>
+  </div>
+  <div id="tts-cloud-settings" style="margin-top:10px;">
+    <input type="password" id="tts-api-key-input" placeholder="APIキーを入力"
+      style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:13px;margin-bottom:6px;box-sizing:border-box;"
+      onblur="saveTtsApiKey(this)">
+  </div>
+  <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#333;cursor:pointer;">
+    <input type="checkbox" id="tts-auto-next-episode" onchange="toggleTtsAutoNextEpisode(this)" style="width:16px;height:16px;accent-color:#008080;cursor:pointer;">
+    次の話を自動で再生する
+  </label>
+</div>
+  <div class="ps">
     <div class="pl">フォント</div>
     <div class="font-list" id="font-list"></div>
     <div class="font-load-row">
@@ -3207,6 +3223,12 @@ function applyLoadedSettings(){
   // 編集バーのカラーボタン
   updateEbColorBtn(s.lastColor);
   // 背景設定はnovel固有のため openNovel / loadNovelBgImage で適用される
+  
+  updateTtsEngineUI();
+  const ttsKeyInput = document.getElementById('tts-api-key-input');
+  if (ttsKeyInput) ttsKeyInput.value = s.ttsApiKey || '';
+  const autoNextEl = document.getElementById('tts-auto-next-episode');
+  if (autoNextEl) autoNextEl.checked = !!s.ttsAutoNextEpisode;
   // Enterモードラベル
   if($.eb_enter_mode && $.eb_enter_label){
     if(s.enterInsertsBr){
@@ -5514,6 +5536,30 @@ function updateTtsHighlight() {
   if (!item || item.qi == null) return;
   const el = getContent(item.pi, item.qi);
   if (el) el.classList.add('tts-reading');
+}
+
+function setTtsEngine(engine) {
+  state.settings.ttsEngine = engine;
+  debouncedSaveSettings();
+  updateTtsEngineUI();
+}
+
+function toggleTtsAutoNextEpisode(el) {
+  state.settings.ttsAutoNextEpisode = el.checked;
+  debouncedSaveSettings();
+}
+
+function updateTtsEngineUI() {
+  const engine = state.settings.ttsEngine || 'device';
+  document.getElementById('tts-eng-device').classList.toggle('active', engine === 'device');
+  document.getElementById('tts-eng-cloud').classList.toggle('active', engine === 'cloud');
+  const cloudSettings = document.getElementById('tts-cloud-settings');
+  if (cloudSettings) cloudSettings.style.display = (engine === 'cloud') ? 'block' : 'none';
+}
+
+function saveTtsApiKey(el) {
+  state.settings.ttsApiKey = el.value.trim();
+  debouncedSaveSettings();
 }
 
 function stopTts() {
