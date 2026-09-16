@@ -1,6 +1,6 @@
 {
   "name": "ikasumi-novel",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "dependencies": {
     "@capacitor/core": "^6.1.0",
     "@capacitor/android": "^6.1.0",
