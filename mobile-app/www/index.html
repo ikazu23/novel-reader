@@ -5831,19 +5831,7 @@ function stopTts(){
 state.tts.queue = [];
 state.tts.idx = 0;
 
-// 読み上げ用テキストに、登録済みの読み方辞書を適用する
-function applyFuriganaForTts(text) {
-  if (!state.novel) return text;
-  const rules = getFuriganaRules().filter(r => r.word && r.reading);
-  if (rules.length === 0) return text;
-  // 長い単語から先にマッチさせる（短い単語が長い単語の一部を壊さないように）
-  const sorted = rules.slice().sort((a, b) => b.word.length - a.word.length);
-  let result = text;
-  sorted.forEach(rule => {
-    result = result.split(rule.word).join(rule.reading);
-  });
-  return result;
-}
+
 
 // 現在のグループのテキスト段落を取得
 function getGroupPlainTexts(pi, g){
@@ -7073,6 +7061,13 @@ function getReplaceRules(){
   if(!state.novel) return [];
   if(!Array.isArray(state.novel.replaceRules)) state.novel.replaceRules = [];
   return state.novel.replaceRules;
+}
+
+// 現在の本の読み方辞書ルールを取得（なければ初期化）
+function getFuriganaRules() {
+  if (!state.novel) return [];
+  if (!Array.isArray(state.novel.furiganaRules)) state.novel.furiganaRules = [];
+  return state.novel.furiganaRules;
 }
 
 function applyFuriganaForTts(text) {
