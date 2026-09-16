@@ -1976,22 +1976,25 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
         <button class="stepper-btn" onclick="adjustAllFontSize(1)">＋</button>
       </div>
     </div>
-  </div>
   <div class="ps">
-  <div class="pl">読み上げエンジン</div>
-  <div class="pr" id="tts-engine-btns">
-    <button class="ob" id="tts-eng-device" onclick="setTtsEngine('device')">端末音声（無料）</button>
-    <button class="ob" id="tts-eng-cloud" onclick="setTtsEngine('cloud')">Google Cloud（高音質）</button>
-  </div>
-  <div id="tts-cloud-settings" style="margin-top:10px;">
-    <input type="password" id="tts-api-key-input" placeholder="APIキーを入力"
-      style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:13px;margin-bottom:6px;box-sizing:border-box;"
-      onblur="saveTtsApiKey(this)">
-    <div style="font-size:10px;color:#aaa;line-height:1.5;">
-      端末内にのみ保存されます（リポジトリ・APKには含まれません）
+    <div class="pl">読み上げエンジン</div>
+    <div class="pr" id="tts-engine-btns">
+      <button class="ob" id="tts-eng-device" onclick="setTtsEngine('device')">端末音声（無料）</button>
+      <button class="ob" id="tts-eng-cloud" onclick="setTtsEngine('cloud')">Google Cloud（高音質）</button>
     </div>
+    <div id="tts-cloud-settings" style="margin-top:10px;">
+      <input type="password" id="tts-api-key-input" placeholder="APIキーを入力"
+        style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:13px;margin-bottom:6px;box-sizing:border-box;"
+        onblur="saveTtsApiKey(this)">
+      <div style="font-size:10px;color:#aaa;line-height:1.5;">
+        端末内にのみ保存されます（リポジトリ・APKには含まれません）
+      </div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#333;cursor:pointer;">
+      <input type="checkbox" id="tts-auto-next-episode" onchange="toggleTtsAutoNextEpisode(this)" style="width:16px;height:16px;accent-color:#008080;cursor:pointer;">
+      次の話を自動で再生する
+    </label>
   </div>
-</div>
   <div class="ps">
     <div class="pl">フォント</div>
     <div class="font-list" id="font-list"></div>
@@ -2240,8 +2243,9 @@ const state = {
     themeIdx:   0,         // THEMES配列のインデックス
     lineHeight: 2.0,       // 行間（line-heightの倍率）
     paraSpacing: 24,       // 段落間の余白（px）
-    indentSkipSymbols: ['「','『','（','〈','《','【','［','＜','<'],  // 字下げ除外記号
-    pronounList: ['俺','私','僕'], // 一人称リスト（追加可）
+    indentSkipSymbols: ['「', '『', '（', '〈', '《', '【', '［', '＜', '<'], // 字下げ除外記号
+    pronounList: ['俺', '私', '僕'], // 一人称リスト（追加可）
+    ttsAutoNextEpisode: false, // 次の話を自動で再生する
     // bg は小説ごとに novel.bg として管理
   },
   // UI/セッション状態（永続化しない）
@@ -3177,12 +3181,14 @@ function loadSettings(){
     Object.assign(state.settings, obj);
   }catch(e){console.warn('loadSettings failed',e);}
 }
+
 function saveSettings(){
   try{
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
   }catch(e){console.warn('saveSettings failed',e);}
 }
 let _settingsTimer=null;
+
 function debouncedSaveSettings(){
   clearTimeout(_settingsTimer);
   _settingsTimer=setTimeout(saveSettings,300);
@@ -3192,6 +3198,11 @@ function setTtsEngine(engine) {
   state.settings.ttsEngine = engine; // 'device' | 'cloud'
   debouncedSaveSettings();
   updateTtsEngineUI();
+}
+
+function toggleTtsAutoNextEpisode(el) {
+  state.settings.ttsAutoNextEpisode = el.checked;
+  debouncedSaveSettings();
 }
 
 function updateTtsEngineUI() {
@@ -3247,6 +3258,8 @@ function applyLoadedSettings(){
   // TTSキー欄の初期表示
   const ttsKeyInput = document.getElementById('tts-api-key-input');
   if (ttsKeyInput) ttsKeyInput.value = s.ttsApiKey || '';
+  const autoNextEl = document.getElementById('tts-auto-next-episode');
+  if (autoNextEl) autoNextEl.checked = !!s.ttsAutoNextEpisode;
   
   // Enterモードラベル
   if($.eb_enter_mode && $.eb_enter_label){
@@ -9343,11 +9356,33 @@ async function startTtsForCurrentGroup() {
   await playNextTtsChunk();
 }
 
+const TTS_NEXT_EPISODE_DELAY_MS = 3000; // 次の話に入る前の間隔
+
+async function tryAutoPlayNextEpisode() {
+  const sorted = [...state.novel.episodes].sort((a, b) => a.number - b.number);
+  const idx = sorted.findIndex(e => e.id === state.currentEpisodeId);
+  const next = (idx !== -1) ? sorted[idx + 1] : null;
+  if (!next) {
+    stopTts();
+    showToast('最後の話まで読み終えました');
+    return;
+  }
+  showToast('次の話へ移ります…');
+  await new Promise(res => setTimeout(res, TTS_NEXT_EPISODE_DELAY_MS));
+  if (!state.tts.playing) return; // 待機中に停止された場合は何もしない
+  openEpisode(next.id, 'first');
+  await startTtsForCurrentGroup();
+}
+
 async function playNextTtsChunk(){
   if(!state.tts.playing) return;
-  if(state.tts.idx >= state.tts.queue.length){
-    stopTts();
-    showToast('読み上げが終わりました');
+  if (state.tts.idx >= state.tts.queue.length) {
+    if (state.settings.ttsAutoNextEpisode) {
+      await tryAutoPlayNextEpisode();
+    } else {
+      stopTts();
+      showToast('読み上げが終わりました');
+    }
     return;
   }
   const item = state.tts.queue[state.tts.idx];
