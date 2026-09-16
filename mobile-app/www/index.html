@@ -9302,6 +9302,7 @@ function getCordovaBackgroundMode() {
 }
 
 async function enableBackgroundMode() {
+  return; // ← 検証のため一時的に無効化
   const bm = getCordovaBackgroundMode();
   if (!bm) return;
   try {
