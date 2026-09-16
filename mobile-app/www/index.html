@@ -5428,11 +5428,11 @@ function setupDoubleTap(){
 function setupMediaSession() {
   if (!('mediaSession' in navigator)) return;
   try {
-    navigator.mediaSession.setActionHandler('play', () => { if (!state.tts.playing) ttsTestStart(); });
-    navigator.mediaSession.setActionHandler('pause', () => { speechSynthesis.pause(); state.tts.playing = false; });
-    navigator.mediaSession.setActionHandler('previoustrack', () => {});
-    navigator.mediaSession.setActionHandler('nexttrack', () => {});
-    navigator.mediaSession.setActionHandler('stop', () => { speechSynthesis.cancel(); state.tts.playing = false; });
+    navigator.mediaSession.setActionHandler('play', () => { if (!state.tts.playing) toggleTtsPlayback(); });
+    navigator.mediaSession.setActionHandler('pause', () => { if (state.tts.playing) toggleTtsPlayback(); });
+    navigator.mediaSession.setActionHandler('previoustrack', () => { ttsSkip(-1); });
+    navigator.mediaSession.setActionHandler('nexttrack', () => { ttsSkip(1); });
+    navigator.mediaSession.setActionHandler('stop', () => { ttsStopAndHide(); });
   } catch (e) { console.warn('setupMediaSession:', e); }
 }
 
