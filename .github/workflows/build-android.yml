@@ -39,6 +39,12 @@ jobs:
       - name: Patch MainActivity for native Google login
         run: cp mobile-app/native-patches/MainActivity.java mobile-app/android/app/src/main/java/com/k/ikasumi/MainActivity.java
 
+      - name: Patch background playback service
+        run: |
+          cp mobile-app/native-patches/PlaybackService.java mobile-app/android/app/src/main/java/com/k/ikasumi/PlaybackService.java
+          cp mobile-app/native-patches/PlaybackPlugin.java mobile-app/android/app/src/main/java/com/k/ikasumi/PlaybackPlugin.java
+          python3 mobile-app/native-patches/patch_manifest.py mobile-app/android/app/src/main/AndroidManifest.xml
+
       - name: Decode keystore
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > mobile-app/android/app/novel-reader.keystore
 
