@@ -2899,7 +2899,7 @@ function buildFuriganaDisplayHtml(para){
 }
 
 function shouldShowFuriganaDisplay() {
-  return state.settings.showFurigana !== false; // !state.editMode && を削除
+  return !state.editMode && state.settings.showFurigana !== false;
 }
 
 function toggleFuriganaDisplay(el){
@@ -7940,7 +7940,7 @@ function renderFuriganaRules() {
   const list = document.getElementById('furigana-rules-list');
   if (!list) return;
   list.innerHTML = '';
-  const rules = getFuriganaRules();
+  const rules = getFuriganaRules().slice();
   if (rules.length === 0) rules.push({ word: '', reading: '' });
   rules.forEach((rule, idx) => {
     list.appendChild(createFuriganaRuleRow(rule, idx));
