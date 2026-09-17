@@ -2321,6 +2321,14 @@ body.library-mode #tts-control-bar{display:none !important;}
 
   <div class="ps" style="margin-top:32px;">
     <div class="pl">データ管理</div>
+    <button onclick="cleanupBakedInFurigana()" style="
+  width:100%;margin-top:8px;background:none;border:1px solid #c8d8e0;
+  color:#3a6d8c;padding:10px;border-radius:8px;
+  font-family:'Noto Sans JP',sans-serif;font-size:12px;
+  cursor:pointer;
+">
+      ふりがなが消えないときの修復（この本）
+    </button>
     <button onclick="resetAllData()" style="
       width:100%;background:none;border:1px solid #f0d0d0;
       color:#c54040;padding:10px;border-radius:8px;
@@ -2899,7 +2907,36 @@ function buildFuriganaDisplayHtml(para){
 }
 
 function shouldShowFuriganaDisplay() {
-  return state.settings.showFurigana !== false; // !state.editMode && を削除
+  return !state.editMode && state.settings.showFurigana !== false;
+}
+
+function cleanupBakedInFurigana() {
+  if (!state.novel || !state.novel.episodes) return;
+  let count = 0;
+  state.novel.episodes.forEach(ep => {
+    if (!ep.pages) return;
+    ep.pages.forEach(pg => {
+      (pg.paras || []).forEach(p => {
+        if (p.type !== 'text') return;
+        if (p.html && p.html.indexOf('<ruby') !== -1) {
+          p.html = stripFuriganaHtml(p.html);
+          p.text = stripFuriganaText(p.html);
+          count++;
+        }
+      });
+    });
+  });
+  // 現在開いているエピソードなら表示中のstate.pagesにも反映
+  if (state.currentEpisodeId) {
+    const curEp = state.novel.episodes.find(e => e.id === state.currentEpisodeId);
+    if (curEp) state.pages = JSON.parse(JSON.stringify(curEp.pages));
+  }
+  state.novel.updatedAt = new Date().toISOString();
+  const idx = state.library.findIndex(n => n.id === state.currentNovelId);
+  if (idx >= 0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+  libDbPut(state.novel).catch(e => console.warn('save failed:', e));
+  if (state.curPage != null) refreshPage(state.curPage);
+  try { showToast(count + '段落の焼き付きふりがなを除去しました'); } catch (_) {}
 }
 
 function toggleFuriganaDisplay(el){
@@ -7940,7 +7977,7 @@ function renderFuriganaRules() {
   const list = document.getElementById('furigana-rules-list');
   if (!list) return;
   list.innerHTML = '';
-  const rules = getFuriganaRules();
+  const rules = getFuriganaRules().slice();
   if (rules.length === 0) rules.push({ word: '', reading: '' });
   rules.forEach((rule, idx) => {
     list.appendChild(createFuriganaRuleRow(rule, idx));
