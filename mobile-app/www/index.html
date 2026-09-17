@@ -70,6 +70,13 @@ body{
 }
 #topbar-reading-mode:hover{background:#f0f0f0;}
 #topbar-reading-mode.active{color:var(--accent);background:rgba(0,128,128,0.08);}
+#topbar-tts{
+  background:none;border:none;color:#555;width:36px;height:36px;
+  border-radius:6px;cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+}
+#topbar-tts:hover{background:#f0f0f0;}
+#topbar-tts.active{color:var(--accent);background:rgba(0,128,128,0.08);}
 #topbar-edit-done{
   background:none;border:none;color:#555;width:36px;height:36px;
   border-radius:6px;cursor:pointer;flex-shrink:0;
@@ -246,15 +253,18 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 }
 /* 閲覧モード時のダブルタップヒント（初回のみ薄く表示） */
 #dbtap-hint{
-  position:fixed;bottom:60px;left:50%;transform:translateX(-50%);
-  background:rgba(0,0,0,.55);color:#fff;
-  font-family:'Noto Sans JP',sans-serif;font-size:12px;
-  padding:6px 16px;border-radius:20px;
+  position:fixed;bottom:60px;left:50%;transform:translateX(-50%) translateY(6px);
+  background:rgba(255,255,255,0.96);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  color:#333;
+  font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:500;
+  padding:7px 18px;border-radius:20px;
+  box-shadow:0 4px 16px rgba(0,0,0,0.14),0 0 0 1px rgba(0,0,0,0.05);
   pointer-events:none;
-  opacity:0;transition:opacity .4s;
+  opacity:0;transition:opacity .4s,transform .4s;
   z-index:80;white-space:nowrap;
 }
-#dbtap-hint.show{opacity:1;}
+#dbtap-hint.show{opacity:1;transform:translateX(-50%) translateY(0);}
 
 /* ══════ PAGE LABEL ══════ */
 .pnl{position:absolute;top:8px;right:10px;color:#ccc;font-size:11px;font-family:'Noto Sans JP',sans-serif;pointer-events:none;user-select:none;}
@@ -597,6 +607,21 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 .replace-modal-hint{
   color:#888;font-size:11px;margin-bottom:10px;line-height:1.5;
 }
+
+.replace-accordion{
+  border:1px solid #eee;border-radius:8px;margin-bottom:14px;overflow:hidden;
+}
+.replace-accordion summary.replace-section-title{
+  margin:0;padding:12px 14px;border-top:none;cursor:pointer;
+  list-style:none;display:flex;align-items:center;justify-content:space-between;
+  user-select:none;-webkit-tap-highlight-color:transparent;
+}
+.replace-accordion summary.replace-section-title::-webkit-details-marker{display:none;}
+.replace-accordion summary.replace-section-title::after{
+  content:'▾';color:#aaa;font-size:12px;transition:transform .2s;flex-shrink:0;margin-left:8px;
+}
+.replace-accordion[open] summary.replace-section-title::after{transform:rotate(180deg);}
+.replace-accordion-body{padding:0 14px 14px;}
 .replace-section-title{
   font-size:13px;font-weight:bold;color:#555;
   margin:18px 0 6px;padding-top:14px;
@@ -799,6 +824,36 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 }
 #eb-color-btn:active{transform:scale(.93);}
 
+#sleep-timer-popup{
+  position:fixed;
+  background:#fff;
+  border-radius:14px;
+  box-shadow:0 6px 28px rgba(0,0,0,0.22);
+  padding:14px;
+  z-index:600;
+  display:none;
+  flex-direction:column;
+  gap:10px;
+  min-width:220px;
+}
+#sleep-timer-popup.show{display:flex;}
+.stp-title{font-family:'Noto Sans JP',sans-serif;font-size:11px;color:#888;letter-spacing:.1em;}
+.stp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.stp-btn{
+  background:#f5f5f5;border:none;border-radius:8px;
+  padding:10px 0;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#333;
+  cursor:pointer;transition:background .12s;
+}
+.stp-btn:active{background:#e0e0e0;}
+.stp-btn.active{background:var(--accent);color:#fff;}
+.stp-off{
+  width:100%;background:#fdecea;color:#c54040;border:none;border-radius:8px;
+  padding:9px 0;font-family:'Noto Sans JP',sans-serif;font-size:13px;cursor:pointer;
+}
+.stp-off:active{background:#f8d7d4;}
+.stp-status{font-family:'Noto Sans JP',sans-serif;font-size:11px;color:#999;text-align:center;}
+.tts-cbtn.active{color:var(--accent);}
+
 #eb-color-popup{
   position:fixed;
   background:#fff;
@@ -812,6 +867,41 @@ mark.sh.current{background:#ff8f00;color:#fff;}
   min-width:200px;
 }
 #eb-color-popup.show{display:flex;}
+#eb-furigana-popup{
+  position:fixed;
+  background:#fff;
+  border-radius:14px;
+  box-shadow:0 6px 28px rgba(0,0,0,0.22);
+  padding:14px 16px;
+  z-index:600;
+  display:none;
+  flex-direction:column;
+  gap:10px;
+  min-width:240px;
+  max-width:300px;
+}
+#eb-furigana-popup.show{display:flex;}
+.efp-title{font-family:'Noto Sans JP',sans-serif;font-size:11px;color:#888;letter-spacing:.05em;}
+.efp-word{
+  font-family:var(--font-body);font-size:15px;color:#222;
+  background:#f5f5f5;padding:6px 10px;border-radius:6px;
+  word-break:break-all;
+}
+.efp-input{
+  width:100%;border:1px solid #ccc;border-radius:6px;
+  padding:8px 10px;font-family:'Noto Sans JP',sans-serif;font-size:14px;
+  outline:none;box-sizing:border-box;
+}
+.efp-input:focus{border-color:#009999;}
+.efp-row{display:flex;gap:8px;}
+.efp-btn{
+  flex:1;padding:9px 0;border-radius:8px;border:none;cursor:pointer;
+  font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:600;
+}
+.efp-btn.primary{background:#009999;color:#fff;}
+.efp-btn.secondary{background:#f0f0f0;color:#555;}
+.efp-btn.danger{background:#fce8e8;color:#c54040;}
+
 .ecp-title{font-family:'Noto Sans JP',sans-serif;font-size:11px;color:#888;letter-spacing:.1em;}
 .ecp-dots{display:flex;flex-wrap:wrap;gap:8px;}
 .ecp-dot{
@@ -1542,6 +1632,79 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
   font-family:'Noto Sans JP',sans-serif;
   font-size:13px;font-weight:400;color:#555;
 }
+#tts-control-bar{
+  position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
+  background:rgba(255,255,255,0.96);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border-radius:30px;box-shadow:0 4px 20px rgba(0,0,0,0.18);
+  padding:8px 10px;display:none;align-items:center;gap:2px;z-index:150;
+}
+#tts-control-bar.show{display:flex;}
+.tts-cbtn{
+  background:none;border:none;color:#333;width:38px;height:38px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;transition:background .12s;flex-shrink:0;
+}
+.tts-cbtn:active{background:rgba(0,0,0,0.08);}
+.tts-cbtn-main{width:46px;height:46px;background:#008080;color:#fff;}
+.tts-cbtn-main:active{background:#006666;}
+#tts-rate-btn{font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:600;color:#008080;width:auto;padding:0 10px;}
+body.library-mode #tts-control-bar{display:none !important;}
+.page-editor p.tts-reading{
+  background:rgba(0,128,128,0.10);border-radius:6px;
+  margin-left:-8px;margin-right:-8px;padding-left:8px;padding-right:8px;
+  transition:background .25s ease;
+}
+
+.furigana-rule-row{
+  display:flex;gap:6px;align-items:center;margin-bottom:8px;
+}
+.furigana-rule-row input{
+  flex:1;min-width:0;padding:6px 8px;
+  border:1px solid #ccc;border-radius:4px;
+  font-size:13px;font-family:inherit;
+}
+.furigana-rule-row .arrow{color:#888;font-size:14px;flex-shrink:0;}
+.furigana-rule-row .del-btn{
+  background:none;border:1px solid #e0c0c0;color:#c54040;
+  padding:4px 8px;border-radius:4px;cursor:pointer;
+  font-size:11px;flex-shrink:0;
+}
+.indiv-furigana-row .del-btn{
+  background:none;border:1px solid #e0c0c0;color:#c54040;
+  padding:4px 8px;border-radius:4px;cursor:pointer;
+  font-size:11px;flex-shrink:0;
+}
+#furigana-add-btn{
+  margin-top:4px;width:100%;
+  background:none;border:1px dashed #aaa;color:#555;
+  padding:8px;border-radius:4px;cursor:pointer;font-size:13px;
+}
+
+/* ふりがな表示 */
+.page-editor ruby{ ruby-position: over; }
+.page-editor rt{
+  font-size: 0.5em;
+  font-family:'Noto Sans JP',sans-serif;
+  color: inherit;
+  opacity: .8;
+  user-select:none; -webkit-user-select:none;
+}
+
+/* トグルスイッチ */
+.toggle-switch{ position:relative; width:44px; height:24px; flex-shrink:0; }
+.toggle-switch input{ opacity:0; width:0; height:0; }
+.toggle-switch .slider{
+  position:absolute; inset:0; background:#ddd; border-radius:24px;
+  cursor:pointer; transition:background .2s;
+}
+.toggle-switch .slider::before{
+  content:''; position:absolute; height:18px; width:18px; left:3px; top:3px;
+  background:#fff; border-radius:50%; transition:transform .2s;
+  box-shadow:0 1px 3px rgba(0,0,0,.3);
+}
+.toggle-switch input:checked + .slider{ background:var(--accent); }
+.toggle-switch input:checked + .slider::before{ transform:translateX(20px); }
 </style>
 </head>
 <body>
@@ -1706,7 +1869,10 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
   </button>
   <button id="topbar-tts" onclick="toggleTtsPlayback()" title="読み上げ">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="4 8 8 8 12 4 12 20 8 16 4 16" />
+      <path d="M16 8a5 5 0 0 1 0 8" />
+    </svg>
   </button>
   <button id="topbar-search" onclick="openSearch()" title="検索">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><line x1="15.5" y1="15.5" x2="21" y2="21"/></svg>
@@ -1743,12 +1909,34 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
 <!-- DOUBLE TAP HINT -->
 <div id="dbtap-hint">ダブルタップで編集</div>
 
+<div id="tts-control-bar">
+  <button class="tts-cbtn" onclick="ttsSkip(-1)" title="前へ">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zM20 6L10 12l10 6z"/></svg>
+  </button>
+  <button class="tts-cbtn tts-cbtn-main" id="tts-playpause-btn" onclick="toggleTtsPlayback()" title="再生/一時停止">
+    <svg id="tts-play-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+    <svg id="tts-pause-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+  </button>
+  <button class="tts-cbtn" onclick="ttsSkip(1)" title="次へ">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6l10 6-10 6V6zM16 6h2v12h-2z"/></svg>
+  </button>
+  <button class="tts-cbtn" id="tts-sleep-btn" onclick="toggleSleepTimerPopup(event)" title="スリープタイマー">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  </button>
+  <button class="tts-cbtn" id="tts-rate-btn" onclick="ttsCycleRate()" title="速度">
+    <span id="tts-rate-label">1x</span>
+  </button>
+  <button class="tts-cbtn" onclick="ttsStopAndHide()" title="停止">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+  </button>
+</div>
+
 <!-- BOTTOM EDIT BAR -->
 <div id="botbar">
   <div id="botbar-edit-row">
     <!-- 字下げボタン（左端固定） -->
     <div id="eb-fixed-left">
-      <button class="eb-btn" onclick="openReplaceModal()" title="置換ルール">
+      <button class="eb-btn" onclick="togglePanel();setTimeout(()=>{document.querySelectorAll('.replace-accordion').forEach(d=>d.removeAttribute('open'));const t=document.getElementById('acc-replace');if(t){t.setAttribute('open','');t.scrollIntoView({behavior:'smooth',block:'start'});}},280);" title="置換ルール">
         <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 6h6"/><path d="M4 12h6"/><path d="M4 18h6"/>
           <path d="M14 8l3-3 3 3"/><path d="M17 5v6"/>
@@ -1842,6 +2030,18 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
 
     <div class="eb-sep"></div>
 
+  <!-- 簡単ふりがな登録 -->
+    <button class="eb-btn" id="eb-furigana-btn" onclick="onFuriganaQuickTap(event)" title="選択範囲に個別の読み方を登録">
+      <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 5h3M11 5h3M16 5h2" stroke-width="1.5" />
+        <rect x="5" y="9" width="14" height="11" rx="1.5" />
+        <line x1="9" y1="9" x2="9" y2="20" />
+        <line x1="15" y1="9" x2="15" y2="20" />
+      </svg>
+    </button>
+    
+    <div class="eb-sep"></div>
+    
     <!-- 挿絵 -->
     <button class="eb-btn" onclick="document.getElementById('img-picker-input').click()" title="挿絵を追加">
       <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
@@ -1883,6 +2083,35 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
   </div>
 </div>
 
+<div id="eb-furigana-popup">
+  <span class="efp-title">簡単ふりがな登録</span>
+  <div class="efp-word" id="efp-word-display"></div>
+  <input type="text" class="efp-input" id="efp-reading-input"
+    placeholder="読み方（空欄で読み飛ばし）"
+    onkeydown="if(event.key==='Enter'){event.preventDefault();confirmFuriganaQuickRegister();}">
+  <label style="display:flex;align-items:center;gap:8px;font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#555;">
+    <span>この読み方を有効にする</span>
+    <label class="toggle-switch">
+      <input type="checkbox" id="efp-enabled-toggle" checked>
+      <span class="slider"></span>
+    </label>
+  </label>
+  <div class="efp-row">
+    <button class="efp-btn secondary" onclick="closeFuriganaQuickPopup()">キャンセル</button>
+    <button class="efp-btn primary" onclick="confirmFuriganaQuickRegister()">登録</button>
+  </div>
+  <div class="efp-row" id="efp-delete-row" style="display:none;">
+    <button class="efp-btn danger" style="flex:1;" onclick="deleteFuriganaQuickRegister()">この個別設定を削除</button>
+  </div>
+</div>
+
+<div id="sleep-timer-popup">
+  <span class="stp-title">スリープタイマー</span>
+  <div class="stp-grid" id="sleep-timer-grid"></div>
+  <button class="stp-off" onclick="cancelSleepTimer()">オフにする</button>
+  <div class="stp-status" id="sleep-timer-status"></div>
+</div>
+
 <!-- SIDE PANEL -->
 <div id="panel-ov" onclick="closePanel()"></div>
 <div id="side-panel">
@@ -1915,7 +2144,7 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
   </div>
   <div class="ps">
     <div class="stepper-line">
-      <div class="pl">全体の文字サイズ</div>
+      <div class="pl">この話の文字サイズ</div>
       <div class="stepper-row">
         <button class="stepper-btn" onclick="adjustAllFontSize(-1)">－</button>
         <span class="stepper-val">Aa</span>
@@ -1924,19 +2153,30 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
     </div>
   </div>
   <div class="ps">
+    <div class="stepper-line">
+      <div class="pl">全話の文字サイズ</div>
+      <div class="stepper-row">
+        <button class="stepper-btn" onclick="adjustAllEpisodesFontSize(-1)">－</button>
+        <span class="stepper-val">Aa</span>
+        <button class="stepper-btn" onclick="adjustAllEpisodesFontSize(1)">＋</button>
+      </div>
+    </div>
+  </div>
+  <div class="ps">
   <div class="pl">読み上げエンジン</div>
   <div class="pr" id="tts-engine-btns">
     <button class="ob" id="tts-eng-device" onclick="setTtsEngine('device')">端末音声（無料）</button>
-    <button class="ob" id="tts-eng-cloud" onclick="setTtsEngine('cloud')">Google Cloud（高音質）</button>
+    <button class="ob" id="tts-eng-cloud" onclick="setTtsEngine('cloud')">Google Cloud（制作中）</button>
   </div>
   <div id="tts-cloud-settings" style="margin-top:10px;">
     <input type="password" id="tts-api-key-input" placeholder="APIキーを入力"
       style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:13px;margin-bottom:6px;box-sizing:border-box;"
       onblur="saveTtsApiKey(this)">
-    <div style="font-size:10px;color:#aaa;line-height:1.5;">
-      端末内にのみ保存されます（リポジトリ・APKには含まれません）
-    </div>
   </div>
+  <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#333;cursor:pointer;">
+    <input type="checkbox" id="tts-auto-next-episode" onchange="toggleTtsAutoNextEpisode(this)" style="width:16px;height:16px;accent-color:#008080;cursor:pointer;">
+    次の話を自動で再生する
+  </label>
 </div>
   <div class="ps">
     <div class="pl">フォント</div>
@@ -2009,16 +2249,71 @@ body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
     </div>
   </div>
 
+  <div class="ps" style="margin-top:16px;">
+    <details class="replace-accordion" id="acc-pronoun">
+      <summary class="replace-section-title">一人称（主語）変換</summary>
+      <div class="replace-accordion-body">
+        <div class="replace-modal-hint">
+          地の文の中の一人称を一括変換します。チップをタップで変換先に指定。✕で削除。
+        </div>
+        <div id="pronoun-list"></div>
+        <div id="pronoun-add-row">
+          <input type="text" id="pronoun-add-input" placeholder="一人称を追加（例：拙者）" maxlength="10">
+          <button onclick="addPronoun()">＋追加</button>
+        </div>
+        <div id="pronoun-target-info"></div>
+        <button class="pronoun-apply-btn" id="pronoun-apply-btn" onclick="runPronounConvert()" disabled>このエピソードの主語を変換</button>
+      </div>
+    </details>
+  </div>
+  
   <div class="ps" style="margin-top:32px;">
-    <div class="pl">置換ルール（この本のみ）</div>
-    <button onclick="openReplaceModal()" style="
-      width:100%;background:none;border:1px solid #c8d8e0;
-      color:#3a6d8c;padding:10px;border-radius:8px;
-      font-family:'Noto Sans JP',sans-serif;font-size:12px;
-      cursor:pointer;transition:background .12s;
-    " onmouseover="this.style.background='#f0f7fb'" onmouseout="this.style.background='none'">
-      置換ルールを編集
-    </button>
+    <details class="replace-accordion" id="acc-replace">
+      <summary class="replace-section-title">置換ルール（この本のみ）</summary>
+      <div class="replace-accordion-body">
+        <div class="replace-modal-hint">
+          本文の表示を変えます。文字を丸ごと置き換えたい時に使います。
+        </div>
+        <div id="replace-rules-list"></div>
+        <button id="replace-add-btn" onclick="addReplaceRuleRow()">＋ ルールを追加</button>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button onclick="showReplacePreview('episode')" style="flex:1;padding:8px;border:1px solid #aaa;background:#fff;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">エピソードでプレビュー</button>
+          <button onclick="showReplacePreview('all')" style="flex:1;padding:8px;border:1px solid #aaa;background:#fff;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">本全体でプレビュー</button>
+        </div>
+      </div>
+    </details>
+  </div>
+  
+  <div class="ps" style="margin-top:16px;">
+    <details class="replace-accordion" id="acc-furigana">
+      <summary class="replace-section-title">読み方辞書（読み上げ専用）</summary>
+      <div class="replace-accordion-body">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <span style="font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#555;">本文にふりがなを表示</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="furigana-display-toggle" checked onchange="toggleFuriganaDisplay(this)">
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="replace-modal-hint">
+          本文の表示は変えず、読み上げ時だけ指定した読み方をします。空欄で登録すると読み飛ばします。
+        </div>
+        <div id="furigana-rules-list"></div>
+        <button id="furigana-add-btn" onclick="addFuriganaRuleRow()">＋ 読み方を追加</button>
+      </div>
+    </details>
+  </div>
+  
+  <div class="ps" style="margin-top:16px;">
+    <details class="replace-accordion" id="acc-indiv-furigana-list">
+      <summary class="replace-section-title">個別の読み方一覧</summary>
+      <div class="replace-accordion-body">
+        <div class="replace-modal-hint">
+          本文を選択して個別に設定した読み方の一覧です。タップでその段落へ移動できます。
+        </div>
+        <div id="indiv-furigana-list"></div>
+      </div>
+    </details>
   </div>
 
   <div class="ps" style="margin-top:32px;">
@@ -2188,6 +2483,7 @@ const state = {
     paraSpacing: 24,       // 段落間の余白（px）
     indentSkipSymbols: ['「','『','（','〈','《','【','［','＜','<'],  // 字下げ除外記号
     pronounList: ['俺','私','僕'], // 一人称リスト（追加可）
+    showFurigana: true,
     // bg は小説ごとに novel.bg として管理
   },
   // UI/セッション状態（永続化しない）
@@ -2222,6 +2518,8 @@ async function init(){
   setupKb();
   setupColorBtnLongPress();
   setupDoubleTap();
+  setupMediaSession();
+  setupNativeTtsQueueListeners();
   state.readingMode = localStorage.getItem('readingMode') === '1';
   document.getElementById('topbar-reading-mode')
   .classList.toggle('active', state.readingMode);
@@ -2511,6 +2809,86 @@ async function loadSavedFonts(){
       });
     }
   }catch(e){ console.warn('loadSavedFonts:', e); }
+}
+
+
+function getActiveFuriganaRulesForPara(para) {
+  if (!state.novel) return [];
+  const indivRules = (Array.isArray(para.furigana) ? para.furigana : []).filter(r => r.word && r.reading && r.enabled !== false);
+  const indivWords = new Set(indivRules.map(r => r.word));
+  const globalRules = getFuriganaRules().filter(r => r.word && r.reading && r.enabled !== false && !indivWords.has(r.word));
+  return [...indivRules, ...globalRules].sort((a, b) => b.word.length - a.word.length);
+}
+
+function stripFuriganaHtml(html){
+  if(!html || html.indexOf('<ruby') === -1) return html;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  tmp.querySelectorAll('ruby').forEach(ruby=>{
+    const rt = ruby.querySelector('rt');
+    if(rt) rt.remove();
+    const parent = ruby.parentNode;
+    while(ruby.firstChild) parent.insertBefore(ruby.firstChild, ruby);
+    parent.removeChild(ruby);
+  });
+  return tmp.innerHTML;
+}
+function stripFuriganaText(html){
+  const cleaned = stripFuriganaHtml(html);
+  if(!cleaned) return '';
+  const tmp = document.createElement('div');
+  tmp.innerHTML = cleaned;
+  return tmp.textContent || '';
+}
+
+function buildFuriganaDisplayHtml(para){
+  const html = para.html || '';
+  if(!html) return html;
+  const rules = getActiveFuriganaRulesForPara(para);
+  if(rules.length === 0) return html;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  const walker = document.createTreeWalker(tmp, NodeFilter.SHOW_TEXT, null);
+  const textNodes = [];
+  let n; while(n = walker.nextNode()) textNodes.push(n);
+  textNodes.forEach(node=>{
+    const text = node.textContent;
+    if(!text) return;
+    let i = 0, matchedAny = false, buffer = '';
+    const frag = document.createDocumentFragment();
+    const flush = ()=>{ if(buffer){ frag.appendChild(document.createTextNode(buffer)); buffer=''; } };
+    while(i < text.length){
+      let foundRule = null;
+      for(const rule of rules){
+        if(rule.word.length>0 && text.substr(i, rule.word.length) === rule.word){ foundRule = rule; break; }
+      }
+      if(foundRule){
+        matchedAny = true; flush();
+        const ruby = document.createElement('ruby');
+        ruby.appendChild(document.createTextNode(foundRule.word));
+        const rt = document.createElement('rt');
+        rt.textContent = foundRule.reading;
+        ruby.appendChild(rt);
+        frag.appendChild(ruby);
+        i += foundRule.word.length;
+      } else {
+        buffer += text.charAt(i); i++;
+      }
+    }
+    flush();
+    if(matchedAny) node.parentNode.replaceChild(frag, node);
+  });
+  return tmp.innerHTML;
+}
+
+function shouldShowFuriganaDisplay() {
+  return state.settings.showFurigana !== false; // !state.editMode && を削除
+}
+
+function toggleFuriganaDisplay(el){
+  state.settings.showFurigana = el.checked;
+  debouncedSaveSettings();
+  if(!state.editMode) state.pages.forEach((_,pi)=>refreshPage(pi));
 }
 
 /* ══════════════════════════════════════
@@ -3134,23 +3512,13 @@ function debouncedSaveSettings(){
   _settingsTimer=setTimeout(saveSettings,300);
 }
 
-function setTtsEngine(engine) {
-  state.settings.ttsEngine = engine; // 'device' | 'cloud'
-  debouncedSaveSettings();
-  updateTtsEngineUI();
-}
-
-function updateTtsEngineUI() {
-  const engine = state.settings.ttsEngine || 'device';
-  document.getElementById('tts-eng-device').classList.toggle('active', engine === 'device');
-  document.getElementById('tts-eng-cloud').classList.toggle('active', engine === 'cloud');
-  const cloudSettings = document.getElementById('tts-cloud-settings');
-  if (cloudSettings) cloudSettings.style.display = (engine === 'cloud') ? 'block' : 'none';
-}
-
 // 読み込んだ設定値をUIに反映する（init時に1回呼ぶ）
 function applyLoadedSettings(){
   const s=state.settings;
+  if (s.showFurigana == null) s.showFurigana = true;
+  const furiganaToggleEl = document.getElementById('furigana-display-toggle');
+  if (furiganaToggleEl) furiganaToggleEl.checked = s.showFurigana;
+  
   // テーマ
   applyTheme(s.themeIdx||0);
   // 行間・段落間の初期反映
@@ -3190,10 +3558,10 @@ function applyLoadedSettings(){
   // 背景設定はnovel固有のため openNovel / loadNovelBgImage で適用される
   
   updateTtsEngineUI();
-  // TTSキー欄の初期表示
   const ttsKeyInput = document.getElementById('tts-api-key-input');
   if (ttsKeyInput) ttsKeyInput.value = s.ttsApiKey || '';
-  
+  const autoNextEl = document.getElementById('tts-auto-next-episode');
+  if (autoNextEl) autoNextEl.checked = !!s.ttsAutoNextEpisode;
   // Enterモードラベル
   if($.eb_enter_mode && $.eb_enter_label){
     if(s.enterInsertsBr){
@@ -3202,26 +3570,6 @@ function applyLoadedSettings(){
       $.eb_enter_label.textContent='改行';
     }
   }
-}
-
-function speakWithDeviceTts(text) {
-  return new Promise((resolve, reject) => {
-    if (!('speechSynthesis' in window)) {
-      reject(new Error('この端末は音声合成に対応していません'));
-      return;
-    }
-    // キューに残っている前の発話をクリア
-    speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = 'ja-JP';
-    const voices = speechSynthesis.getVoices();
-    const jaVoice = voices.find(v => v.lang === 'ja-JP') || voices.find(v => v.lang && v.lang.startsWith('ja'));
-    if (jaVoice) utter.voice = jaVoice;
-    state.tts.deviceUtter = utter; // 一時停止/再開・停止用に保持
-    utter.onend = resolve;
-    utter.onerror = (e) => reject(new Error('端末音声の再生に失敗しました'));
-    speechSynthesis.speak(utter);
-  });
 }
 
 // 即時保存
@@ -3857,7 +4205,6 @@ async function exportAsJson(){
     try{ showToast('本が開かれていません'); }catch(_){}
     return;
   }
-  // 編集中エピソードを同期
   if(state.editMode && state.curPage != null){
     try{ syncEditorToState(state.curPage); }catch(_){}
     syncCurrentEpisode();
@@ -3870,15 +4217,59 @@ async function exportAsJson(){
       novel: JSON.parse(JSON.stringify(state.novel))
     };
     const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], {type:'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
     const safeTitle = (state.novel.title || 'novel').replace(/[\\/:*?"<>|]/g, '_');
-    a.download = safeTitle + '.json';
-    a.click();
-    setTimeout(()=>URL.revokeObjectURL(url), 1000);
-    try{ showToast('JSONをエクスポートしました'); }catch(_){}
+    const fileName = safeTitle + '.json';
+    let saved = false;
+
+    // ① Web Share API
+    try{
+      const blob = new Blob([json], {type:'application/json'});
+      const file = new File([blob], fileName, {type:'application/json'});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        await navigator.share({ files:[file], title: fileName });
+        saved = true;
+      }
+    }catch(e){
+      if(e.name === 'AbortError') return;
+      console.warn('share failed', e);
+    }
+
+    // ② blob URLダウンロード
+    if(!saved){
+      try{
+        const blob = new Blob([json], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = fileName;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(url), 5000);
+        saved = true;
+      }catch(e){ console.warn('blob download failed', e); }
+    }
+
+    // ③ data URIダウンロード
+    if(!saved){
+      try{
+        const b64 = btoa(unescape(encodeURIComponent(json)));
+        const a = document.createElement('a');
+        a.href = 'data:application/json;base64,' + b64;
+        a.download = fileName;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        saved = true;
+      }catch(e){ console.warn('data URI download failed', e); }
+    }
+
+    // ④ クリップボード
+    if(!saved){
+      try{
+        await navigator.clipboard.writeText(json);
+        showToast('クリップボードにコピーしました。メモアプリ等に貼って保存してください。');
+        saved = true;
+      }catch(e){ console.warn('clipboard failed', e); }
+    }
+
+    if(saved) showToast('JSONをエクスポートしました');
+    else showToast('エクスポートに失敗しました');
   }catch(e){
     console.warn('exportAsJson:', e);
     try{ showToast('エクスポートに失敗しました'); }catch(_){}
@@ -4524,8 +4915,8 @@ function buildParaEl(pi,qi,para){
   }else{
     const p=document.createElement('p');
     p.dataset.pi=pi; p.dataset.qi=qi; p.dataset.type='text';
-    if(typeof para.html==='string' && para.html!==''){
-      p.innerHTML=para.html;
+    if (typeof para.html === 'string' && para.html !== '') {
+      p.innerHTML = shouldShowFuriganaDisplay() ? buildFuriganaDisplayHtml(para) : para.html;
     }else if(para.text){
       p.textContent=para.text;
     }else{
@@ -4775,41 +5166,42 @@ function syncEditorToState(pi){
         if(imgName && state.pages[pi]){
           orig = state.pages[pi].paras.find(p => p.type==='image' && p.imgName===imgName);
         }
-        if(orig){
+        if (orig) {
           newParas.push(orig);
         } else {
           // 最後の手段：DOM情報から最低限の画像段落を作る
-          const imgEl=node.querySelector('img');
+          const imgEl = node.querySelector('img');
           newParas.push({
-            type:'image',
+            type: 'image',
             imgName: imgName,
-            src: imgEl?imgEl.src:'',
-            align:'center',
+            src: imgEl ? imgEl.src : '',
+            align: 'center',
             width: 80,
           });
         }
-      }else if(node.tagName==='P'||node.tagName==='DIV'){
-        // data-qi属性で元の段落を特定。属性がなければglobalQiで照合。
-        // ChromeはDOM操作でdata-qiが消えることがあるのでどちらも試みる。
-        const dataQi = node.dataset && node.dataset.qi !== undefined
-          ? parseInt(node.dataset.qi, 10) : NaN;
-        const origByQi  = !isNaN(dataQi) && state.pages[pi]
-          ? state.pages[pi].paras[dataQi] : null;
+      } else if (node.tagName === 'P' || node.tagName === 'DIV') {
+        const dataQi = node.dataset && node.dataset.qi !== undefined ?
+          parseInt(node.dataset.qi, 10) : NaN;
+        const origByQi = !isNaN(dataQi) && state.pages[pi] ?
+          state.pages[pi].paras[dataQi] : null;
         const origByIdx = state.pages[pi] ? state.pages[pi].paras[globalQi] : null;
-        // data-qiが一致するorigを優先、なければglobalQi照合、それもなければnull
         const orig = origByQi || origByIdx;
-        // size・colorはDOMのstyleを優先（直前のボタン操作を保持）
         let nodeSize = parseFloat(node.style.fontSize);
-        if(isNaN(nodeSize) || !nodeSize) nodeSize = (orig && orig.size) || state.settings.fontSize;
+        if (isNaN(nodeSize) || !nodeSize) nodeSize = (orig && orig.size) || state.settings.fontSize;
         const nodeColor = node.style.color || (orig && orig.color) || state.settings.color;
-        newParas.push({
-          type:'text',
-          text:node.textContent,
-          html:node.innerHTML,
-          align:(node.style.textAlign||orig?.align||'left'),
+        const builtPara = {
+          type: 'text',
+          text: stripFuriganaText(node.innerHTML),
+          html: stripFuriganaHtml(node.innerHTML),
+          align: (node.style.textAlign || orig?.align || 'left'),
           size: nodeSize,
           color: nodeColor,
-        });
+        };
+        // 個別ふりがな設定を保持（DOM再構築で失われないように）
+        if (orig && Array.isArray(orig.furigana) && orig.furigana.length) {
+          builtPara.furigana = orig.furigana;
+        }
+        newParas.push(builtPara);
       }
       if(node.dataset){node.dataset.pi=pi; node.dataset.qi=globalQi;}
       qi++;
@@ -4879,6 +5271,19 @@ function getContent(pi,qi){
 // Move caret to end of element
 function moveCursorEnd(el){
   try{const r=document.createRange(),s=window.getSelection();r.selectNodeContents(el);r.collapse(false);s.removeAllRanges();s.addRange(r);}catch(e){}
+}
+
+function getActiveEditor() {
+  // フォーカス中のcontenteditableがあればそれを使う
+  const ae = document.activeElement;
+  if (ae && ae.classList && ae.classList.contains('page-editor')) return ae;
+  // なければ現在ページの表示中サブページグループのeditorを使う
+  const pi = state.curPage;
+  const pageEl = document.getElementById(`page-${pi}`);
+  if (!pageEl) return null;
+  const activeGroup = pageEl.querySelector('.subpage-group.active');
+  const editor = activeGroup ? activeGroup.querySelector('.page-editor') : document.getElementById(`editor-${pi}`);
+  return editor || null;
 }
 
 // Select all content inside the ACTIVE sub-page group editor of page pi
@@ -5296,6 +5701,9 @@ function enterEditMode(){
   }
 
   state.editMode=true;
+  updateTtsBarVisibility();
+  clearTtsHighlight();
+  state.pages.forEach((_,pi)=>refreshPage(pi)); // ふりがなを外して編集可能な生HTMLに戻す
   document.querySelectorAll('.page-editor').forEach(ed=>{
     ed.contentEditable='true';
   });
@@ -5364,6 +5772,9 @@ function exitEditMode(){
   $.viewport.style.bottom='var(--bot-h)';
   // エピソード保存
   save();
+  state.pages.forEach((_,pi)=>refreshPage(pi)); // ふりがな表示を再適用
+  updateTtsBarVisibility();
+  updateTtsHighlight();
   // スクロール位置を復元
   if(anchorQi !== null){
     requestAnimationFrame(()=>{
@@ -5399,6 +5810,623 @@ function setupDoubleTap(){
     if(state.editMode)return;
     enterEditMode();
   });
+}
+
+function nativePlaybackStart(title, text){
+  try{
+    if(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.Playback){
+      window.Capacitor.Plugins.Playback.start({ title: title || '小説リーダー', text: text || '読み上げ中…' });
+    }
+  }catch(e){ console.warn('nativePlaybackStart:', e); }
+}
+function nativePlaybackStop(){
+  try{
+    if(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.Playback){
+      window.Capacitor.Plugins.Playback.stop();
+    }
+  }catch(e){ console.warn('nativePlaybackStop:', e); }
+}
+
+function setupMediaSession() {
+  if (!('mediaSession' in navigator)) return;
+  try {
+    navigator.mediaSession.setActionHandler('play', () => { if (!state.tts.playing) toggleTtsPlayback(); });
+    navigator.mediaSession.setActionHandler('pause', () => { if (state.tts.playing) toggleTtsPlayback(); });
+    navigator.mediaSession.setActionHandler('previoustrack', () => { ttsSkip(-1); });
+    navigator.mediaSession.setActionHandler('nexttrack', () => { ttsSkip(1); });
+    navigator.mediaSession.setActionHandler('stop', () => { ttsStopAndHide(); });
+  } catch (e) { console.warn('setupMediaSession:', e); }
+}
+
+const SLEEP_PRESETS = [5, 10, 15, 30, 45, 60];
+
+function toggleSleepTimerPopup(e){
+  e.stopPropagation();
+  const popup = document.getElementById('sleep-timer-popup');
+  if(!popup) return;
+  if(popup.classList.contains('show')){ closeSleepTimerPopup(); return; }
+  renderSleepTimerPopup();
+  const btn = document.getElementById('tts-sleep-btn');
+  const rect = btn.getBoundingClientRect();
+  popup.classList.add('show');
+  const pw = popup.offsetWidth || 220;
+  const ph = popup.offsetHeight || 170;
+  let left = rect.left + rect.width/2 - pw/2;
+  left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+  let top = rect.top - ph - 10;
+  if(top < 60) top = rect.bottom + 10;
+  popup.style.left = left + 'px';
+  popup.style.top = top + 'px';
+}
+function closeSleepTimerPopup(){
+  const popup = document.getElementById('sleep-timer-popup');
+  if(popup) popup.classList.remove('show');
+}
+document.addEventListener('click', e=>{
+  const popup = document.getElementById('sleep-timer-popup');
+  const btn = document.getElementById('tts-sleep-btn');
+  if(popup && popup.classList.contains('show') && !popup.contains(e.target) && e.target!==btn && !btn.contains(e.target)){
+    closeSleepTimerPopup();
+  }
+});
+
+function renderSleepTimerPopup(){
+  const grid = document.getElementById('sleep-timer-grid');
+  const status = document.getElementById('sleep-timer-status');
+  if(!grid) return;
+  grid.innerHTML = '';
+  SLEEP_PRESETS.forEach(min=>{
+    const btn = document.createElement('button');
+    btn.className = 'stp-btn' + (state.tts.sleep.remainMin === min ? ' active' : '');
+    btn.textContent = min + '分';
+    btn.onclick = ()=> setSleepTimer(min);
+    grid.appendChild(btn);
+  });
+  if(status){
+    status.textContent = state.tts.sleep.endAt
+      ? 'あと約 ' + Math.max(0, Math.ceil((state.tts.sleep.endAt - Date.now())/60000)) + ' 分で停止します'
+      : '設定されていません';
+  }
+}
+
+function setSleepTimer(minutes){
+  clearSleepTimerInternal();
+  const ms = minutes * 60 * 1000;
+  state.tts.sleep.endAt = Date.now() + ms;
+  state.tts.sleep.remainMin = minutes;
+  state.tts.sleep.timerId = setTimeout(onSleepTimerFire, ms);
+  state.tts.sleep.tickId = setInterval(updateSleepTimerBadge, 30000);
+  updateSleepTimerBadge();
+  closeSleepTimerPopup();
+  try{ showToast(minutes + '分後に読み上げを停止します'); }catch(_){}
+}
+
+function cancelSleepTimer(){
+  clearSleepTimerInternal();
+  updateSleepTimerBadge();
+  renderSleepTimerPopup();
+  try{ showToast('スリープタイマーを解除しました'); }catch(_){}
+}
+
+function clearSleepTimerInternal(){
+  if(state.tts.sleep.timerId) clearTimeout(state.tts.sleep.timerId);
+  if(state.tts.sleep.tickId) clearInterval(state.tts.sleep.tickId);
+  state.tts.sleep.timerId = null;
+  state.tts.sleep.tickId = null;
+  state.tts.sleep.endAt = null;
+  state.tts.sleep.remainMin = null;
+}
+
+function onSleepTimerFire(){
+  clearSleepTimerInternal();
+  updateSleepTimerBadge();
+  stopTts();
+  try{ showToast('スリープタイマーで読み上げを停止しました'); }catch(_){}
+}
+
+function updateSleepTimerBadge(){
+  const btn = document.getElementById('tts-sleep-btn');
+  if(!btn) return;
+  if(state.tts.sleep.endAt){
+    btn.classList.add('active');
+    btn.title = 'スリープタイマー：あと約' + Math.max(0, Math.ceil((state.tts.sleep.endAt-Date.now())/60000)) + '分';
+  } else {
+    btn.classList.remove('active');
+    btn.title = 'スリープタイマー';
+  }
+}
+
+state.tts = { playing: false, deviceUtter: null,
+  sleep: { endAt: null, timerId: null, tickId: null, remainMin: null }
+};
+
+async function speakWithDeviceTts(text) {
+  const rate = state.settings.ttsRate || 1;
+  const NativeTts = window.Capacitor && window.Capacitor.isNativePlatform() &&
+    window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
+
+  if (NativeTts) {
+    await NativeTts.speak({
+      text: text, lang: 'ja-JP', rate: rate,
+      pitch: 1.0, volume: 1.0, category: 'ambient',
+    });
+    return;
+  }
+
+  return new Promise((resolve, reject) => {
+    if (!('speechSynthesis' in window)) {
+      reject(new Error('この端末は音声合成に対応していません'));
+      return;
+    }
+    // ↓ ここにあった speechSynthesis.cancel(); を削除
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'ja-JP';
+    utter.rate = rate;
+    const voices = speechSynthesis.getVoices();
+    const jaVoice = voices.find(v => v.lang === 'ja-JP') || voices.find(v => v.lang && v.lang.startsWith('ja'));
+    if (jaVoice) utter.voice = jaVoice;
+    state.tts.deviceUtter = utter;
+    utter.onend = resolve;
+    utter.onerror = () => reject(new Error('端末音声の再生に失敗しました'));
+    speechSynthesis.speak(utter);
+  });
+}
+
+const TTS_CHUNK_MAX_CHARS = 1400; // APIの1リクエストあたりの文字数制限への安全マージン
+
+async function synthesizeChirp(text) {
+  const apiKey = state.settings.ttsApiKey;
+  if (!apiKey) { showToast('設定画面でAPIキーを入力してください'); throw new Error('no api key'); }
+  const voiceName = state.settings.ttsVoice || 'ja-JP-Standard-A';
+  const rate = state.settings.ttsRate || 1;
+  const res = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + apiKey, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      input: { text },
+      voice: { languageCode: 'ja-JP', name: voiceName },
+      audioConfig: { audioEncoding: 'MP3' }
+    })
+  });
+  if (!res.ok) {
+    console.warn('TTS API error:', await res.text());
+    throw new Error('TTS API error: ' + res.status);
+  }
+  const data = await res.json();
+  return data.audioContent;
+}
+
+function updateTtsBarVisibility() {
+  const bar = document.getElementById('tts-control-bar');
+  if (!bar) return;
+  const hasQueue = !!(state.tts.queue && state.tts.queue.length > 0);
+  bar.classList.toggle('show', hasQueue && !state.editMode);
+}
+
+function updateTtsPlayPauseIcon() {
+  const playIcon = document.getElementById('tts-play-icon');
+  const pauseIcon = document.getElementById('tts-pause-icon');
+  const playing = !!state.tts.playing;
+  if (playIcon) playIcon.style.display = playing ? 'none' : '';
+  if (pauseIcon) pauseIcon.style.display = playing ? '' : 'none';
+}
+
+function toggleTtsPlayback() {
+  if (state.tts.playing) {
+    stopTts();
+  } else {
+    if (state.tts.queue && state.tts.queue.length > 0 && state.tts.idx < state.tts.queue.length) {
+      resumeTtsPlayback();
+    } else {
+      if (!state.currentEpisodeId) { showToast('エピソードを開いてから使ってください'); return; }
+      state.tts.queue = buildEpisodeTtsQueue(state.curPage, state.subPageIndex);
+      if (state.tts.queue.length === 0) { showToast('読み上げるテキストがありません'); return; }
+      state.tts.idx = 0;
+      resumeTtsPlayback();
+    }
+    document.getElementById('topbar-tts').classList.add('active');
+    updateTtsPlayPauseIcon();
+    updateTtsBarVisibility();
+  }
+}
+
+function nativeTtsQueueSupported() {
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.Playback && window.Capacitor.Plugins.Playback.speakQueue);
+}
+
+function resumeTtsPlayback() {
+  nativePlaybackStart(state.novel ? state.novel.title : '', '読み上げ中…');
+  state.tts.playing = true;
+  const engine = state.settings.ttsEngine || 'device';
+  if (engine === 'device' && nativeTtsQueueSupported()) {
+    startNativeQueuePlayback();
+  } else {
+    playNextTtsChunk();
+  }
+}
+
+function startNativeQueuePlayback() {
+  const remaining = state.tts.queue.slice(state.tts.idx);
+  if (remaining.length === 0) {
+    state.tts.playing = false;
+    updateTtsPlayPauseIcon();
+    updateTtsBarVisibility();
+    return;
+  }
+  state.tts._queueBaseIdx = state.tts.idx;
+  const texts = remaining.map(item => item.text);
+  const rate = state.settings.ttsRate || 1;
+  window.Capacitor.Plugins.Playback.speakQueue({ texts, rate }).catch(e => {
+    console.warn('speakQueue failed, falling back:', e);
+    playNextTtsChunk();
+  });
+}
+
+function setupNativeTtsQueueListeners() {
+  if (!nativeTtsQueueSupported()) return;
+  window.Capacitor.Plugins.Playback.addListener('utteranceStart', (data) => {
+    const offset = parseInt(data.id, 10);
+    if (isNaN(offset)) return;
+    const baseIdx = state.tts._queueBaseIdx != null ? state.tts._queueBaseIdx : state.tts.idx;
+    const realIdx = baseIdx + offset;
+    if (realIdx >= state.tts.queue.length) return;
+    state.tts.idx = realIdx;
+    const item = state.tts.queue[realIdx];
+    ttsJumpToGroup(item.pi, item.g);
+    updateTtsHighlight();
+  });
+  window.Capacitor.Plugins.Playback.addListener('queueDone', () => {
+    if (state.settings.ttsAutoNextEpisode) {
+      tryAutoPlayNextEpisode();
+    } else {
+      state.tts.playing = false;
+      showToast('読み上げが終わりました');
+      updateTtsPlayPauseIcon();
+      updateTtsBarVisibility();
+    }
+  });
+}
+
+function ttsSkip(dir) {
+  if (!state.tts.queue || state.tts.queue.length === 0) {
+    showToast('再生中ではありません');
+    return;
+  }
+  const usingNativeQueue = (state.settings.ttsEngine || 'device') === 'device' && nativeTtsQueueSupported();
+  if (usingNativeQueue) {
+    window.Capacitor.Plugins.Playback.stopSpeaking().catch(() => {});
+  } else {
+    stopCurrentAudioOnly();
+  }
+  const newIdx = state.tts.idx + dir;
+  if (newIdx < 0) { showToast('これが最初です'); return; }
+  if (newIdx >= state.tts.queue.length) {
+    if (state.settings.ttsAutoNextEpisode) {
+      state.tts.playing = true;
+      updateTtsPlayPauseIcon();
+      tryAutoPlayNextEpisode();
+    } else {
+      showToast('これが最後です');
+      stopTts();
+    }
+    return;
+  }
+  state.tts.idx = newIdx;
+  state.tts.playing = true;
+  updateTtsPlayPauseIcon();
+  if (usingNativeQueue) {
+    startNativeQueuePlayback();
+  } else {
+    setTimeout(() => { playNextTtsChunk(); }, 80);
+  }
+}
+
+function ttsCycleRate() {
+  const rates = [0.75, 1, 1.25, 1.5, 1.75, 2];
+  const cur = state.settings.ttsRate || 1;
+  let idx = rates.indexOf(cur);
+  if (idx === -1) idx = 1;
+  idx = (idx + 1) % rates.length;
+  state.settings.ttsRate = rates[idx];
+  debouncedSaveSettings();
+  document.getElementById('tts-rate-label').textContent = rates[idx] + 'x';
+}
+
+function ttsStopAndHide() {
+  clearSleepTimerInternal();
+  updateSleepTimerBadge();
+  stopTts();
+  updateTtsBarVisibility();
+}
+
+function clearTtsHighlight() {
+  document.querySelectorAll('.tts-reading').forEach(e => e.classList.remove('tts-reading'));
+}
+
+function updateTtsHighlight() {
+  clearTtsHighlight();
+  const item = state.tts.queue && state.tts.queue[state.tts.idx];
+  if (!item || item.qi == null) return;
+  const el = getContent(item.pi, item.qi);
+  if (el) {
+    el.classList.add('tts-reading');
+    const pageEl = document.getElementById(`page-${item.pi}`);
+    if (pageEl) {
+      const elTop = el.offsetTop;
+      const elBottom = elTop + el.offsetHeight;
+      const viewTop = pageEl.scrollTop;
+      const viewBottom = viewTop + pageEl.clientHeight;
+      if (elTop < viewTop || elBottom > viewBottom) {
+        pageEl.scrollTo({ top: Math.max(0, elTop - pageEl.clientHeight * 0.3), behavior: 'smooth' });
+      }
+    }
+  }
+}
+
+function setTtsEngine(engine) {
+  state.settings.ttsEngine = engine;
+  debouncedSaveSettings();
+  updateTtsEngineUI();
+}
+
+function toggleTtsAutoNextEpisode(el) {
+  state.settings.ttsAutoNextEpisode = el.checked;
+  debouncedSaveSettings();
+}
+
+function updateTtsEngineUI() {
+  const engine = state.settings.ttsEngine || 'device';
+  document.getElementById('tts-eng-device').classList.toggle('active', engine === 'device');
+  document.getElementById('tts-eng-cloud').classList.toggle('active', engine === 'cloud');
+  const cloudSettings = document.getElementById('tts-cloud-settings');
+  if (cloudSettings) cloudSettings.style.display = (engine === 'cloud') ? 'block' : 'none';
+}
+
+function saveTtsApiKey(el) {
+  state.settings.ttsApiKey = el.value.trim();
+  debouncedSaveSettings();
+}
+
+function stopCurrentAudioOnly() {
+  if (state.tts.audio) { try { state.tts.audio.pause(); } catch (_) {} state.tts.audio = null; }
+  if ('speechSynthesis' in window) { try { speechSynthesis.cancel(); } catch (_) {} }
+  const NativeTts = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
+  if (NativeTts) { NativeTts.stop().catch(() => {}); }
+}
+
+function stopTts(){
+  nativePlaybackStop();
+  if(state.tts.audio){ state.tts.audio.pause(); state.tts.audio = null; }
+  if('speechSynthesis' in window){ speechSynthesis.cancel(); }
+  const NativeTts = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
+  if(NativeTts){ NativeTts.stop().catch(()=>{}); }
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Playback && window.Capacitor.Plugins.Playback.stopSpeaking) {
+    window.Capacitor.Plugins.Playback.stopSpeaking().catch(() => {});
+  }
+  state.tts.playing = false;
+  _ttsLastGroupKey = null;
+  state.tts.queue = [];
+  state.tts.idx = 0;
+  const btn = document.getElementById('topbar-tts');
+  if(btn) btn.classList.remove('active');
+  clearTtsHighlight();
+  updateTtsPlayPauseIcon();
+  updateTtsBarVisibility();
+  if('mediaSession' in navigator){
+    try{ navigator.mediaSession.playbackState = 'none'; }catch(e){}
+  }
+}
+
+state.tts.queue = [];
+state.tts.idx = 0;
+let _ttsLastGroupKey = null;
+
+/* ══════════════════════════════════════
+   Android Chrome/WebView バグ対策：
+   speechSynthesis は約15秒で内部的に一時停止してしまう不具合があり、
+   画面消灯・バックグラウンド時に特に発生しやすい。
+   定期的にpause→resumeしてタイマーをリセットし、再生を継続させる。
+══════════════════════════════════════ */
+setInterval(() => {
+  if (!('speechSynthesis' in window)) return;
+  if (!state.tts.playing) return;
+  const NativeTts = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
+  if (NativeTts) return; // ネイティブTTSプラグイン使用時はWeb Speech APIを使っていないので対象外
+  if (speechSynthesis.speaking) {
+    speechSynthesis.pause();
+    speechSynthesis.resume();
+  }
+}, 10000);
+
+// バックグラウンドから復帰した際、再生が一時停止したままなら明示的に再開
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && state.tts.playing) {
+    if ('speechSynthesis' in window && speechSynthesis.paused) {
+      speechSynthesis.resume();
+    }
+  }
+});
+
+// 現在のグループのテキスト段落を取得
+function getGroupPlainTexts(pi, g){
+  const texts = [];
+  const qis = [];
+  const pg = state.pages[pi];
+  if(!pg) return { texts, qis };
+  let cur = 0;
+  for(let qi=0; qi<pg.paras.length; qi++){
+    const p = pg.paras[qi];
+    if(p.type === 'group-break'){ cur++; continue; }
+    if(cur !== g){ if(cur > g) break; continue; }
+    if(p.type !== 'text') continue;
+    let t = (p.text || (p.html || '').replace(/<[^>]+>/g, '')).trim();
+    if (t) {
+      t = applyFuriganaForTts(t, p);
+      texts.push(t);
+      qis.push(qi);
+    }
+  }
+  return { texts, qis };
+}
+
+// 現在ページ以降、全ページ・全グループ分の読み上げキューを作る
+function buildEpisodeTtsQueue(fromPi, fromG) {
+  const items = [];
+  for (let pi = fromPi; pi < state.pages.length; pi++) {
+    const totalGroups = countGroups(pi);
+    const startG = (pi === fromPi) ? fromG : 0;
+    for (let g = startG; g < totalGroups; g++) {
+      const { texts, qis } = getGroupPlainTexts(pi, g);
+      texts.forEach((t, i) => {
+        items.push({ pi, g, qi: qis[i], text: t });
+      });
+    }
+  }
+  return items;
+}
+
+// ページ・グループを読み上げに合わせて切り替え（アニメーションなしで直接差し替え）
+function switchToGroup(pi, g, animate){
+  const pageEl = document.getElementById(`page-${pi}`);
+  if(!pageEl) return;
+  const groups = pageEl.querySelectorAll('.subpage-group');
+  groups.forEach((el,i)=>{
+    el.classList.remove('active','fade-in','slide-up');
+    if(i===g){
+      el.classList.add('active');
+      if(animate){ void el.offsetWidth; el.classList.add('fade-in'); }
+    }
+  });
+  if(pi === state.curPage) state.subPageIndex = g;
+  pageEl.scrollTop = 0;
+  updateSubPageDots(pi, g, groups.length);
+}
+
+function ttsJumpToGroup(pi, g) {
+  const key = pi + '_' + g;
+  const changingPage = (pi !== state.curPage);
+  const changingGroup = (key !== _ttsLastGroupKey);
+  if (changingPage) {
+    const oldEl = document.getElementById(`page-${state.curPage}`);
+    const newEl = document.getElementById(`page-${pi}`);
+    if (oldEl) oldEl.className = 'page hidden';
+    if (newEl) newEl.className = 'page cur';
+    state.curPage = pi;
+    updatePageIndicator();
+  }
+  if (changingGroup) {
+    switchToGroup(pi, g, !changingPage);
+    _ttsLastGroupKey = key;
+  }
+}
+
+async function playNextTtsChunk(){
+  if(!state.tts.playing) return;
+  if (state.tts.idx >= state.tts.queue.length) {
+    if (state.settings.ttsAutoNextEpisode) {
+      await tryAutoPlayNextEpisode();
+    } else {
+      state.tts.playing = false;
+      showToast('読み上げが終わりました');
+      updateTtsPlayPauseIcon();
+      updateTtsBarVisibility();
+    }
+    return;
+  }
+  const item = state.tts.queue[state.tts.idx];
+  ttsJumpToGroup(item.pi, item.g);
+  updateTtsHighlight();
+  const text = item.text;
+  const engine = state.settings.ttsEngine || 'device';
+  const useCloud = engine === 'cloud' && !!state.settings.ttsApiKey;
+
+  try{
+    if(useCloud){
+      showToast('音声を生成中...');
+      const audioContent = await synthesizeChirp(text);
+      const audio = new Audio('data:audio/mp3;base64,' + audioContent);
+      audio.playbackRate = state.settings.ttsRate || 1;
+      state.tts.audio = audio;
+      audio.onended = () => { state.tts.idx++; playNextTtsChunk(); };
+      audio.onerror = () => { showToast('再生に失敗しました'); state.tts.playing = false; };
+      await audio.play();
+    } else {
+      await speakWithDeviceTts(text);
+      state.tts.idx++;
+      playNextTtsChunk();
+    }
+  }catch(e){
+    showToast('読み上げに失敗しました: ' + e.message);
+    state.tts.playing = false;
+  }
+}
+
+const TTS_NEXT_EPISODE_DELAY_MS = 3000;
+
+async function tryAutoPlayNextEpisode() {
+  const sorted = [...state.novel.episodes].sort((a, b) => a.number - b.number);
+  const idx = sorted.findIndex(e => e.id === state.currentEpisodeId);
+  const next = (idx !== -1) ? sorted[idx + 1] : null;
+  if (!next) {
+    state.tts.playing = false;
+    showToast('最後の話まで読み終えました');
+    return;
+  }
+  showToast('次の話へ移ります…');
+  await new Promise(res => setTimeout(res, TTS_NEXT_EPISODE_DELAY_MS));
+  if (!state.tts.playing) return;
+  
+  openEpisode(next.id, 'first'); // 内部でstopTts()が走り、playing/queueがリセットされる
+  
+  // ↓ ここでリセットされた状態を再構築する
+  state.tts.queue = buildEpisodeTtsQueue(state.curPage, state.subPageIndex);
+  state.tts.idx = 0;
+  state.tts.playing = true;
+  document.getElementById('topbar-tts').classList.add('active');
+  updateTtsPlayPauseIcon();
+  updateTtsBarVisibility();
+  
+  const engine = state.settings.ttsEngine || 'device';
+  if (engine === 'device' && nativeTtsQueueSupported()) {
+    startNativeQueuePlayback();
+  } else {
+    playNextTtsChunk();
+  }
+}
+
+function ttsTestStartFull() {
+  state.tts.queue = buildEpisodeTtsQueue(state.curPage, state.subPageIndex);
+  if (state.tts.queue.length === 0) { showToast('テキストがありません'); return; }
+  state.tts.idx = 0;
+  state.tts.playing = true;
+  updateTtsBarVisibility();
+  updateTtsPlayPauseIcon();
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({ title: 'TTSテスト', artist: '小説リーダー' });
+    navigator.mediaSession.playbackState = 'playing';
+  } catch (e) {}
+  playNextTtsChunk();
+}
+
+// ── テスト用：実再生に合わせてmediaSessionの状態も更新する ──
+function ttsTestStart() {
+  state.tts.playing = true;
+  try {
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: 'TTSテスト', artist: '小説リーダー', album: '小説リーダー'
+    });
+    navigator.mediaSession.playbackState = 'playing';
+  } catch (e) {}
+  speakWithDeviceTts('これはテキスト読み上げのテストです。この文章が最後まで再生されれば、この段階までは問題ありません。')
+    .then(() => {
+      state.tts.playing = false;
+      try { navigator.mediaSession.playbackState = 'paused'; } catch (e) {}
+      showToast('TTSテスト完了');
+    })
+    .catch(e => {
+      state.tts.playing = false;
+      showToast('TTSテスト失敗: ' + e.message);
+    });
 }
 
 /* ══════════════════════════════════════
@@ -5523,7 +6551,7 @@ function ebSizeDelta(d){
       }
     });
     // html を最新DOMで更新
-    para.html = el.innerHTML;
+    para.html = stripFuriganaHtml(el.innerHTML);
   }
   if($.eb_size_val) $.eb_size_val.textContent = newSize;
   // syncEditorToStateを介さず直接保存
@@ -5563,7 +6591,7 @@ function adjustAllFontSize(delta) {
             parent.removeChild(child);
           }
         });
-        para.html = el.innerHTML;
+        para.html = stripFuriganaHtml(el.innerHTML);
       }
       count++;
     });
@@ -5577,6 +6605,73 @@ function adjustAllFontSize(delta) {
   libDbPut(state.novel).catch(e => { console.warn('save failed:', e); });
   
   try { showToast(count + '段落のサイズを調整しました'); } catch (_) {}
+}
+
+// 本に含まれる全エピソードの文字サイズを、それぞれの現在値から±1pxする
+function adjustAllEpisodesFontSize(delta) {
+  if (!state.novel || !state.novel.episodes || state.novel.episodes.length === 0) return;
+  // 編集中なら先にDOMをstateへ同期
+  if (state.editMode && state.curPage != null) {
+    try { syncEditorToState(state.curPage); } catch (_) {}
+  }
+  // undoスナップショット（現在開いているエピソードのみ対象）
+  _undoStack.push(JSON.stringify(state.pages));
+  if (_undoStack.length > _UNDO_MAX) _undoStack.shift();
+  _redoStack.length = 0;
+  
+  let paraCount = 0;
+  
+  state.novel.episodes.forEach(ep => {
+    const isCurrent = ep.id === state.currentEpisodeId;
+    const pages = isCurrent ? state.pages : ep.pages;
+    if (!pages) return;
+    pages.forEach((pg, pi) => {
+      pg.paras.forEach((para, qi) => {
+        if (para.type !== 'text') return;
+        const baseSize = (typeof para.size === 'number' && !isNaN(para.size)) ?
+          para.size : state.settings.fontSize;
+        const newSize = Math.min(40, Math.max(10, Math.round(baseSize) + delta));
+        if (newSize === baseSize) return;
+        para.size = newSize;
+        paraCount++;
+        if (isCurrent) {
+          const el = getContent(pi, qi);
+          if (el) {
+            el.style.fontSize = newSize + 'px';
+            el.querySelectorAll('[style*="font-size"]').forEach(child => {
+              child.style.removeProperty('font-size');
+              if (child.tagName === 'SPAN' && (!child.getAttribute('style') || child.getAttribute('style').trim() === '')) {
+                const parent = child.parentNode;
+                while (child.firstChild) parent.insertBefore(child.firstChild, child);
+                parent.removeChild(child);
+              }
+            });
+            para.html = el.innerHTML;
+          }
+        } else if (para.html) {
+          // 表示していないエピソードは、子孫のfont-size指定だけ除去しておく
+          // （親側のpara.sizeを上書きしないように）
+          const tmp = document.createElement('div');
+          tmp.innerHTML = para.html;
+          tmp.querySelectorAll('[style*="font-size"]').forEach(child => {
+            child.style.removeProperty('font-size');
+          });
+          para.html = tmp.innerHTML;
+        }
+      });
+    });
+  });
+  
+  // 現在編集中エピソードをnovel.episodesへ反映
+  syncCurrentEpisode();
+  state.novel.updatedAt = new Date().toISOString();
+  const idx = state.library.findIndex(n => n.id === state.currentNovelId);
+  if (idx >= 0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+  libDbPut(state.novel).catch(e => { console.warn('save failed:', e); });
+  
+  try {
+    showToast(state.novel.episodes.length + '話・' + paraCount + '段落のサイズを調整しました');
+  } catch (_) {}
 }
 
 function applyColorToPara(hex){
@@ -5655,7 +6750,7 @@ function applyParaColor(pi,qi,hex){
       parent.removeChild(f);
     });
     el.normalize();
-    para.html = el.innerHTML;
+    para.html = stripFuriganaHtml(el.innerHTML);
   }
   // syncEditorToStateを介さず直接保存（color が消える問題への対策）
   syncCurrentEpisode();
@@ -5776,7 +6871,7 @@ function toggleParaFmt(pi, qi, tag){
     el.appendChild(wrap);
   }
   el.normalize();
-  para.html = el.innerHTML;
+  para.html = stripFuriganaHtml(el.innerHTML);
   // 直接保存
   syncCurrentEpisode();
   state.novel.updatedAt = new Date().toISOString();
@@ -6221,9 +7316,9 @@ function onIndentTap(){
     // 左寄せ：カーソルがある行の先頭にトグル
     toggleIndentAtCursorLine(el, caretNode, caretOffset);
   }
-  para.html = el.innerHTML;
-  para.text = el.textContent;
-  state.ui.selPara = {pi, qi};
+  para.html = stripFuriganaHtml(el.innerHTML);
+  para.text = stripFuriganaText(el.innerHTML);
+  state.ui.selPara = { pi, qi };
   // 直接保存
   syncCurrentEpisode();
   state.novel.updatedAt = new Date().toISOString();
@@ -6253,16 +7348,16 @@ function indentAll(){
     if(p.align === 'right'){
       // 右寄せ：各行の末尾に全角スペースを追加（地の文判定なしで全行）
       if(addIndentToParaElEnd(el)){
-        p.html = el.innerHTML;
-        p.text = el.textContent;
+        p.html = stripFuriganaHtml(el.innerHTML);
+        p.text = stripFuriganaText(el.innerHTML);
         count++;
       }
     } else {
       // 左寄せ：従来通り行頭に字下げ（地の文判定あり）
       if(shouldIndentText(text)){
         if(addIndentToParaEl(el)){
-          p.html = el.innerHTML;
-          p.text = el.textContent;
+          p.html = stripFuriganaHtml(el.innerHTML);
+          p.text = stripFuriganaText(el.innerHTML);
           count++;
         }
       }
@@ -6392,23 +7487,476 @@ function getReplaceRules(){
   return state.novel.replaceRules;
 }
 
-function openReplaceModal(){
-  if(!state.novel){
-    try{ showToast('本を開いてから操作してください'); }catch(_){}
+// 現在の本の読み方辞書ルールを取得（なければ初期化）
+function getFuriganaRules() {
+  if (!state.novel) return [];
+  if (!Array.isArray(state.novel.furiganaRules)) state.novel.furiganaRules = [];
+  return state.novel.furiganaRules;
+}
+
+function applyFuriganaForTts(text, para) {
+  if (!state.novel) return text;
+  const indivRules = (para && Array.isArray(para.furigana)) ? para.furigana.filter(r => r.word && r.enabled !== false) : [];
+  const indivWords = new Set(indivRules.map(r => r.word));
+  let result = text;
+  if (indivRules.length) {
+    const sortedIndiv = indivRules.slice().sort((a, b) => b.word.length - a.word.length);
+    sortedIndiv.forEach(rule => {
+      result = result.split(rule.word).join(rule.reading || '');
+    });
+  }
+  // 本全体のルールは、個別設定済みの単語を除いて適用（個別優先）
+  const globalRules = getFuriganaRules().filter(r => r.word && !indivWords.has(r.word) && r.enabled !== false);
+  if (globalRules.length === 0) return result;
+  const sorted = globalRules.slice().sort((a, b) => b.word.length - a.word.length);
+  sorted.forEach(rule => {
+    result = result.split(rule.word).join(rule.reading || '');
+  });
+  return result;
+}
+
+/* ══════════════════════════════════════
+   個別ふりがな（選択範囲ごとの読み方指定）
+   ・選択した単語＋その段落に紐づく読み方を登録
+   ・同じ単語でも「読み方辞書（本全体）」より優先される
+══════════════════════════════════════ */
+
+function computeParaDisplayNumber(pi, qi){
+  let count = 0;
+  for(let p = 0; p < pi; p++){
+    (state.pages[p] && state.pages[p].paras || []).forEach(pp => {
+      if(pp.type === 'text') count++;
+    });
+  }
+  const paras = state.pages[pi] ? state.pages[pi].paras : [];
+  for(let i = 0; i <= qi; i++){
+    if(paras[i] && paras[i].type === 'text') count++;
+  }
+  return count;
+}
+
+function persistCurrentPagesEdit(){
+  syncCurrentEpisode();
+  state.novel.updatedAt = new Date().toISOString();
+  const idx = state.library.findIndex(n => n.id === state.currentNovelId);
+  if(idx >= 0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+  libDbPut(state.novel).catch(e => { console.warn('save failed:', e); });
+}
+
+let _furiganaQuickCtx = null; // {pi, qi, word}
+
+function onFuriganaQuickTap(e){
+  // 編集バー操作でフォーカスが外れていた場合、保存済みの選択範囲を復元
+  if(state.ui.savedRange && !state.ui.savedRange.collapsed){
+    try{
+      const s = window.getSelection();
+      s.removeAllRanges();
+      s.addRange(state.ui.savedRange);
+    }catch(_){}
+  }
+  const sel = window.getSelection();
+  if(!sel || sel.rangeCount === 0 || sel.getRangeAt(0).collapsed){
+    showToast('ふりがなを付ける文字を選択してください');
+    return;
+  }
+  const range = sel.getRangeAt(0);
+  const word = range.toString();
+  if(!word || !word.trim()){
+    showToast('ふりがなを付ける文字を選択してください');
+    return;
+  }
+  let node = range.startContainer;
+  if(node.nodeType === 3) node = node.parentNode;
+  let paraEl = null;
+  while(node && node !== document.body){
+    if((node.tagName === 'P' || node.tagName === 'DIV') && node.dataset && node.dataset.qi !== undefined){
+      paraEl = node; break;
+    }
+    node = node.parentNode;
+  }
+  if(!paraEl){
+    showToast('テキスト段落内で選択してください');
+    return;
+  }
+  const pi = parseInt(paraEl.dataset.pi, 10);
+  const qi = parseInt(paraEl.dataset.qi, 10);
+  if(isNaN(pi) || isNaN(qi) || !state.pages[pi] || !state.pages[pi].paras[qi] || state.pages[pi].paras[qi].type !== 'text'){
+    showToast('テキスト段落内で選択してください');
+    return;
+  }
+  const para = state.pages[pi].paras[qi];
+  const existing = (para.furigana || []).find(r => r.word === word);
+  _furiganaQuickCtx = { pi, qi, word };
+
+  const wordDisplay = document.getElementById('efp-word-display');
+  const input = document.getElementById('efp-reading-input');
+  const delRow = document.getElementById('efp-delete-row');
+  wordDisplay.textContent = word;
+  input.value = existing ? (existing.reading || '') : '';
+  document.getElementById('efp-enabled-toggle').checked = existing ? (existing.enabled !== false) : true;
+  delRow.style.display = existing ? 'flex' : 'none';
+
+
+  const popup = document.getElementById('eb-furigana-popup');
+  const btn = document.getElementById('eb-furigana-btn');
+  popup.classList.add('show');
+  const rect = btn.getBoundingClientRect();
+  const pw = popup.offsetWidth || 240;
+  const ph = popup.offsetHeight || 150;
+  let left = rect.left + rect.width / 2 - pw / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+  let top = rect.top - ph - 8;
+  if(top < 60) top = rect.bottom + 8;
+  popup.style.left = left + 'px';
+  popup.style.top = top + 'px';
+  setTimeout(() => input.focus(), 80);
+}
+
+function closeFuriganaQuickPopup(){
+  const popup = document.getElementById('eb-furigana-popup');
+  if(popup) popup.classList.remove('show');
+  _furiganaQuickCtx = null;
+}
+
+function confirmFuriganaQuickRegister() {
+  if (!_furiganaQuickCtx) return;
+  const { pi, qi, word } = _furiganaQuickCtx;
+  const reading = document.getElementById('efp-reading-input').value.trim();
+  const enabled = document.getElementById('efp-enabled-toggle').checked; // ← 追加
+  saveIndividualFurigana(pi, qi, word, reading, enabled); // ← enabled追加
+  closeFuriganaQuickPopup();
+}
+
+function deleteFuriganaQuickRegister(){
+  if(!_furiganaQuickCtx) return;
+  const { pi, qi, word } = _furiganaQuickCtx;
+  deleteIndividualFurigana(pi, qi, word);
+  refreshPage(pi);
+  closeFuriganaQuickPopup();
+}
+
+// ポップアップ外タップで閉じる
+document.addEventListener('click', e => {
+  const popup = document.getElementById('eb-furigana-popup');
+  const btn = document.getElementById('eb-furigana-btn');
+  if(popup && popup.classList.contains('show') && !popup.contains(e.target) && e.target !== btn && !btn.contains(e.target)){
+    closeFuriganaQuickPopup();
+  }
+});
+
+function saveIndividualFurigana(pi, qi, word, reading, enabled){
+  const para = state.pages[pi] && state.pages[pi].paras[qi];
+  if(!para || para.type !== 'text') return;
+  if(!Array.isArray(para.furigana)) para.furigana = [];
+  const idx = para.furigana.findIndex(r => r.word === word);
+  if(idx >= 0){ para.furigana[idx].reading = reading; para.furigana[idx].enabled = enabled; }
+  else para.furigana.push({ word, reading, enabled });
+  persistCurrentPagesEdit();
+  refreshPage(pi);
+  try{ showToast('個別の読み方を設定しました'); }catch(_){}
+}
+
+function deleteIndividualFurigana(pi, qi, word){
+  const para = state.pages[pi] && state.pages[pi].paras[qi];
+  if(!para || !Array.isArray(para.furigana)) return;
+  const idx = para.furigana.findIndex(r => r.word === word);
+  if(idx >= 0) para.furigana.splice(idx, 1);
+  if(para.furigana.length === 0) delete para.furigana;
+  persistCurrentPagesEdit();
+  try{ showToast('個別設定を削除しました'); }catch(_){}
+}
+
+function collectIndividualFuriganaEntries() {
+  const entries = [];
+  if (!state.novel || !state.novel.episodes) return entries;
+  if (state.editMode && state.curPage != null) {
+    try { syncEditorToState(state.curPage); } catch (_) {}
+    syncCurrentEpisode();
+  }
+  const sorted = [...state.novel.episodes].sort((a, b) => a.number - b.number);
+  sorted.forEach(ep => {
+    const pages = (ep.id === state.currentEpisodeId) ? state.pages : ep.pages;
+    if (!pages) return;
+    let paraCount = 0;
+    pages.forEach((pg, pi) => {
+      (pg.paras || []).forEach((p, qi) => {
+        if (p.type === 'group-break') return;
+        if (p.type !== 'text') return;
+        paraCount++;
+        if (Array.isArray(p.furigana) && p.furigana.length) {
+          p.furigana.forEach(rule => {
+            entries.push({
+              episodeId: ep.id,
+              episodeNumber: ep.number,
+              episodeTitle: ep.title,
+              paraNumber: paraCount,
+              pi: pi,
+              qi: qi,
+              word: rule.word,
+              reading: rule.reading,
+              enabled: rule.enabled,
+            });
+          });
+        }
+      });
+    });
+  });
+  return entries;
+}
+
+function renderIndividualFuriganaList() {
+  const wrap = document.getElementById('indiv-furigana-list');
+  if (!wrap) return;
+  const entries = collectIndividualFuriganaEntries();
+  if (entries.length === 0) {
+    wrap.innerHTML = '<div style="color:#aaa;font-size:12px;text-align:center;padding:16px 0;font-family:\'Noto Sans JP\',sans-serif;">個別設定はまだありません</div>';
+    return;
+  }
+  wrap.innerHTML = '';
+  entries.forEach(en => {
+    const row = document.createElement('div');
+    row.className = 'indiv-furigana-row';
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;';
+    const infoDiv = document.createElement('div');
+    infoDiv.style.cssText = 'flex:1;min-width:0;cursor:pointer;';
+    infoDiv.innerHTML =
+      `<div style="font-size:10px;color:#999;font-family:'Noto Sans JP',sans-serif;">第${en.episodeNumber}話「${escapeHtml(en.episodeTitle)}」・${en.paraNumber}段落目</div>
+       <div style="font-size:13px;color:#222;">${escapeHtml(en.word)} → ${escapeHtml(en.reading || '（読み飛ばし）')}</div>`;
+    infoDiv.onclick = () => {
+      closePanel();
+      jumpToIndividualFurigana(en.episodeId, en.pi, en.qi, en.word);
+    };
+    const toggle = document.createElement('label');
+    toggle.className = 'toggle-switch';
+    toggle.style.flexShrink = '0';
+    toggle.title = 'この読み方を有効にする';
+    toggle.innerHTML = `<input type="checkbox" ${en.enabled!==false?'checked':''}><span class="slider"></span>`;
+    toggle.querySelector('input').onchange = (e) => {
+      toggleIndividualFuriganaEnabled(en.episodeId, en.pi, en.qi, en.word, e.target.checked);
+    };
+    const delBtn = document.createElement('button');
+    delBtn.className = 'del-btn';
+    delBtn.textContent = '削除';
+    delBtn.onclick = (e) => {
+      e.stopPropagation();
+      removeIndividualFuriganaEntry(en.episodeId, en.pi, en.qi, en.word);
+    };
+    row.appendChild(toggle);
+    row.appendChild(infoDiv);
+    row.appendChild(delBtn);
+    wrap.appendChild(row);
+  });
+}
+
+function removeIndividualFuriganaEntry(episodeId, pi, qi, word){
+  const ep = state.novel.episodes.find(e => e.id === episodeId);
+  if(!ep) return;
+  const pages = (ep.id === state.currentEpisodeId) ? state.pages : ep.pages;
+  if(!pages || !pages[pi] || !pages[pi].paras || !pages[pi].paras[qi]) return;
+  const p = pages[pi].paras[qi];
+  let changed = false;
+  if(p.type === 'text' && Array.isArray(p.furigana)){
+    const idx = p.furigana.findIndex(r => r.word === word);
+    if(idx >= 0){ p.furigana.splice(idx, 1); if(p.furigana.length === 0) delete p.furigana; changed = true; }
+  }
+  if(changed){
+    if(ep.id === state.currentEpisodeId) syncCurrentEpisode();
+    state.novel.updatedAt = new Date().toISOString();
+    const idx = state.library.findIndex(n => n.id === state.currentNovelId);
+    if(idx >= 0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+    libDbPut(state.novel).catch(e => console.warn('save failed:', e));
+    if(ep.id === state.currentEpisodeId) state.pages.forEach((_,pi2)=>refreshPage(pi2));
+    renderIndividualFuriganaList();
+    try{ showToast('削除しました'); }catch(_){}
+  }
+}
+
+function toggleIndividualFuriganaEnabled(episodeId, pi, qi, word, enabled){
+  const ep = state.novel.episodes.find(e => e.id === episodeId);
+  if(!ep) return;
+  const pages = (ep.id === state.currentEpisodeId) ? state.pages : ep.pages;
+  if(!pages || !pages[pi] || !pages[pi].paras || !pages[pi].paras[qi]) return;
+  const p = pages[pi].paras[qi];
+  let changed = false;
+  if(p.type === 'text' && Array.isArray(p.furigana)){
+    const r = p.furigana.find(r => r.word === word);
+    if(r){ r.enabled = enabled; changed = true; }
+  }
+  if(changed){
+    if(ep.id === state.currentEpisodeId) syncCurrentEpisode();
+    state.novel.updatedAt = new Date().toISOString();
+    const idx = state.library.findIndex(n => n.id === state.currentNovelId);
+    if(idx >= 0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+    libDbPut(state.novel).catch(e => console.warn('save failed:', e));
+    if(ep.id === state.currentEpisodeId) state.pages.forEach((_,pi2)=>refreshPage(pi2));
+  }
+}
+
+function jumpToIndividualFurigana(episodeId, pi, qi, word){
+  const ep = state.novel.episodes.find(e => e.id === episodeId);
+  if(!ep) return;
+  openEpisode(episodeId);
+  setTimeout(() => {
+    const foundPi = pi, foundQi = qi;
+    if(foundPi == null || foundQi == null || !state.pages[foundPi] || !state.pages[foundPi].paras[foundQi]) return;
+    if(foundPi !== state.curPage){
+      goToPage(foundPi);
+    }
+    setTimeout(() => {
+      const pageEl = document.getElementById(`page-${foundPi}`);
+      if(!pageEl) return;
+      let g = 0;
+      for(let i = 0; i < foundQi; i++){
+        if(state.pages[foundPi].paras[i].type === 'group-break') g++;
+      }
+      const groups = pageEl.querySelectorAll('.subpage-group');
+      groups.forEach((grp, i) => {
+        grp.classList.remove('active', 'fade-in', 'slide-up');
+        if(i === g) grp.classList.add('active');
+      });
+      if(foundPi === state.curPage) state.subPageIndex = g;
+      updateSubPageDots(foundPi, g, groups.length);
+      const el = pageEl.querySelector(`[data-qi="${foundQi}"]`);
+      if(el){
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        el.style.transition = 'background .3s';
+        el.style.background = 'rgba(0,128,128,0.15)';
+        setTimeout(() => { el.style.background = ''; }, 1500);
+      }
+    }, 350);
+  }, 300);
+}
+
+function renderFuriganaRules() {
+  const list = document.getElementById('furigana-rules-list');
+  if (!list) return;
+  list.innerHTML = '';
+  const rules = getFuriganaRules();
+  if (rules.length === 0) rules.push({ word: '', reading: '' });
+  rules.forEach((rule, idx) => {
+    list.appendChild(createFuriganaRuleRow(rule, idx));
+  });
+}
+
+function createFuriganaRuleRow(rule, idx) {
+  const row = document.createElement('div');
+  row.className = 'furigana-rule-row';
+  row.dataset.idx = idx;
+  
+  const toggleLabel = document.createElement('label');
+  toggleLabel.className = 'toggle-switch';
+  toggleLabel.style.flexShrink = '0';
+  toggleLabel.title = 'この読み方を有効にする';
+  const toggleInput = document.createElement('input');
+  toggleInput.type = 'checkbox';
+  toggleInput.checked = rule.enabled !== false;
+  toggleInput.dataset.field = 'enabled';
+  toggleInput.addEventListener('change', saveFuriganaRulesFromUI);
+  const toggleSlider = document.createElement('span');
+  toggleSlider.className = 'slider';
+  toggleLabel.appendChild(toggleInput);
+  toggleLabel.appendChild(toggleSlider);
+  
+  const inputWord = document.createElement('input');
+  inputWord.type = 'text';
+  inputWord.placeholder = '単語（例：今日）';
+  inputWord.value = rule.word || '';
+  inputWord.dataset.field = 'word';
+  const arrow = document.createElement('span');
+  arrow.className = 'arrow';
+  arrow.textContent = '→';
+  const inputReading = document.createElement('input');
+  inputReading.type = 'text';
+  inputReading.placeholder = '読み方（空欄で読み飛ばす）';
+  inputReading.value = rule.reading || '';
+  inputReading.dataset.field = 'reading';
+  const delBtn = document.createElement('button');
+  delBtn.className = 'del-btn';
+  delBtn.textContent = '削除';
+  delBtn.onclick = () => {
+    saveFuriganaRulesFromUI();
+    const rules = getFuriganaRules();
+    const i = parseInt(row.dataset.idx, 10);
+    if (!isNaN(i)) rules.splice(i, 1);
+    renderFuriganaRules();
+  };
+  
+  row.appendChild(toggleLabel);
+  row.appendChild(inputWord);
+  row.appendChild(arrow);
+  row.appendChild(inputReading);
+  inputWord.addEventListener('blur', saveFuriganaRulesFromUI);
+  inputReading.addEventListener('blur', saveFuriganaRulesFromUI);
+  row.appendChild(delBtn);
+  return row;
+}
+
+function addFuriganaRuleRow() {
+  saveFuriganaRulesFromUI();
+  const rules = getFuriganaRules();
+  rules.push({ word: '', reading: '' });
+  renderFuriganaRules();
+  setTimeout(() => {
+    const list = document.getElementById('furigana-rules-list');
+    const lastRow = list && list.lastElementChild;
+    const firstInput = lastRow && lastRow.querySelector('input[data-field="word"]');
+    if (firstInput) firstInput.focus();
+  }, 0);
+}
+
+function saveFuriganaRulesFromUI() {
+  if (!state.novel) return;
+  const list = document.getElementById('furigana-rules-list');
+  if (!list) return;
+  const newRules = [];
+  list.querySelectorAll('.furigana-rule-row').forEach(row => {
+    const word = row.querySelector('input[data-field="word"]').value.trim();
+    const reading = row.querySelector('input[data-field="reading"]').value.trim();
+    const enabledInput = row.querySelector('input[data-field="enabled"]');
+    const enabled = enabledInput ? enabledInput.checked : true;
+    newRules.push({ word, reading, enabled }); // enabled を追加
+  });
+  state.novel.furiganaRules = newRules;
+  try {
+    state.novel.updatedAt = new Date().toISOString();
+    const idx = state.library.findIndex(n => n.id === state.currentNovelId);
+    if (idx >= 0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+    libDbPut(state.novel).catch(e => { console.warn('save furiganaRules failed:', e); });
+  } catch (e) { console.warn(e); }
+  if(!state.editMode) state.pages.forEach((_,pi)=>refreshPage(pi));
+}
+
+function openReplaceModalSection(sectionId) {
+  openReplaceModal();
+  setTimeout(() => {
+    document.querySelectorAll('.replace-accordion').forEach(d => d.removeAttribute('open'));
+    const target = document.getElementById(sectionId);
+    if (target) {
+      target.setAttribute('open', '');
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 50);
+}
+
+function openReplaceModal() {
+  if (!state.novel) {
+    try { showToast('本を開いてから操作してください'); } catch (_) {}
     return;
   }
   renderReplaceRules();
   renderPronounList();
+  renderFuriganaRules();
   const ov = document.getElementById('replace-modal-ov');
-  if(ov) ov.classList.add('show');
+  if (ov) ov.classList.add('show');
 }
 
-function closeReplaceModal(){
-  // 入力中のルールを保存
+function closeReplaceModal() {
   saveReplaceRulesFromUI();
+  saveFuriganaRulesFromUI();
   const ov = document.getElementById('replace-modal-ov');
-  if(ov) ov.classList.remove('show');
+  if (ov) ov.classList.remove('show');
 }
+
 
 function renderReplaceRules(){
   const list = document.getElementById('replace-rules-list');
@@ -6454,6 +8002,8 @@ function createReplaceRuleRow(rule, idx){
   row.appendChild(inputFrom);
   row.appendChild(arrow);
   row.appendChild(inputTo);
+  inputFrom.addEventListener('blur', saveReplaceRulesFromUI);
+  inputTo.addEventListener('blur', saveReplaceRulesFromUI);
   row.appendChild(delBtn);
   return row;
 }
@@ -6531,38 +8081,42 @@ function runReplace(scope){
   }
 
   let totalCount = 0;
-  targetEpisodes.forEach(ep=>{
-    if(!ep.pages) return;
-    ep.pages.forEach(pg=>{
-      if(!pg.paras) return;
-      pg.paras.forEach(p=>{
-        if(p.type !== 'text') return;
-        // text にも置換を適用（プレーンテキスト）
-        let count = 0;
-        if(p.text){
+  targetEpisodes.forEach(ep => {
+    if (!ep.pages) return;
+    ep.pages.forEach(pg => {
+      if (!pg.paras) return;
+      pg.paras.forEach(p => {
+        if (p.type !== 'text') return;
+        
+        if (p.html) {
+          // htmlを正として置換（タグを壊さずテキストノードのみ）
+          const r = applyRulesToHtml(p.html, rules);
+          if (r.newHtml !== p.html) {
+            p.html = r.newHtml;
+            totalCount += r.count;
+            // textはhtmlから再抽出して常に同期させる
+            const tmp = document.createElement('div');
+            tmp.innerHTML = p.html;
+            p.text = tmp.textContent || '';
+          }
+        } else if (p.text) {
+          // htmlを持たない段落のみtextを直接置換
           const before = p.text;
-          rules.forEach(rule=>{
-            if(!rule.from) return;
+          rules.forEach(rule => {
+            if (!rule.from) return;
             p.text = p.text.split(rule.from).join(rule.to || '');
           });
-          if(p.text !== before){
-            rules.forEach(rule=>{
-              if(rule.from) count += before.split(rule.from).length - 1;
+          if (p.text !== before) {
+            rules.forEach(rule => {
+              if (rule.from) totalCount += before.split(rule.from).length - 1;
             });
-            totalCount += count;
           }
-        }
-        // html はテキストノードのみ置換（タグを壊さない）
-        if(p.html){
-          const r = applyRulesToHtml(p.html, rules);
-          p.html = r.newHtml;
         }
       });
     });
-    // 現在編集中のエピソードならstate.pagesも更新
-    if(scope === 'all' && ep.id === state.currentEpisodeId){
+    if (scope === 'all' && ep.id === state.currentEpisodeId) {
       state.pages = JSON.parse(JSON.stringify(ep.pages));
-    } else if(scope === 'episode'){
+    } else if (scope === 'episode') {
       state.pages = JSON.parse(JSON.stringify(ep.pages));
     }
   });
@@ -7858,18 +9412,38 @@ function loadFontFile(input){
   };
   reader.readAsArrayBuffer(file);
 }
-function applyTheme(idx){
-  const t=THEMES[idx];
-  if(!t)return;
-  state.settings.themeIdx=idx;
-  document.documentElement.style.setProperty('--bg',t.bg);
-  document.documentElement.style.setProperty('--ink',t.ink);
-  document.querySelectorAll('.page').forEach(p=>p.style.background=t.bg);
-  // ボタンのactive状態
-  const cont=$.theme_btns;
-  if(cont){
-    cont.querySelectorAll('.ob').forEach((b,i)=>b.classList.toggle('active',i===idx));
+
+function applyTheme(idx) {
+  const t = THEMES[idx];
+  if (!t) return;
+  state.settings.themeIdx = idx;
+  document.documentElement.style.setProperty('--bg', t.bg);
+  document.documentElement.style.setProperty('--ink', t.ink);
+  document.querySelectorAll('.page').forEach(p => p.style.background = t.bg);
+  const cont = $.theme_btns;
+  if (cont) {
+    cont.querySelectorAll('.ob').forEach((b, i) => b.classList.toggle('active', i === idx));
   }
+  // 背景画像が設定されていれば、テーマの明暗に応じてオーバーレイ色を自動追従
+  if (state.novel && state.novel.bg && state.novel.bg.fileName) {
+    const wantColor = isDarkThemeIdx(idx) ? 'black' : 'white';
+    if ((state.novel.bg.overlayColor || 'white') !== wantColor) {
+      setOverlayColor(wantColor);
+    }
+  }
+}
+
+// テーマ背景色の明度からダークテーマかどうかを判定（インデックス直書きを避ける）
+function isDarkThemeIdx(idx) {
+  const t = THEMES[idx];
+  if (!t) return false;
+  const hex = t.bg.replace('#', '');
+  if (hex.length !== 6) return false;
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  return brightness < 128;
 }
 
 function buildThemeBtns(){
@@ -8210,24 +9784,32 @@ function toggleEnterMode(){
 }
 
 // シンプルな通知トースト
-function showToast(msg){
-  let t=document.getElementById('app-toast');
-  if(!t){
-    t=document.createElement('div');
-    t.id='app-toast';
-    t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:#fff;font-family:\'Noto Sans JP\',sans-serif;font-size:12px;padding:8px 18px;border-radius:20px;z-index:900;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;';
+function showToast(msg) {
+  let t = document.getElementById('app-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'app-toast';
+    t.style.cssText = 'position:fixed;bottom:80px;left:50%;' +
+      'transform:translateX(-50%) translateY(6px);' +
+      'background:rgba(255,255,255,0.96);' +
+      'backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);' +
+      'color:#333;font-family:\'Noto Sans JP\',sans-serif;' +
+      'font-size:12.5px;font-weight:500;padding:9px 20px;' +
+      'border-radius:22px;' +
+      'box-shadow:0 4px 18px rgba(0,0,0,0.14),0 0 0 1px rgba(0,0,0,0.05);' +
+      'z-index:900;opacity:0;transition:opacity .25s,transform .25s;' +
+      'pointer-events:none;white-space:nowrap;max-width:80vw;' +
+      'overflow:hidden;text-overflow:ellipsis;';
     document.body.appendChild(t);
   }
-  t.textContent=msg;
-  t.style.opacity='1';
+  t.textContent = msg;
+  t.style.opacity = '1';
+  t.style.transform = 'translateX(-50%) translateY(0)';
   clearTimeout(t._timer);
-  t._timer=setTimeout(()=>{t.style.opacity='0';},1600);
-}
-function getActiveEditor(){
-  const ae=document.activeElement;
-  if(ae&&ae.isContentEditable)return ae;
-  // フォーカスがなければ現在ページの先頭エディタ
-  return document.getElementById(`editor-${state.curPage}`)||null;
+  t._timer = setTimeout(() => {
+    t.style.opacity = '0';
+    t.style.transform = 'translateX(-50%) translateY(6px)';
+  }, 1600);
 }
 
 /* ══════════════════════════════════════
@@ -8340,7 +9922,15 @@ function escRe(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
 function togglePanel(){
   const p=$.side_panel;
   if(p.classList.contains('open'))closePanel();
-  else{p.classList.add('open');$.panel_ov.classList.add('show');}
+  else{
+    p.classList.add('open');$.panel_ov.classList.add('show');
+    if(state.novel){
+      renderReplaceRules();
+      renderPronounList();
+      renderFuriganaRules();
+      renderIndividualFuriganaList();   // ← 追加
+    }
+  }
 }
 function closePanel(){
   $.side_panel.classList.remove('open');
@@ -8525,6 +10115,20 @@ function setupGlobalListeners(){
   setInterval(()=>{
     if(state.editMode && _saveTimer != null) flushSave();
   }, 30000);
+
+  /* ── 側面パネル内の入力欄：初回タップでキーボードが開かない端末への対策 ── */
+  const panelBodyEl = document.getElementById('panel-body');
+  if (panelBodyEl) {
+    panelBodyEl.addEventListener('touchend', e => {
+      const t = e.target;
+      if (t && (t.tagName === 'INPUT') &&
+        (t.type === 'text' || t.type === 'password' || t.type === 'search') &&
+        document.activeElement !== t) {
+        // Android WebViewで初回タップ時にfocus()が乗らない端末があるための明示的な再フォーカス
+        setTimeout(() => { t.focus(); }, 0);
+      }
+    }, { passive: true });
+  }
 
   /* ── 字下げボタンの長押し検出 ── */
   setupIndentLongPress();
@@ -8871,28 +10475,31 @@ function showUpdateBanner(worker){
   banner.id = 'update-banner';
   banner.style.cssText = `
     position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
-    background:#1a1a1a;color:#fff;padding:12px 16px 12px 18px;
-    border-radius:24px;box-shadow:0 4px 20px rgba(0,0,0,0.3);
+    background:rgba(255,255,255,0.97);
+    backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    color:#222;padding:12px 14px 12px 18px;
+    border-radius:24px;
+    box-shadow:0 4px 20px rgba(0,0,0,0.16),0 0 0 1px rgba(0,0,0,0.05);
     display:flex;align-items:center;gap:12px;
     font-family:'Noto Sans JP',sans-serif;font-size:13px;
     z-index:9999;white-space:nowrap;
     animation:updBanIn .3s cubic-bezier(.25,.46,.45,.94) both;
   `;
   banner.innerHTML = `
-    <span>新しいバージョンがあります</span>
-    <button id="update-btn" style="
-      background:#11d1d1;color:#fff;border:none;
-      padding:6px 14px;border-radius:18px;
-      font-family:inherit;font-size:12px;font-weight:600;
-      cursor:pointer;-webkit-tap-highlight-color:transparent;
-    ">更新</button>
-    <button id="update-close" style="
-      background:none;border:none;color:#888;
-      width:24px;height:24px;cursor:pointer;font-size:18px;
-      display:flex;align-items:center;justify-content:center;
-      -webkit-tap-highlight-color:transparent;
-    ">×</button>
-  `;
+      <span>新しいバージョンがあります</span>
+      <button id="update-btn" style="
+        background:var(--accent);color:#fff;border:none;
+        padding:6px 14px;border-radius:18px;
+        font-family:inherit;font-size:12px;font-weight:600;
+        cursor:pointer;-webkit-tap-highlight-color:transparent;
+      ">更新</button>
+      <button id="update-close" style="
+        background:none;border:none;color:#aaa;
+        width:24px;height:24px;cursor:pointer;font-size:18px;
+        display:flex;align-items:center;justify-content:center;
+        -webkit-tap-highlight-color:transparent;
+      ">×</button>
+    `;
   // アニメーション用CSS
   if(!document.getElementById('update-banner-style')){
     const st = document.createElement('style');
@@ -8915,42 +10522,7 @@ function showUpdateBanner(worker){
 init();
 </script>
 
-<!-- 置換ルール管理モーダル -->
-<div id="replace-modal-ov">
-  <div id="replace-modal">
-    <div id="replace-modal-header">
-      <span>置換ルール</span>
-      <button class="close-btn" onclick="closeReplaceModal()" title="閉じる">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-    <div id="replace-modal-body">
-      <div class="replace-section-title">置換ルール（この本のみ）</div>
-      <div class="replace-modal-hint">
-        各行の左に「置換前」、右に「置換後」を入力してください。空欄の行は無視されます。
-      </div>
-      <div id="replace-rules-list"></div>
-      <button id="replace-add-btn" onclick="addReplaceRuleRow()">＋ ルールを追加</button>
 
-      <div class="replace-section-title">主語（一人称）変換</div>
-      <div class="replace-modal-hint">
-        地の文の中の一人称を一括変換します。チップをタップで変換先に指定。✕で削除（デフォルト以外）。<br>
-        ※「は」「が」「を」「、」「。」など主語を示す文字が直後にある場合のみ変換します。「俺様」「俺たち」などは変換されません（必要に応じて個別追加してください）。
-      </div>
-      <div id="pronoun-list"></div>
-      <div id="pronoun-add-row">
-        <input type="text" id="pronoun-add-input" placeholder="一人称を追加（例：拙者）" maxlength="10">
-        <button onclick="addPronoun()">＋追加</button>
-      </div>
-      <div id="pronoun-target-info"></div>
-      <button class="pronoun-apply-btn" id="pronoun-apply-btn" onclick="runPronounConvert()" disabled>このエピソードの主語を変換</button>
-    </div>
-    <div id="replace-modal-footer">
-      <button class="preview-btn" onclick="showReplacePreview('episode')">エピソード プレビュー</button>
-      <button class="preview-btn" onclick="showReplacePreview('all')">本全体 プレビュー</button>
-    </div>
-  </div>
-</div>
 
 <!-- エクスポート/インポートメニュー -->
 <div id="export-menu">
@@ -9177,148 +10749,6 @@ init();
       document.addEventListener('DOMContentLoaded', initNativeBackButton);
     }
   })();
-  
-  /* ══════════════════════════════════════
-   読み上げ (Chirp 3 HD TTS)
-══════════════════════════════════════ */
-state.tts = { queue: [], idx: 0, audio: null, playing: false };
-const TTS_CHUNK_MAX_CHARS = 1400; // 5000byte制限への安全マージン
-
-function saveTtsApiKey(el){
-  state.settings.ttsApiKey = el.value.trim();
-  debouncedSaveSettings();
-}
-
-function getGroupPlainTexts(pi, g){
-  const texts = [];
-  getGroupParas(pi, g).forEach(p=>{
-    if(p.type !== 'text') return;
-    const t = (p.text || (p.html||'').replace(/<[^>]+>/g,'')).trim();
-    if(t) texts.push(t);
-  });
-  return texts;
-}
-
-function chunkTextsForTts(texts){
-  const chunks = [];
-  let cur = '';
-  texts.forEach(t=>{
-    if((cur + '\n' + t).length > TTS_CHUNK_MAX_CHARS){
-      if(cur) chunks.push(cur);
-      cur = t;
-    } else {
-      cur = cur ? cur + '\n' + t : t;
-    }
-  });
-  if(cur) chunks.push(cur);
-  return chunks;
-}
-
-async function synthesizeChirp(text){
-  const apiKey = state.settings.ttsApiKey;
-  if(!apiKey){ showToast('設定画面でAPIキーを入力してください'); throw new Error('no api key'); }
-  const voiceName = state.settings.ttsVoice || 'ja-JP-Standard-A';
-  const res = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + apiKey, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      input: { text },
-      voice: { languageCode: 'ja-JP', name: voiceName },
-      audioConfig: { audioEncoding: 'MP3' }
-    })
-  });
-  if(!res.ok){
-    console.warn('TTS API error:', await res.text());
-    throw new Error('TTS API error: ' + res.status);
-  }
-  const data = await res.json();
-  return data.audioContent;
-}
-
-async function startTtsForCurrentGroup(){
-  stopTts();
-  const texts = getGroupPlainTexts(state.curPage, state.subPageIndex);
-  if(texts.length === 0){ showToast('読み上げるテキストがありません'); return; }
-  state.tts.queue = chunkTextsForTts(texts);
-  state.tts.idx = 0;
-  state.tts.playing = true;
-  document.getElementById('topbar-tts').classList.add('active');
-  await playNextTtsChunk();
-}
-
-async function playNextTtsChunk(){
-  if(!state.tts.playing) return;
-  if(state.tts.idx >= state.tts.queue.length){
-    stopTts();
-    showToast('読み上げが終わりました');
-    return;
-  }
-  const text = state.tts.queue[state.tts.idx];
-  const engine = state.settings.ttsEngine || 'device';
-  const useCloud = engine === 'cloud' && !!state.settings.ttsApiKey;
-
-  try{
-    if(useCloud){
-      showToast('音声を生成中...');
-      const audioContent = await synthesizeChirp(text);
-      const audio = new Audio('data:audio/mp3;base64,' + audioContent);
-      state.tts.audio = audio;
-      audio.onended = () => { state.tts.idx++; playNextTtsChunk(); };
-      audio.onerror = () => { showToast('再生に失敗しました'); stopTts(); };
-      await audio.play();
-    } else {
-      if(engine === 'cloud' && !state.settings.ttsApiKey){
-        showToast('APIキー未設定のため端末音声で再生します');
-      }
-      await speakWithDeviceTts(text);
-      state.tts.idx++;
-      playNextTtsChunk();
-    }
-  }catch(e){
-    showToast('読み上げに失敗しました: ' + e.message);
-    stopTts();
-  }
-}
-
-function toggleTtsPlayback() {
-  const engine = state.settings.ttsEngine || 'device';
-  const useCloud = engine === 'cloud' && !!state.settings.ttsApiKey;
-
-  if (state.tts.playing) {
-    if(useCloud){
-      state.tts.audio && state.tts.audio.pause();
-    } else {
-      speechSynthesis.pause();
-    }
-    state.tts.playing = false;
-    document.getElementById('topbar-tts').classList.remove('active');
-  } else if (state.tts.audio || state.tts.deviceUtter) {
-    state.tts.playing = true;
-    document.getElementById('topbar-tts').classList.add('active');
-    if(useCloud && state.tts.audio){
-      state.tts.audio.play().catch(e => {
-        showToast('再生を再開できませんでした');
-        state.tts.playing = false;
-        document.getElementById('topbar-tts').classList.remove('active');
-      });
-    } else {
-      speechSynthesis.resume();
-    }
-  } else {
-    startTtsForCurrentGroup();
-  }
-}
-
-function stopTts(){
-  if(state.tts.audio){ state.tts.audio.pause(); state.tts.audio = null; }
-  if('speechSynthesis' in window){ speechSynthesis.cancel(); }
-  state.tts.deviceUtter = null;
-  state.tts.playing = false;
-  state.tts.queue = [];
-  state.tts.idx = 0;
-  const btn = document.getElementById('topbar-tts');
-  if(btn) btn.classList.remove('active');
-}
 </script>
 </body>
 </html>
