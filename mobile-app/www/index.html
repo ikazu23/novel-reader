@@ -4558,19 +4558,75 @@ async function exportAsZip(){
     folder.file(filename, lines.join('\n'), {binary:false});
   });
 
+  let blob;
   try{
-    const blob=await zip.generateAsync({type:'blob',mimeType:'application/zip'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url;
-    a.download=`${novelTitle}.zip`;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},2000);
-    showToast(`${sorted.length} 話をエクスポートしました`);
+    blob=await zip.generateAsync({type:'blob',mimeType:'application/zip'});
   }catch(e){
     showToast('ZIPの生成に失敗しました');
     console.error('[export]',e);
+    return;
+  }
+
+  const fileName = `${novelTitle}.zip`;
+  let saved = false;
+
+  // ① Web Share API（Googleドライブ等に共有）
+  try{
+    const file = new File([blob], fileName, {type:'application/zip'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({ files:[file], title: fileName });
+      saved = true;
+    }
+  }catch(e){
+    if(e.name === 'AbortError'){
+      // ユーザーがキャンセルした場合は何もしない
+      return;
+    }
+    console.warn('share failed', e);
+  }
+
+  // ② blob URL でダウンロード
+  if(!saved){
+    try{
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;
+      a.download=fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),5000);
+      saved = true;
+    }catch(e){
+      console.warn('blob download failed', e);
+    }
+  }
+
+  // ③ data URI でダウンロード（content://環境などのフォールバック）
+  if(!saved){
+    try{
+      const dataUrl = await new Promise((resolve, reject)=>{
+        const reader = new FileReader();
+        reader.onload = ()=>resolve(reader.result);
+        reader.onerror = ()=>reject(reader.error);
+        reader.readAsDataURL(blob);
+      });
+      const a=document.createElement('a');
+      a.href=dataUrl;
+      a.download=fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      saved = true;
+    }catch(e){
+      console.warn('data URI download failed', e);
+    }
+  }
+
+  if(saved){
+    showToast(`${sorted.length} 話をエクスポートしました`);
+  }else{
+    showToast('エクスポートに失敗しました。別の方法をお試しください。');
   }
 }
 
