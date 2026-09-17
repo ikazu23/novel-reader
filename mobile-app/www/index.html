@@ -2740,6 +2740,41 @@ function fontDbDelete(name){
   }));
 }
 
+// ネイティブアプリなら Capacitor Filesystem+Share でファイル保存・共有
+// 戻り値: 保存できたら true、Web環境（未対応）なら false
+async function saveAndShareFile(fileName, dataBase64OrBlob, isBase64) {
+  const Cap = window.Capacitor;
+  if (!(Cap && Cap.isNativePlatform() && Cap.Plugins.Filesystem && Cap.Plugins.Share)) {
+    return false;
+  }
+  try {
+    const { Filesystem, Directory } = Cap.Plugins;
+    let base64 = isBase64 ? dataBase64OrBlob : await blobToBase64(dataBase64OrBlob);
+    const result = await Filesystem.writeFile({
+      path: fileName,
+      data: base64,
+      directory: Directory.Cache,
+    });
+    await Cap.Plugins.Share.share({
+      title: fileName,
+      url: result.uri,
+      dialogTitle: '保存先を選択',
+    });
+    return true;
+  } catch (e) {
+    console.warn('saveAndShareFile failed:', e);
+    return false;
+  }
+}
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 // ArrayBuffer を base64 dataURL に変換
 function arrayBufferToDataUrl(buffer, mimeType){
   let binary = '';
@@ -4217,6 +4252,11 @@ async function exportAsJson(){
       novel: JSON.parse(JSON.stringify(state.novel))
     };
     const json = JSON.stringify(data, null, 2);
+    const b64 = btoa(unescape(encodeURIComponent(json)));
+    if (await saveAndShareFile(fileName, b64, true)) {
+      showToast('JSONをエクスポートしました');
+      return;
+    }
     const safeTitle = (state.novel.title || 'novel').replace(/[\\/:*?"<>|]/g, '_');
     const fileName = safeTitle + '.json';
     let saved = false;
@@ -4561,6 +4601,10 @@ async function exportAsZip(){
   let blob;
   try{
     blob=await zip.generateAsync({type:'blob',mimeType:'application/zip'});
+    if (await saveAndShareFile(fileName, blob, false)){
+        showToast(`${sorted.length} 話をエクスポートしました`);
+        return;
+    }
   }catch(e){
     showToast('ZIPの生成に失敗しました');
     console.error('[export]',e);
@@ -10361,6 +10405,11 @@ async function doBackup(){
       novels,
     };
     const json = JSON.stringify(backup);
+    const b64 = btoa(unescape(encodeURIComponent(json)));
+    if (await saveAndShareFile(fileName, b64, true)) {
+      showToast('バックアップファイルを保存しました');
+      return;
+    }
     const date = new Date().toISOString().slice(0,10).replace(/-/g,'');
     const fileName = `novel-backup-${date}.json`;
 
