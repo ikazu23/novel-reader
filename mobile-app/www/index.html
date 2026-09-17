@@ -2744,9 +2744,10 @@ function fontDbDelete(name){
 // 戻り値: 保存できたら true、Web環境（未対応）なら false
 async function saveAndShareFile(fileName, dataBase64OrBlob, isBase64) {
   const Cap = window.Capacitor;
-  if (!(Cap && Cap.isNativePlatform() && Cap.Plugins.Filesystem && Cap.Plugins.Share)) {
-    return false;
-  }
+  if (!Cap) { try { showToast('診断: Capacitorが存在しない'); } catch (_) {} return false; }
+  if (!Cap.isNativePlatform()) { try { showToast('診断: ネイティブ環境ではない'); } catch (_) {} return false; }
+  if (!Cap.Plugins.Filesystem) { try { showToast('診断: Filesystemプラグインが見つからない'); } catch (_) {} return false; }
+  if (!Cap.Plugins.Share) { try { showToast('診断: Shareプラグインが見つからない'); } catch (_) {} return false; }
   try {
     const { Filesystem, Directory } = Cap.Plugins;
     let base64 = isBase64 ? dataBase64OrBlob : await blobToBase64(dataBase64OrBlob);
