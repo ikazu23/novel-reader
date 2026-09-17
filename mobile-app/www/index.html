@@ -1670,6 +1670,11 @@ body.library-mode #tts-control-bar{display:none !important;}
   padding:4px 8px;border-radius:4px;cursor:pointer;
   font-size:11px;flex-shrink:0;
 }
+.indiv-furigana-row .del-btn{
+  background:none;border:1px solid #e0c0c0;color:#c54040;
+  padding:4px 8px;border-radius:4px;cursor:pointer;
+  font-size:11px;flex-shrink:0;
+}
 #furigana-add-btn{
   margin-top:4px;width:100%;
   background:none;border:1px dashed #aaa;color:#555;
@@ -2027,7 +2032,12 @@ body.library-mode #tts-control-bar{display:none !important;}
 
   <!-- 簡単ふりがな登録 -->
     <button class="eb-btn" id="eb-furigana-btn" onclick="onFuriganaQuickTap(event)" title="選択範囲に個別の読み方を登録">
-      <span class="eb-icon" style="font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;line-height:1;">ふ</span>
+      <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 5h3M11 5h3M16 5h2" stroke-width="1.5" />
+        <rect x="5" y="9" width="14" height="11" rx="1.5" />
+        <line x1="9" y1="9" x2="9" y2="20" />
+        <line x1="15" y1="9" x2="15" y2="20" />
+      </svg>
     </button>
     
     <div class="eb-sep"></div>
@@ -7600,30 +7610,32 @@ function deleteIndividualFurigana(pi, qi, word){
   try{ showToast('個別設定を削除しました'); }catch(_){}
 }
 
-function collectIndividualFuriganaEntries(){
+function collectIndividualFuriganaEntries() {
   const entries = [];
-  if(!state.novel || !state.novel.episodes) return entries;
-  if(state.editMode && state.curPage != null){
-    try{ syncEditorToState(state.curPage); }catch(_){}
+  if (!state.novel || !state.novel.episodes) return entries;
+  if (state.editMode && state.curPage != null) {
+    try { syncEditorToState(state.curPage); } catch (_) {}
     syncCurrentEpisode();
   }
   const sorted = [...state.novel.episodes].sort((a, b) => a.number - b.number);
   sorted.forEach(ep => {
     const pages = (ep.id === state.currentEpisodeId) ? state.pages : ep.pages;
-    if(!pages) return;
+    if (!pages) return;
     let paraCount = 0;
-    pages.forEach(pg => {
-      (pg.paras || []).forEach(p => {
-        if(p.type === 'group-break') return;
-        if(p.type !== 'text') return;
+    pages.forEach((pg, pi) => {
+      (pg.paras || []).forEach((p, qi) => {
+        if (p.type === 'group-break') return;
+        if (p.type !== 'text') return;
         paraCount++;
-        if(Array.isArray(p.furigana) && p.furigana.length){
+        if (Array.isArray(p.furigana) && p.furigana.length) {
           p.furigana.forEach(rule => {
             entries.push({
               episodeId: ep.id,
               episodeNumber: ep.number,
               episodeTitle: ep.title,
               paraNumber: paraCount,
+              pi: pi,
+              qi: qi,
               word: rule.word,
               reading: rule.reading,
               enabled: rule.enabled,
@@ -7636,17 +7648,18 @@ function collectIndividualFuriganaEntries(){
   return entries;
 }
 
-function renderIndividualFuriganaList(){
+function renderIndividualFuriganaList() {
   const wrap = document.getElementById('indiv-furigana-list');
-  if(!wrap) return;
+  if (!wrap) return;
   const entries = collectIndividualFuriganaEntries();
-  if(entries.length === 0){
+  if (entries.length === 0) {
     wrap.innerHTML = '<div style="color:#aaa;font-size:12px;text-align:center;padding:16px 0;font-family:\'Noto Sans JP\',sans-serif;">個別設定はまだありません</div>';
     return;
   }
   wrap.innerHTML = '';
   entries.forEach(en => {
     const row = document.createElement('div');
+    row.className = 'indiv-furigana-row';
     row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;';
     const infoDiv = document.createElement('div');
     infoDiv.style.cssText = 'flex:1;min-width:0;cursor:pointer;';
@@ -7655,97 +7668,81 @@ function renderIndividualFuriganaList(){
        <div style="font-size:13px;color:#222;">${escapeHtml(en.word)} → ${escapeHtml(en.reading || '（読み飛ばし）')}</div>`;
     infoDiv.onclick = () => {
       closePanel();
-      jumpToIndividualFurigana(en.episodeId, en.word);
+      jumpToIndividualFurigana(en.episodeId, en.pi, en.qi, en.word);
     };
     const toggle = document.createElement('label');
     toggle.className = 'toggle-switch';
     toggle.style.flexShrink = '0';
+    toggle.title = 'この読み方を有効にする';
     toggle.innerHTML = `<input type="checkbox" ${en.enabled!==false?'checked':''}><span class="slider"></span>`;
     toggle.querySelector('input').onchange = (e) => {
-      toggleIndividualFuriganaEnabled(en.episodeId, en.word, e.target.checked);
+      toggleIndividualFuriganaEnabled(en.episodeId, en.pi, en.qi, en.word, e.target.checked);
     };
-    row.appendChild(toggle);
     const delBtn = document.createElement('button');
     delBtn.className = 'del-btn';
-    delBtn.style.flexShrink = '0';
     delBtn.textContent = '削除';
     delBtn.onclick = (e) => {
       e.stopPropagation();
-      removeIndividualFuriganaEntry(en.episodeId, en.word);
+      removeIndividualFuriganaEntry(en.episodeId, en.pi, en.qi, en.word);
     };
+    row.appendChild(toggle);
     row.appendChild(infoDiv);
     row.appendChild(delBtn);
     wrap.appendChild(row);
   });
 }
 
-function removeIndividualFuriganaEntry(episodeId, word){
+function removeIndividualFuriganaEntry(episodeId, pi, qi, word){
   const ep = state.novel.episodes.find(e => e.id === episodeId);
   if(!ep) return;
   const pages = (ep.id === state.currentEpisodeId) ? state.pages : ep.pages;
-  if(!pages) return;
+  if(!pages || !pages[pi] || !pages[pi].paras || !pages[pi].paras[qi]) return;
+  const p = pages[pi].paras[qi];
   let changed = false;
-  pages.forEach(pg => {
-    (pg.paras || []).forEach(p => {
-      if(p.type === 'text' && Array.isArray(p.furigana)){
-        const idx = p.furigana.findIndex(r => r.word === word);
-        if(idx >= 0){ p.furigana.splice(idx, 1); if(p.furigana.length === 0) delete p.furigana; changed = true; }
-      }
-    });
-  });
+  if(p.type === 'text' && Array.isArray(p.furigana)){
+    const idx = p.furigana.findIndex(r => r.word === word);
+    if(idx >= 0){ p.furigana.splice(idx, 1); if(p.furigana.length === 0) delete p.furigana; changed = true; }
+  }
   if(changed){
     if(ep.id === state.currentEpisodeId) syncCurrentEpisode();
     state.novel.updatedAt = new Date().toISOString();
     const idx = state.library.findIndex(n => n.id === state.currentNovelId);
     if(idx >= 0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
     libDbPut(state.novel).catch(e => console.warn('save failed:', e));
-    if(ep.id === state.currentEpisodeId) state.pages.forEach((_,pi)=>refreshPage(pi));
+    if(ep.id === state.currentEpisodeId) state.pages.forEach((_,pi2)=>refreshPage(pi2));
     renderIndividualFuriganaList();
     try{ showToast('削除しました'); }catch(_){}
   }
 }
 
-function toggleIndividualFuriganaEnabled(episodeId, word, enabled){
+function toggleIndividualFuriganaEnabled(episodeId, pi, qi, word, enabled){
   const ep = state.novel.episodes.find(e => e.id === episodeId);
   if(!ep) return;
   const pages = (ep.id === state.currentEpisodeId) ? state.pages : ep.pages;
-  if(!pages) return;
+  if(!pages || !pages[pi] || !pages[pi].paras || !pages[pi].paras[qi]) return;
+  const p = pages[pi].paras[qi];
   let changed = false;
-  pages.forEach(pg => {
-    (pg.paras || []).forEach(p => {
-      if(p.type === 'text' && Array.isArray(p.furigana)){
-        const r = p.furigana.find(r => r.word === word);
-        if(r){ r.enabled = enabled; changed = true; }
-      }
-    });
-  });
+  if(p.type === 'text' && Array.isArray(p.furigana)){
+    const r = p.furigana.find(r => r.word === word);
+    if(r){ r.enabled = enabled; changed = true; }
+  }
   if(changed){
     if(ep.id === state.currentEpisodeId) syncCurrentEpisode();
     state.novel.updatedAt = new Date().toISOString();
     const idx = state.library.findIndex(n => n.id === state.currentNovelId);
     if(idx >= 0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
     libDbPut(state.novel).catch(e => console.warn('save failed:', e));
-    if(ep.id === state.currentEpisodeId) state.pages.forEach((_,pi)=>refreshPage(pi));
+    if(ep.id === state.currentEpisodeId) state.pages.forEach((_,pi2)=>refreshPage(pi2));
   }
 }
 
-function jumpToIndividualFurigana(episodeId, word){
+function jumpToIndividualFurigana(episodeId, pi, qi, word){
   const ep = state.novel.episodes.find(e => e.id === episodeId);
   if(!ep) return;
   openEpisode(episodeId);
   setTimeout(() => {
-    let foundPi = -1, foundQi = -1;
-    for(let pi = 0; pi < state.pages.length; pi++){
-      const paras = state.pages[pi].paras;
-      for(let qi = 0; qi < paras.length; qi++){
-        const p = paras[qi];
-        if(p.type === 'text' && Array.isArray(p.furigana) && p.furigana.some(r => r.word === word)){
-          foundPi = pi; foundQi = qi; break;
-        }
-      }
-      if(foundPi >= 0) break;
-    }
-    if(foundPi < 0) return;
+    const foundPi = pi, foundQi = qi;
+    if(foundPi == null || foundQi == null || !state.pages[foundPi] || !state.pages[foundPi].paras[foundQi]) return;
     if(foundPi !== state.curPage){
       goToPage(foundPi);
     }
@@ -7790,13 +7787,19 @@ function createFuriganaRuleRow(rule, idx) {
   row.className = 'furigana-rule-row';
   row.dataset.idx = idx;
   
-  const toggle = document.createElement('input');
-  toggle.type = 'checkbox';
-  toggle.title = 'この読み方を有効にする';
-  toggle.checked = rule.enabled !== false;
-  toggle.dataset.field = 'enabled';
-  toggle.style.cssText = 'flex-shrink:0;width:18px;height:18px;accent-color:var(--accent);cursor:pointer;';
-  toggle.addEventListener('change', saveFuriganaRulesFromUI);
+  const toggleLabel = document.createElement('label');
+  toggleLabel.className = 'toggle-switch';
+  toggleLabel.style.flexShrink = '0';
+  toggleLabel.title = 'この読み方を有効にする';
+  const toggleInput = document.createElement('input');
+  toggleInput.type = 'checkbox';
+  toggleInput.checked = rule.enabled !== false;
+  toggleInput.dataset.field = 'enabled';
+  toggleInput.addEventListener('change', saveFuriganaRulesFromUI);
+  const toggleSlider = document.createElement('span');
+  toggleSlider.className = 'slider';
+  toggleLabel.appendChild(toggleInput);
+  toggleLabel.appendChild(toggleSlider);
   
   const inputWord = document.createElement('input');
   inputWord.type = 'text';
@@ -7822,7 +7825,7 @@ function createFuriganaRuleRow(rule, idx) {
     renderFuriganaRules();
   };
   
-  row.appendChild(toggle); // ← 追加
+  row.appendChild(toggleLabel);
   row.appendChild(inputWord);
   row.appendChild(arrow);
   row.appendChild(inputReading);
