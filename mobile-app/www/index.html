@@ -867,6 +867,41 @@ mark.sh.current{background:#ff8f00;color:#fff;}
   min-width:200px;
 }
 #eb-color-popup.show{display:flex;}
+#eb-furigana-popup{
+  position:fixed;
+  background:#fff;
+  border-radius:14px;
+  box-shadow:0 6px 28px rgba(0,0,0,0.22);
+  padding:14px 16px;
+  z-index:600;
+  display:none;
+  flex-direction:column;
+  gap:10px;
+  min-width:240px;
+  max-width:300px;
+}
+#eb-furigana-popup.show{display:flex;}
+.efp-title{font-family:'Noto Sans JP',sans-serif;font-size:11px;color:#888;letter-spacing:.05em;}
+.efp-word{
+  font-family:var(--font-body);font-size:15px;color:#222;
+  background:#f5f5f5;padding:6px 10px;border-radius:6px;
+  word-break:break-all;
+}
+.efp-input{
+  width:100%;border:1px solid #ccc;border-radius:6px;
+  padding:8px 10px;font-family:'Noto Sans JP',sans-serif;font-size:14px;
+  outline:none;box-sizing:border-box;
+}
+.efp-input:focus{border-color:#009999;}
+.efp-row{display:flex;gap:8px;}
+.efp-btn{
+  flex:1;padding:9px 0;border-radius:8px;border:none;cursor:pointer;
+  font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:600;
+}
+.efp-btn.primary{background:#009999;color:#fff;}
+.efp-btn.secondary{background:#f0f0f0;color:#555;}
+.efp-btn.danger{background:#fce8e8;color:#c54040;}
+
 .ecp-title{font-family:'Noto Sans JP',sans-serif;font-size:11px;color:#888;letter-spacing:.1em;}
 .ecp-dots{display:flex;flex-wrap:wrap;gap:8px;}
 .ecp-dot{
@@ -1635,11 +1670,41 @@ body.library-mode #tts-control-bar{display:none !important;}
   padding:4px 8px;border-radius:4px;cursor:pointer;
   font-size:11px;flex-shrink:0;
 }
+.indiv-furigana-row .del-btn{
+  background:none;border:1px solid #e0c0c0;color:#c54040;
+  padding:4px 8px;border-radius:4px;cursor:pointer;
+  font-size:11px;flex-shrink:0;
+}
 #furigana-add-btn{
   margin-top:4px;width:100%;
   background:none;border:1px dashed #aaa;color:#555;
   padding:8px;border-radius:4px;cursor:pointer;font-size:13px;
 }
+
+/* ふりがな表示 */
+.page-editor ruby{ ruby-position: over; }
+.page-editor rt{
+  font-size: 0.5em;
+  font-family:'Noto Sans JP',sans-serif;
+  color: inherit;
+  opacity: .8;
+  user-select:none; -webkit-user-select:none;
+}
+
+/* トグルスイッチ */
+.toggle-switch{ position:relative; width:44px; height:24px; flex-shrink:0; }
+.toggle-switch input{ opacity:0; width:0; height:0; }
+.toggle-switch .slider{
+  position:absolute; inset:0; background:#ddd; border-radius:24px;
+  cursor:pointer; transition:background .2s;
+}
+.toggle-switch .slider::before{
+  content:''; position:absolute; height:18px; width:18px; left:3px; top:3px;
+  background:#fff; border-radius:50%; transition:transform .2s;
+  box-shadow:0 1px 3px rgba(0,0,0,.3);
+}
+.toggle-switch input:checked + .slider{ background:var(--accent); }
+.toggle-switch input:checked + .slider::before{ transform:translateX(20px); }
 </style>
 </head>
 <body>
@@ -1965,6 +2030,18 @@ body.library-mode #tts-control-bar{display:none !important;}
 
     <div class="eb-sep"></div>
 
+  <!-- 簡単ふりがな登録 -->
+    <button class="eb-btn" id="eb-furigana-btn" onclick="onFuriganaQuickTap(event)" title="選択範囲に個別の読み方を登録">
+      <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 5h3M11 5h3M16 5h2" stroke-width="1.5" />
+        <rect x="5" y="9" width="14" height="11" rx="1.5" />
+        <line x1="9" y1="9" x2="9" y2="20" />
+        <line x1="15" y1="9" x2="15" y2="20" />
+      </svg>
+    </button>
+    
+    <div class="eb-sep"></div>
+    
     <!-- 挿絵 -->
     <button class="eb-btn" onclick="document.getElementById('img-picker-input').click()" title="挿絵を追加">
       <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
@@ -2003,6 +2080,28 @@ body.library-mode #tts-control-bar{display:none !important;}
       🎨<input type="color" id="ecp-custom-input" value="#1a1208">
     </div>
     <span class="ecp-custom-label">カスタムカラー</span>
+  </div>
+</div>
+
+<div id="eb-furigana-popup">
+  <span class="efp-title">簡単ふりがな登録</span>
+  <div class="efp-word" id="efp-word-display"></div>
+  <input type="text" class="efp-input" id="efp-reading-input"
+    placeholder="読み方（空欄で読み飛ばし）"
+    onkeydown="if(event.key==='Enter'){event.preventDefault();confirmFuriganaQuickRegister();}">
+  <label style="display:flex;align-items:center;gap:8px;font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#555;">
+    <span>この読み方を有効にする</span>
+    <label class="toggle-switch">
+      <input type="checkbox" id="efp-enabled-toggle" checked>
+      <span class="slider"></span>
+    </label>
+  </label>
+  <div class="efp-row">
+    <button class="efp-btn secondary" onclick="closeFuriganaQuickPopup()">キャンセル</button>
+    <button class="efp-btn primary" onclick="confirmFuriganaQuickRegister()">登録</button>
+  </div>
+  <div class="efp-row" id="efp-delete-row" style="display:none;">
+    <button class="efp-btn danger" style="flex:1;" onclick="deleteFuriganaQuickRegister()">この個別設定を削除</button>
   </div>
 </div>
 
@@ -2189,11 +2288,30 @@ body.library-mode #tts-control-bar{display:none !important;}
     <details class="replace-accordion" id="acc-furigana">
       <summary class="replace-section-title">読み方辞書（読み上げ専用）</summary>
       <div class="replace-accordion-body">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <span style="font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#555;">本文にふりがなを表示</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="furigana-display-toggle" checked onchange="toggleFuriganaDisplay(this)">
+            <span class="slider"></span>
+          </label>
+        </div>
         <div class="replace-modal-hint">
           本文の表示は変えず、読み上げ時だけ指定した読み方をします。空欄で登録すると読み飛ばします。
         </div>
         <div id="furigana-rules-list"></div>
         <button id="furigana-add-btn" onclick="addFuriganaRuleRow()">＋ 読み方を追加</button>
+      </div>
+    </details>
+  </div>
+  
+  <div class="ps" style="margin-top:16px;">
+    <details class="replace-accordion" id="acc-indiv-furigana-list">
+      <summary class="replace-section-title">個別の読み方一覧</summary>
+      <div class="replace-accordion-body">
+        <div class="replace-modal-hint">
+          本文を選択して個別に設定した読み方の一覧です。タップでその段落へ移動できます。
+        </div>
+        <div id="indiv-furigana-list"></div>
       </div>
     </details>
   </div>
@@ -2365,6 +2483,7 @@ const state = {
     paraSpacing: 24,       // 段落間の余白（px）
     indentSkipSymbols: ['「','『','（','〈','《','【','［','＜','<'],  // 字下げ除外記号
     pronounList: ['俺','私','僕'], // 一人称リスト（追加可）
+    showFurigana: true,
     // bg は小説ごとに novel.bg として管理
   },
   // UI/セッション状態（永続化しない）
@@ -2690,6 +2809,86 @@ async function loadSavedFonts(){
       });
     }
   }catch(e){ console.warn('loadSavedFonts:', e); }
+}
+
+
+function getActiveFuriganaRulesForPara(para) {
+  if (!state.novel) return [];
+  const indivRules = (Array.isArray(para.furigana) ? para.furigana : []).filter(r => r.word && r.reading && r.enabled !== false);
+  const indivWords = new Set(indivRules.map(r => r.word));
+  const globalRules = getFuriganaRules().filter(r => r.word && r.reading && r.enabled !== false && !indivWords.has(r.word));
+  return [...indivRules, ...globalRules].sort((a, b) => b.word.length - a.word.length);
+}
+
+function stripFuriganaHtml(html){
+  if(!html || html.indexOf('<ruby') === -1) return html;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  tmp.querySelectorAll('ruby').forEach(ruby=>{
+    const rt = ruby.querySelector('rt');
+    if(rt) rt.remove();
+    const parent = ruby.parentNode;
+    while(ruby.firstChild) parent.insertBefore(ruby.firstChild, ruby);
+    parent.removeChild(ruby);
+  });
+  return tmp.innerHTML;
+}
+function stripFuriganaText(html){
+  const cleaned = stripFuriganaHtml(html);
+  if(!cleaned) return '';
+  const tmp = document.createElement('div');
+  tmp.innerHTML = cleaned;
+  return tmp.textContent || '';
+}
+
+function buildFuriganaDisplayHtml(para){
+  const html = para.html || '';
+  if(!html) return html;
+  const rules = getActiveFuriganaRulesForPara(para);
+  if(rules.length === 0) return html;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  const walker = document.createTreeWalker(tmp, NodeFilter.SHOW_TEXT, null);
+  const textNodes = [];
+  let n; while(n = walker.nextNode()) textNodes.push(n);
+  textNodes.forEach(node=>{
+    const text = node.textContent;
+    if(!text) return;
+    let i = 0, matchedAny = false, buffer = '';
+    const frag = document.createDocumentFragment();
+    const flush = ()=>{ if(buffer){ frag.appendChild(document.createTextNode(buffer)); buffer=''; } };
+    while(i < text.length){
+      let foundRule = null;
+      for(const rule of rules){
+        if(rule.word.length>0 && text.substr(i, rule.word.length) === rule.word){ foundRule = rule; break; }
+      }
+      if(foundRule){
+        matchedAny = true; flush();
+        const ruby = document.createElement('ruby');
+        ruby.appendChild(document.createTextNode(foundRule.word));
+        const rt = document.createElement('rt');
+        rt.textContent = foundRule.reading;
+        ruby.appendChild(rt);
+        frag.appendChild(ruby);
+        i += foundRule.word.length;
+      } else {
+        buffer += text.charAt(i); i++;
+      }
+    }
+    flush();
+    if(matchedAny) node.parentNode.replaceChild(frag, node);
+  });
+  return tmp.innerHTML;
+}
+
+function shouldShowFuriganaDisplay() {
+  return state.settings.showFurigana !== false; // !state.editMode && を削除
+}
+
+function toggleFuriganaDisplay(el){
+  state.settings.showFurigana = el.checked;
+  debouncedSaveSettings();
+  if(!state.editMode) state.pages.forEach((_,pi)=>refreshPage(pi));
 }
 
 /* ══════════════════════════════════════
@@ -3316,6 +3515,10 @@ function debouncedSaveSettings(){
 // 読み込んだ設定値をUIに反映する（init時に1回呼ぶ）
 function applyLoadedSettings(){
   const s=state.settings;
+  if (s.showFurigana == null) s.showFurigana = true;
+  const furiganaToggleEl = document.getElementById('furigana-display-toggle');
+  if (furiganaToggleEl) furiganaToggleEl.checked = s.showFurigana;
+  
   // テーマ
   applyTheme(s.themeIdx||0);
   // 行間・段落間の初期反映
@@ -4669,8 +4872,8 @@ function buildParaEl(pi,qi,para){
   }else{
     const p=document.createElement('p');
     p.dataset.pi=pi; p.dataset.qi=qi; p.dataset.type='text';
-    if(typeof para.html==='string' && para.html!==''){
-      p.innerHTML=para.html;
+    if (typeof para.html === 'string' && para.html !== '') {
+      p.innerHTML = shouldShowFuriganaDisplay() ? buildFuriganaDisplayHtml(para) : para.html;
     }else if(para.text){
       p.textContent=para.text;
     }else{
@@ -4920,41 +5123,42 @@ function syncEditorToState(pi){
         if(imgName && state.pages[pi]){
           orig = state.pages[pi].paras.find(p => p.type==='image' && p.imgName===imgName);
         }
-        if(orig){
+        if (orig) {
           newParas.push(orig);
         } else {
           // 最後の手段：DOM情報から最低限の画像段落を作る
-          const imgEl=node.querySelector('img');
+          const imgEl = node.querySelector('img');
           newParas.push({
-            type:'image',
+            type: 'image',
             imgName: imgName,
-            src: imgEl?imgEl.src:'',
-            align:'center',
+            src: imgEl ? imgEl.src : '',
+            align: 'center',
             width: 80,
           });
         }
-      }else if(node.tagName==='P'||node.tagName==='DIV'){
-        // data-qi属性で元の段落を特定。属性がなければglobalQiで照合。
-        // ChromeはDOM操作でdata-qiが消えることがあるのでどちらも試みる。
-        const dataQi = node.dataset && node.dataset.qi !== undefined
-          ? parseInt(node.dataset.qi, 10) : NaN;
-        const origByQi  = !isNaN(dataQi) && state.pages[pi]
-          ? state.pages[pi].paras[dataQi] : null;
+      } else if (node.tagName === 'P' || node.tagName === 'DIV') {
+        const dataQi = node.dataset && node.dataset.qi !== undefined ?
+          parseInt(node.dataset.qi, 10) : NaN;
+        const origByQi = !isNaN(dataQi) && state.pages[pi] ?
+          state.pages[pi].paras[dataQi] : null;
         const origByIdx = state.pages[pi] ? state.pages[pi].paras[globalQi] : null;
-        // data-qiが一致するorigを優先、なければglobalQi照合、それもなければnull
         const orig = origByQi || origByIdx;
-        // size・colorはDOMのstyleを優先（直前のボタン操作を保持）
         let nodeSize = parseFloat(node.style.fontSize);
-        if(isNaN(nodeSize) || !nodeSize) nodeSize = (orig && orig.size) || state.settings.fontSize;
+        if (isNaN(nodeSize) || !nodeSize) nodeSize = (orig && orig.size) || state.settings.fontSize;
         const nodeColor = node.style.color || (orig && orig.color) || state.settings.color;
-        newParas.push({
-          type:'text',
-          text:node.textContent,
-          html:node.innerHTML,
-          align:(node.style.textAlign||orig?.align||'left'),
+        const builtPara = {
+          type: 'text',
+          text: stripFuriganaText(node.innerHTML),
+          html: stripFuriganaHtml(node.innerHTML),
+          align: (node.style.textAlign || orig?.align || 'left'),
           size: nodeSize,
           color: nodeColor,
-        });
+        };
+        // 個別ふりがな設定を保持（DOM再構築で失われないように）
+        if (orig && Array.isArray(orig.furigana) && orig.furigana.length) {
+          builtPara.furigana = orig.furigana;
+        }
+        newParas.push(builtPara);
       }
       if(node.dataset){node.dataset.pi=pi; node.dataset.qi=globalQi;}
       qi++;
@@ -5443,6 +5647,7 @@ function enterEditMode(){
   state.editMode=true;
   updateTtsBarVisibility();
   clearTtsHighlight();
+  state.pages.forEach((_,pi)=>refreshPage(pi)); // ふりがなを外して編集可能な生HTMLに戻す
   document.querySelectorAll('.page-editor').forEach(ed=>{
     ed.contentEditable='true';
   });
@@ -5511,6 +5716,7 @@ function exitEditMode(){
   $.viewport.style.bottom='var(--bot-h)';
   // エピソード保存
   save();
+  state.pages.forEach((_,pi)=>refreshPage(pi)); // ふりがな表示を再適用
   updateTtsBarVisibility();
   updateTtsHighlight();
   // スクロール位置を復元
@@ -5999,7 +6205,7 @@ function getGroupPlainTexts(pi, g){
     if(p.type !== 'text') continue;
     let t = (p.text || (p.html || '').replace(/<[^>]+>/g, '')).trim();
     if (t) {
-      t = applyFuriganaForTts(t);
+      t = applyFuriganaForTts(t, p);
       texts.push(t);
       qis.push(qi);
     }
@@ -6289,7 +6495,7 @@ function ebSizeDelta(d){
       }
     });
     // html を最新DOMで更新
-    para.html = el.innerHTML;
+    para.html = stripFuriganaHtml(el.innerHTML);
   }
   if($.eb_size_val) $.eb_size_val.textContent = newSize;
   // syncEditorToStateを介さず直接保存
@@ -6329,7 +6535,7 @@ function adjustAllFontSize(delta) {
             parent.removeChild(child);
           }
         });
-        para.html = el.innerHTML;
+        para.html = stripFuriganaHtml(el.innerHTML);
       }
       count++;
     });
@@ -6488,7 +6694,7 @@ function applyParaColor(pi,qi,hex){
       parent.removeChild(f);
     });
     el.normalize();
-    para.html = el.innerHTML;
+    para.html = stripFuriganaHtml(el.innerHTML);
   }
   // syncEditorToStateを介さず直接保存（color が消える問題への対策）
   syncCurrentEpisode();
@@ -6609,7 +6815,7 @@ function toggleParaFmt(pi, qi, tag){
     el.appendChild(wrap);
   }
   el.normalize();
-  para.html = el.innerHTML;
+  para.html = stripFuriganaHtml(el.innerHTML);
   // 直接保存
   syncCurrentEpisode();
   state.novel.updatedAt = new Date().toISOString();
@@ -7054,9 +7260,9 @@ function onIndentTap(){
     // 左寄せ：カーソルがある行の先頭にトグル
     toggleIndentAtCursorLine(el, caretNode, caretOffset);
   }
-  para.html = el.innerHTML;
-  para.text = el.textContent;
-  state.ui.selPara = {pi, qi};
+  para.html = stripFuriganaHtml(el.innerHTML);
+  para.text = stripFuriganaText(el.innerHTML);
+  state.ui.selPara = { pi, qi };
   // 直接保存
   syncCurrentEpisode();
   state.novel.updatedAt = new Date().toISOString();
@@ -7086,16 +7292,16 @@ function indentAll(){
     if(p.align === 'right'){
       // 右寄せ：各行の末尾に全角スペースを追加（地の文判定なしで全行）
       if(addIndentToParaElEnd(el)){
-        p.html = el.innerHTML;
-        p.text = el.textContent;
+        p.html = stripFuriganaHtml(el.innerHTML);
+        p.text = stripFuriganaText(el.innerHTML);
         count++;
       }
     } else {
       // 左寄せ：従来通り行頭に字下げ（地の文判定あり）
       if(shouldIndentText(text)){
         if(addIndentToParaEl(el)){
-          p.html = el.innerHTML;
-          p.text = el.textContent;
+          p.html = stripFuriganaHtml(el.innerHTML);
+          p.text = stripFuriganaText(el.innerHTML);
           count++;
         }
       }
@@ -7232,16 +7438,337 @@ function getFuriganaRules() {
   return state.novel.furiganaRules;
 }
 
-function applyFuriganaForTts(text) {
+function applyFuriganaForTts(text, para) {
   if (!state.novel) return text;
-  const rules = getFuriganaRules().filter(r => r.word); // readingは空でもOK（読み飛ばし用）
-  if (rules.length === 0) return text;
-  const sorted = rules.slice().sort((a, b) => b.word.length - a.word.length);
+  const indivRules = (para && Array.isArray(para.furigana)) ? para.furigana.filter(r => r.word && r.enabled !== false) : [];
+  const indivWords = new Set(indivRules.map(r => r.word));
   let result = text;
+  if (indivRules.length) {
+    const sortedIndiv = indivRules.slice().sort((a, b) => b.word.length - a.word.length);
+    sortedIndiv.forEach(rule => {
+      result = result.split(rule.word).join(rule.reading || '');
+    });
+  }
+  // 本全体のルールは、個別設定済みの単語を除いて適用（個別優先）
+  const globalRules = getFuriganaRules().filter(r => r.word && !indivWords.has(r.word) && r.enabled !== false);
+  if (globalRules.length === 0) return result;
+  const sorted = globalRules.slice().sort((a, b) => b.word.length - a.word.length);
   sorted.forEach(rule => {
     result = result.split(rule.word).join(rule.reading || '');
   });
   return result;
+}
+
+/* ══════════════════════════════════════
+   個別ふりがな（選択範囲ごとの読み方指定）
+   ・選択した単語＋その段落に紐づく読み方を登録
+   ・同じ単語でも「読み方辞書（本全体）」より優先される
+══════════════════════════════════════ */
+
+function computeParaDisplayNumber(pi, qi){
+  let count = 0;
+  for(let p = 0; p < pi; p++){
+    (state.pages[p] && state.pages[p].paras || []).forEach(pp => {
+      if(pp.type === 'text') count++;
+    });
+  }
+  const paras = state.pages[pi] ? state.pages[pi].paras : [];
+  for(let i = 0; i <= qi; i++){
+    if(paras[i] && paras[i].type === 'text') count++;
+  }
+  return count;
+}
+
+function persistCurrentPagesEdit(){
+  syncCurrentEpisode();
+  state.novel.updatedAt = new Date().toISOString();
+  const idx = state.library.findIndex(n => n.id === state.currentNovelId);
+  if(idx >= 0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+  libDbPut(state.novel).catch(e => { console.warn('save failed:', e); });
+}
+
+let _furiganaQuickCtx = null; // {pi, qi, word}
+
+function onFuriganaQuickTap(e){
+  // 編集バー操作でフォーカスが外れていた場合、保存済みの選択範囲を復元
+  if(state.ui.savedRange && !state.ui.savedRange.collapsed){
+    try{
+      const s = window.getSelection();
+      s.removeAllRanges();
+      s.addRange(state.ui.savedRange);
+    }catch(_){}
+  }
+  const sel = window.getSelection();
+  if(!sel || sel.rangeCount === 0 || sel.getRangeAt(0).collapsed){
+    showToast('ふりがなを付ける文字を選択してください');
+    return;
+  }
+  const range = sel.getRangeAt(0);
+  const word = range.toString();
+  if(!word || !word.trim()){
+    showToast('ふりがなを付ける文字を選択してください');
+    return;
+  }
+  let node = range.startContainer;
+  if(node.nodeType === 3) node = node.parentNode;
+  let paraEl = null;
+  while(node && node !== document.body){
+    if((node.tagName === 'P' || node.tagName === 'DIV') && node.dataset && node.dataset.qi !== undefined){
+      paraEl = node; break;
+    }
+    node = node.parentNode;
+  }
+  if(!paraEl){
+    showToast('テキスト段落内で選択してください');
+    return;
+  }
+  const pi = parseInt(paraEl.dataset.pi, 10);
+  const qi = parseInt(paraEl.dataset.qi, 10);
+  if(isNaN(pi) || isNaN(qi) || !state.pages[pi] || !state.pages[pi].paras[qi] || state.pages[pi].paras[qi].type !== 'text'){
+    showToast('テキスト段落内で選択してください');
+    return;
+  }
+  const para = state.pages[pi].paras[qi];
+  const existing = (para.furigana || []).find(r => r.word === word);
+  _furiganaQuickCtx = { pi, qi, word };
+
+  const wordDisplay = document.getElementById('efp-word-display');
+  const input = document.getElementById('efp-reading-input');
+  const delRow = document.getElementById('efp-delete-row');
+  wordDisplay.textContent = word;
+  input.value = existing ? (existing.reading || '') : '';
+  document.getElementById('efp-enabled-toggle').checked = existing ? (existing.enabled !== false) : true;
+  delRow.style.display = existing ? 'flex' : 'none';
+
+
+  const popup = document.getElementById('eb-furigana-popup');
+  const btn = document.getElementById('eb-furigana-btn');
+  popup.classList.add('show');
+  const rect = btn.getBoundingClientRect();
+  const pw = popup.offsetWidth || 240;
+  const ph = popup.offsetHeight || 150;
+  let left = rect.left + rect.width / 2 - pw / 2;
+  left = Math.max(8, Math.min(left, window.innerWidth - pw - 8));
+  let top = rect.top - ph - 8;
+  if(top < 60) top = rect.bottom + 8;
+  popup.style.left = left + 'px';
+  popup.style.top = top + 'px';
+  setTimeout(() => input.focus(), 80);
+}
+
+function closeFuriganaQuickPopup(){
+  const popup = document.getElementById('eb-furigana-popup');
+  if(popup) popup.classList.remove('show');
+  _furiganaQuickCtx = null;
+}
+
+function confirmFuriganaQuickRegister() {
+  if (!_furiganaQuickCtx) return;
+  const { pi, qi, word } = _furiganaQuickCtx;
+  const reading = document.getElementById('efp-reading-input').value.trim();
+  const enabled = document.getElementById('efp-enabled-toggle').checked; // ← 追加
+  saveIndividualFurigana(pi, qi, word, reading, enabled); // ← enabled追加
+  closeFuriganaQuickPopup();
+}
+
+function deleteFuriganaQuickRegister(){
+  if(!_furiganaQuickCtx) return;
+  const { pi, qi, word } = _furiganaQuickCtx;
+  deleteIndividualFurigana(pi, qi, word);
+  refreshPage(pi);
+  closeFuriganaQuickPopup();
+}
+
+// ポップアップ外タップで閉じる
+document.addEventListener('click', e => {
+  const popup = document.getElementById('eb-furigana-popup');
+  const btn = document.getElementById('eb-furigana-btn');
+  if(popup && popup.classList.contains('show') && !popup.contains(e.target) && e.target !== btn && !btn.contains(e.target)){
+    closeFuriganaQuickPopup();
+  }
+});
+
+function saveIndividualFurigana(pi, qi, word, reading, enabled){
+  const para = state.pages[pi] && state.pages[pi].paras[qi];
+  if(!para || para.type !== 'text') return;
+  if(!Array.isArray(para.furigana)) para.furigana = [];
+  const idx = para.furigana.findIndex(r => r.word === word);
+  if(idx >= 0){ para.furigana[idx].reading = reading; para.furigana[idx].enabled = enabled; }
+  else para.furigana.push({ word, reading, enabled });
+  persistCurrentPagesEdit();
+  refreshPage(pi);
+  try{ showToast('個別の読み方を設定しました'); }catch(_){}
+}
+
+function deleteIndividualFurigana(pi, qi, word){
+  const para = state.pages[pi] && state.pages[pi].paras[qi];
+  if(!para || !Array.isArray(para.furigana)) return;
+  const idx = para.furigana.findIndex(r => r.word === word);
+  if(idx >= 0) para.furigana.splice(idx, 1);
+  if(para.furigana.length === 0) delete para.furigana;
+  persistCurrentPagesEdit();
+  try{ showToast('個別設定を削除しました'); }catch(_){}
+}
+
+function collectIndividualFuriganaEntries() {
+  const entries = [];
+  if (!state.novel || !state.novel.episodes) return entries;
+  if (state.editMode && state.curPage != null) {
+    try { syncEditorToState(state.curPage); } catch (_) {}
+    syncCurrentEpisode();
+  }
+  const sorted = [...state.novel.episodes].sort((a, b) => a.number - b.number);
+  sorted.forEach(ep => {
+    const pages = (ep.id === state.currentEpisodeId) ? state.pages : ep.pages;
+    if (!pages) return;
+    let paraCount = 0;
+    pages.forEach((pg, pi) => {
+      (pg.paras || []).forEach((p, qi) => {
+        if (p.type === 'group-break') return;
+        if (p.type !== 'text') return;
+        paraCount++;
+        if (Array.isArray(p.furigana) && p.furigana.length) {
+          p.furigana.forEach(rule => {
+            entries.push({
+              episodeId: ep.id,
+              episodeNumber: ep.number,
+              episodeTitle: ep.title,
+              paraNumber: paraCount,
+              pi: pi,
+              qi: qi,
+              word: rule.word,
+              reading: rule.reading,
+              enabled: rule.enabled,
+            });
+          });
+        }
+      });
+    });
+  });
+  return entries;
+}
+
+function renderIndividualFuriganaList() {
+  const wrap = document.getElementById('indiv-furigana-list');
+  if (!wrap) return;
+  const entries = collectIndividualFuriganaEntries();
+  if (entries.length === 0) {
+    wrap.innerHTML = '<div style="color:#aaa;font-size:12px;text-align:center;padding:16px 0;font-family:\'Noto Sans JP\',sans-serif;">個別設定はまだありません</div>';
+    return;
+  }
+  wrap.innerHTML = '';
+  entries.forEach(en => {
+    const row = document.createElement('div');
+    row.className = 'indiv-furigana-row';
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid #f0f0f0;';
+    const infoDiv = document.createElement('div');
+    infoDiv.style.cssText = 'flex:1;min-width:0;cursor:pointer;';
+    infoDiv.innerHTML =
+      `<div style="font-size:10px;color:#999;font-family:'Noto Sans JP',sans-serif;">第${en.episodeNumber}話「${escapeHtml(en.episodeTitle)}」・${en.paraNumber}段落目</div>
+       <div style="font-size:13px;color:#222;">${escapeHtml(en.word)} → ${escapeHtml(en.reading || '（読み飛ばし）')}</div>`;
+    infoDiv.onclick = () => {
+      closePanel();
+      jumpToIndividualFurigana(en.episodeId, en.pi, en.qi, en.word);
+    };
+    const toggle = document.createElement('label');
+    toggle.className = 'toggle-switch';
+    toggle.style.flexShrink = '0';
+    toggle.title = 'この読み方を有効にする';
+    toggle.innerHTML = `<input type="checkbox" ${en.enabled!==false?'checked':''}><span class="slider"></span>`;
+    toggle.querySelector('input').onchange = (e) => {
+      toggleIndividualFuriganaEnabled(en.episodeId, en.pi, en.qi, en.word, e.target.checked);
+    };
+    const delBtn = document.createElement('button');
+    delBtn.className = 'del-btn';
+    delBtn.textContent = '削除';
+    delBtn.onclick = (e) => {
+      e.stopPropagation();
+      removeIndividualFuriganaEntry(en.episodeId, en.pi, en.qi, en.word);
+    };
+    row.appendChild(toggle);
+    row.appendChild(infoDiv);
+    row.appendChild(delBtn);
+    wrap.appendChild(row);
+  });
+}
+
+function removeIndividualFuriganaEntry(episodeId, pi, qi, word){
+  const ep = state.novel.episodes.find(e => e.id === episodeId);
+  if(!ep) return;
+  const pages = (ep.id === state.currentEpisodeId) ? state.pages : ep.pages;
+  if(!pages || !pages[pi] || !pages[pi].paras || !pages[pi].paras[qi]) return;
+  const p = pages[pi].paras[qi];
+  let changed = false;
+  if(p.type === 'text' && Array.isArray(p.furigana)){
+    const idx = p.furigana.findIndex(r => r.word === word);
+    if(idx >= 0){ p.furigana.splice(idx, 1); if(p.furigana.length === 0) delete p.furigana; changed = true; }
+  }
+  if(changed){
+    if(ep.id === state.currentEpisodeId) syncCurrentEpisode();
+    state.novel.updatedAt = new Date().toISOString();
+    const idx = state.library.findIndex(n => n.id === state.currentNovelId);
+    if(idx >= 0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+    libDbPut(state.novel).catch(e => console.warn('save failed:', e));
+    if(ep.id === state.currentEpisodeId) state.pages.forEach((_,pi2)=>refreshPage(pi2));
+    renderIndividualFuriganaList();
+    try{ showToast('削除しました'); }catch(_){}
+  }
+}
+
+function toggleIndividualFuriganaEnabled(episodeId, pi, qi, word, enabled){
+  const ep = state.novel.episodes.find(e => e.id === episodeId);
+  if(!ep) return;
+  const pages = (ep.id === state.currentEpisodeId) ? state.pages : ep.pages;
+  if(!pages || !pages[pi] || !pages[pi].paras || !pages[pi].paras[qi]) return;
+  const p = pages[pi].paras[qi];
+  let changed = false;
+  if(p.type === 'text' && Array.isArray(p.furigana)){
+    const r = p.furigana.find(r => r.word === word);
+    if(r){ r.enabled = enabled; changed = true; }
+  }
+  if(changed){
+    if(ep.id === state.currentEpisodeId) syncCurrentEpisode();
+    state.novel.updatedAt = new Date().toISOString();
+    const idx = state.library.findIndex(n => n.id === state.currentNovelId);
+    if(idx >= 0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+    libDbPut(state.novel).catch(e => console.warn('save failed:', e));
+    if(ep.id === state.currentEpisodeId) state.pages.forEach((_,pi2)=>refreshPage(pi2));
+  }
+}
+
+function jumpToIndividualFurigana(episodeId, pi, qi, word){
+  const ep = state.novel.episodes.find(e => e.id === episodeId);
+  if(!ep) return;
+  openEpisode(episodeId);
+  setTimeout(() => {
+    const foundPi = pi, foundQi = qi;
+    if(foundPi == null || foundQi == null || !state.pages[foundPi] || !state.pages[foundPi].paras[foundQi]) return;
+    if(foundPi !== state.curPage){
+      goToPage(foundPi);
+    }
+    setTimeout(() => {
+      const pageEl = document.getElementById(`page-${foundPi}`);
+      if(!pageEl) return;
+      let g = 0;
+      for(let i = 0; i < foundQi; i++){
+        if(state.pages[foundPi].paras[i].type === 'group-break') g++;
+      }
+      const groups = pageEl.querySelectorAll('.subpage-group');
+      groups.forEach((grp, i) => {
+        grp.classList.remove('active', 'fade-in', 'slide-up');
+        if(i === g) grp.classList.add('active');
+      });
+      if(foundPi === state.curPage) state.subPageIndex = g;
+      updateSubPageDots(foundPi, g, groups.length);
+      const el = pageEl.querySelector(`[data-qi="${foundQi}"]`);
+      if(el){
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        el.style.transition = 'background .3s';
+        el.style.background = 'rgba(0,128,128,0.15)';
+        setTimeout(() => { el.style.background = ''; }, 1500);
+      }
+    }, 350);
+  }, 300);
 }
 
 function renderFuriganaRules() {
@@ -7259,6 +7786,21 @@ function createFuriganaRuleRow(rule, idx) {
   const row = document.createElement('div');
   row.className = 'furigana-rule-row';
   row.dataset.idx = idx;
+  
+  const toggleLabel = document.createElement('label');
+  toggleLabel.className = 'toggle-switch';
+  toggleLabel.style.flexShrink = '0';
+  toggleLabel.title = 'この読み方を有効にする';
+  const toggleInput = document.createElement('input');
+  toggleInput.type = 'checkbox';
+  toggleInput.checked = rule.enabled !== false;
+  toggleInput.dataset.field = 'enabled';
+  toggleInput.addEventListener('change', saveFuriganaRulesFromUI);
+  const toggleSlider = document.createElement('span');
+  toggleSlider.className = 'slider';
+  toggleLabel.appendChild(toggleInput);
+  toggleLabel.appendChild(toggleSlider);
+  
   const inputWord = document.createElement('input');
   inputWord.type = 'text';
   inputWord.placeholder = '単語（例：今日）';
@@ -7282,6 +7824,8 @@ function createFuriganaRuleRow(rule, idx) {
     if (!isNaN(i)) rules.splice(i, 1);
     renderFuriganaRules();
   };
+  
+  row.appendChild(toggleLabel);
   row.appendChild(inputWord);
   row.appendChild(arrow);
   row.appendChild(inputReading);
@@ -7312,7 +7856,9 @@ function saveFuriganaRulesFromUI() {
   list.querySelectorAll('.furigana-rule-row').forEach(row => {
     const word = row.querySelector('input[data-field="word"]').value.trim();
     const reading = row.querySelector('input[data-field="reading"]').value.trim();
-    newRules.push({ word, reading });
+    const enabledInput = row.querySelector('input[data-field="enabled"]');
+    const enabled = enabledInput ? enabledInput.checked : true;
+    newRules.push({ word, reading, enabled }); // enabled を追加
   });
   state.novel.furiganaRules = newRules;
   try {
@@ -7321,6 +7867,7 @@ function saveFuriganaRulesFromUI() {
     if (idx >= 0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
     libDbPut(state.novel).catch(e => { console.warn('save furiganaRules failed:', e); });
   } catch (e) { console.warn(e); }
+  if(!state.editMode) state.pages.forEach((_,pi)=>refreshPage(pi));
 }
 
 function openReplaceModalSection(sectionId) {
@@ -9325,6 +9872,7 @@ function togglePanel(){
       renderReplaceRules();
       renderPronounList();
       renderFuriganaRules();
+      renderIndividualFuriganaList();   // ← 追加
     }
   }
 }
