@@ -4258,7 +4258,7 @@ async function exportAsJson(){
     
     const b64 = btoa(unescape(encodeURIComponent(json)));
     if (await saveAndShareFile(fileName, b64, true)) {
-      showToast('JSONをエクスポートしました');
+      showToast('【ネイティブ経由】JSONをエクスポートしました');
       return;
     }
 
