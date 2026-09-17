@@ -2763,6 +2763,7 @@ async function saveAndShareFile(fileName, dataBase64OrBlob, isBase64) {
     return true;
   } catch (e) {
     console.warn('saveAndShareFile failed:', e);
+    try { showToast('ネイティブ保存エラー: ' + (e && e.message ? e.message : e)); } catch (_) {}
     return false;
   }
 }
