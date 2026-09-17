@@ -5021,6 +5021,7 @@ const _redoStack = [];
 const _UNDO_MAX  = 50;
 
 // Attach keydown/input/focus listeners to the single editor div
+// Attach keydown/input/focus listeners to the single editor div
 function setupEditorEvents(editor,pi,groupIdx=0,qiOffset=0){
   // Track input → sync state & debounced save
   // undoスナップショット：入力開始時（最初のinputイベント）に変更前の状態を積む
@@ -5052,7 +5053,7 @@ function setupEditorEvents(editor,pi,groupIdx=0,qiOffset=0){
           }
           return false;
         });
-        
+
         if (!hasContent) {
           editor.innerHTML = '';
           const p = document.createElement('p');
@@ -5080,31 +5081,29 @@ function setupEditorEvents(editor,pi,groupIdx=0,qiOffset=0){
     clearTimeout(_snapFlushTimer);
     _snapFlushTimer = setTimeout(()=>{ _snapPending = false; }, 1500);
     // 最後尾以外のグループは、空になっても1行分を残す
-    if (!e.isComposing) {
-      const totalGroups = countGroups(pi);
-      if (groupIdx < totalGroups - 1) {
-        const hasContent = Array.from(editor.childNodes).some(node => {
-          if (node.nodeType === Node.TEXT_NODE) return node.textContent.trim() !== '';
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            if (node.dataset && node.dataset.type === 'image') return true;
-            return (node.textContent || '').trim() !== '' ||
-              node.querySelector('img');
-          }
-          return false;
-        });
-        
-        if (!hasContent) {
-          editor.innerHTML = '';
-          const p = document.createElement('p');
-          p.dataset.pi = pi;
-          p.dataset.qi = 0;
-          p.dataset.type = 'text';
-          p.innerHTML = '<br>';
-          p.style.textAlign = 'left';
-          p.style.fontSize = state.settings.fontSize + 'px';
-          p.style.color = state.settings.lastColor;
-          editor.appendChild(p);
+    const totalGroups = countGroups(pi);
+    if (groupIdx < totalGroups - 1) {
+      const hasContent = Array.from(editor.childNodes).some(node => {
+        if (node.nodeType === Node.TEXT_NODE) return node.textContent.trim() !== '';
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          if (node.dataset && node.dataset.type === 'image') return true;
+          return (node.textContent || '').trim() !== '' ||
+            node.querySelector('img');
         }
+        return false;
+      });
+
+      if (!hasContent) {
+        editor.innerHTML = '';
+        const p = document.createElement('p');
+        p.dataset.pi = pi;
+        p.dataset.qi = 0;
+        p.dataset.type = 'text';
+        p.innerHTML = '<br>';
+        p.style.textAlign = 'left';
+        p.style.fontSize = state.settings.fontSize + 'px';
+        p.style.color = state.settings.lastColor;
+        editor.appendChild(p);
       }
     }
     syncEditorToState(pi);
@@ -6158,6 +6157,13 @@ function setupNativeTtsQueueListeners() {
     const item = state.tts.queue[realIdx];
     ttsJumpToGroup(item.pi, item.g);
     updateTtsHighlight();
+    
+    // 速度変更が保留中なら、この新しい段落の頭で新しい速度のキューに切り替える
+    if (state.tts._rateChangePending) {
+      state.tts._rateChangePending = false;
+      window.Capacitor.Plugins.Playback.stopSpeaking().catch(() => {});
+      startNativeQueuePlayback();
+    }
   });
   window.Capacitor.Plugins.Playback.addListener('queueDone', () => {
     if (state.settings.ttsAutoNextEpisode) {
@@ -6214,6 +6220,25 @@ function ttsCycleRate() {
   state.settings.ttsRate = rates[idx];
   debouncedSaveSettings();
   document.getElementById('tts-rate-label').textContent = rates[idx] + 'x';
+  
+  const engine = state.settings.ttsEngine || 'device';
+  
+  // クラウドTTS（audio要素）は再生中でも即座に速度を変えられる
+  if (engine === 'cloud' && state.tts.audio) {
+    state.tts.audio.playbackRate = rates[idx];
+    return;
+  }
+  
+  // 端末音声はAPIの制約上「今の発話をキャンセルして読み直す」しかできない
+  if (state.tts.playing && state.tts.queue && state.tts.queue.length > 0) {
+    if (engine === 'device' && nativeTtsQueueSupported()) {
+      window.Capacitor.Plugins.Playback.stopSpeaking().catch(() => {});
+      startNativeQueuePlayback();
+    } else {
+      stopCurrentAudioOnly();
+      playNextTtsChunk();
+    }
+  }
 }
 
 function ttsStopAndHide() {
