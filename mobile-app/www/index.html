@@ -2799,8 +2799,29 @@ function getActiveFuriganaRulesForPara(para){
   if(!state.novel) return [];
   const indivRules = (Array.isArray(para.furigana)?para.furigana:[]).filter(r=>r.word && r.reading);
   const indivWords = new Set(indivRules.map(r=>r.word));
-  const globalRules = getFuriganaRules().filter(r=>r.word && r.reading && !indivWords.has(r.word));
+  const globalRules = getFuriganaRules().filter(r=>r.word && r.reading && r.enabled !== false && !indivWords.has(r.word));
   return [...indivRules, ...globalRules].sort((a,b)=>b.word.length-a.word.length);
+}
+
+function stripFuriganaHtml(html){
+  if(!html || html.indexOf('<ruby') === -1) return html;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  tmp.querySelectorAll('ruby').forEach(ruby=>{
+    const rt = ruby.querySelector('rt');
+    if(rt) rt.remove();
+    const parent = ruby.parentNode;
+    while(ruby.firstChild) parent.insertBefore(ruby.firstChild, ruby);
+    parent.removeChild(ruby);
+  });
+  return tmp.innerHTML;
+}
+function stripFuriganaText(html){
+  const cleaned = stripFuriganaHtml(html);
+  if(!cleaned) return '';
+  const tmp = document.createElement('div');
+  tmp.innerHTML = cleaned;
+  return tmp.textContent || '';
 }
 
 function buildFuriganaDisplayHtml(para){
@@ -2843,8 +2864,8 @@ function buildFuriganaDisplayHtml(para){
   return tmp.innerHTML;
 }
 
-function shouldShowFuriganaDisplay(){
-  return !state.editMode && state.settings.showFurigana !== false;
+function shouldShowFuriganaDisplay() {
+  return state.settings.showFurigana !== false; // !state.editMode && を削除
 }
 
 function toggleFuriganaDisplay(el){
@@ -5085,16 +5106,16 @@ function syncEditorToState(pi){
         if(imgName && state.pages[pi]){
           orig = state.pages[pi].paras.find(p => p.type==='image' && p.imgName===imgName);
         }
-        if(orig){
+        if (orig) {
           newParas.push(orig);
         } else {
           // 最後の手段：DOM情報から最低限の画像段落を作る
-          const imgEl=node.querySelector('img');
+          const imgEl = node.querySelector('img');
           newParas.push({
-            type:'image',
+            type: 'image',
             imgName: imgName,
-            src: imgEl?imgEl.src:'',
-            align:'center',
+            src: imgEl ? imgEl.src : '',
+            align: 'center',
             width: 80,
           });
         }
@@ -6457,7 +6478,7 @@ function ebSizeDelta(d){
       }
     });
     // html を最新DOMで更新
-    para.html = el.innerHTML;
+    para.html = stripFuriganaHtml(el.innerHTML);
   }
   if($.eb_size_val) $.eb_size_val.textContent = newSize;
   // syncEditorToStateを介さず直接保存
@@ -6497,7 +6518,7 @@ function adjustAllFontSize(delta) {
             parent.removeChild(child);
           }
         });
-        para.html = el.innerHTML;
+        para.html = stripFuriganaHtml(el.innerHTML);
       }
       count++;
     });
@@ -6656,7 +6677,7 @@ function applyParaColor(pi,qi,hex){
       parent.removeChild(f);
     });
     el.normalize();
-    para.html = el.innerHTML;
+    para.html = stripFuriganaHtml(el.innerHTML);
   }
   // syncEditorToStateを介さず直接保存（color が消える問題への対策）
   syncCurrentEpisode();
@@ -6777,7 +6798,7 @@ function toggleParaFmt(pi, qi, tag){
     el.appendChild(wrap);
   }
   el.normalize();
-  para.html = el.innerHTML;
+  para.html = stripFuriganaHtml(el.innerHTML);
   // 直接保存
   syncCurrentEpisode();
   state.novel.updatedAt = new Date().toISOString();
@@ -7222,9 +7243,9 @@ function onIndentTap(){
     // 左寄せ：カーソルがある行の先頭にトグル
     toggleIndentAtCursorLine(el, caretNode, caretOffset);
   }
-  para.html = el.innerHTML;
-  para.text = el.textContent;
-  state.ui.selPara = {pi, qi};
+  para.html = stripFuriganaHtml(el.innerHTML);
+  para.text = stripFuriganaText(el.innerHTML);
+  state.ui.selPara = { pi, qi };
   // 直接保存
   syncCurrentEpisode();
   state.novel.updatedAt = new Date().toISOString();
@@ -7254,16 +7275,16 @@ function indentAll(){
     if(p.align === 'right'){
       // 右寄せ：各行の末尾に全角スペースを追加（地の文判定なしで全行）
       if(addIndentToParaElEnd(el)){
-        p.html = el.innerHTML;
-        p.text = el.textContent;
+        p.html = stripFuriganaHtml(el.innerHTML);
+        p.text = stripFuriganaText(el.innerHTML);
         count++;
       }
     } else {
       // 左寄せ：従来通り行頭に字下げ（地の文判定あり）
       if(shouldIndentText(text)){
         if(addIndentToParaEl(el)){
-          p.html = el.innerHTML;
-          p.text = el.textContent;
+          p.html = stripFuriganaHtml(el.innerHTML);
+          p.text = stripFuriganaText(el.innerHTML);
           count++;
         }
       }
@@ -7412,7 +7433,7 @@ function applyFuriganaForTts(text, para) {
     });
   }
   // 本全体のルールは、個別設定済みの単語を除いて適用（個別優先）
-  const globalRules = getFuriganaRules().filter(r => r.word && !indivWords.has(r.word));
+  const globalRules = getFuriganaRules().filter(r => r.word && !indivWords.has(r.word) && r.enabled !== false);
   if (globalRules.length === 0) return result;
   const sorted = globalRules.slice().sort((a, b) => b.word.length - a.word.length);
   sorted.forEach(rule => {
@@ -7722,6 +7743,15 @@ function createFuriganaRuleRow(rule, idx) {
   const row = document.createElement('div');
   row.className = 'furigana-rule-row';
   row.dataset.idx = idx;
+  
+  const toggle = document.createElement('input');
+  toggle.type = 'checkbox';
+  toggle.title = 'この読み方を有効にする';
+  toggle.checked = rule.enabled !== false;
+  toggle.dataset.field = 'enabled';
+  toggle.style.cssText = 'flex-shrink:0;width:18px;height:18px;accent-color:var(--accent);cursor:pointer;';
+  toggle.addEventListener('change', saveFuriganaRulesFromUI);
+  
   const inputWord = document.createElement('input');
   inputWord.type = 'text';
   inputWord.placeholder = '単語（例：今日）';
@@ -7745,6 +7775,8 @@ function createFuriganaRuleRow(rule, idx) {
     if (!isNaN(i)) rules.splice(i, 1);
     renderFuriganaRules();
   };
+  
+  row.appendChild(toggle); // ← 追加
   row.appendChild(inputWord);
   row.appendChild(arrow);
   row.appendChild(inputReading);
@@ -7775,7 +7807,9 @@ function saveFuriganaRulesFromUI() {
   list.querySelectorAll('.furigana-rule-row').forEach(row => {
     const word = row.querySelector('input[data-field="word"]').value.trim();
     const reading = row.querySelector('input[data-field="reading"]').value.trim();
-    newRules.push({ word, reading });
+    const enabledInput = row.querySelector('input[data-field="enabled"]');
+    const enabled = enabledInput ? enabledInput.checked : true;
+    newRules.push({ word, reading, enabled }); // enabled を追加
   });
   state.novel.furiganaRules = newRules;
   try {
