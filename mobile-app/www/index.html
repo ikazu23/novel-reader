@@ -4205,7 +4205,6 @@ async function exportAsJson(){
     try{ showToast('本が開かれていません'); }catch(_){}
     return;
   }
-  // 編集中エピソードを同期
   if(state.editMode && state.curPage != null){
     try{ syncEditorToState(state.curPage); }catch(_){}
     syncCurrentEpisode();
@@ -4218,15 +4217,59 @@ async function exportAsJson(){
       novel: JSON.parse(JSON.stringify(state.novel))
     };
     const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], {type:'application/json'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
     const safeTitle = (state.novel.title || 'novel').replace(/[\\/:*?"<>|]/g, '_');
-    a.download = safeTitle + '.json';
-    a.click();
-    setTimeout(()=>URL.revokeObjectURL(url), 1000);
-    try{ showToast('JSONをエクスポートしました'); }catch(_){}
+    const fileName = safeTitle + '.json';
+    let saved = false;
+
+    // ① Web Share API
+    try{
+      const blob = new Blob([json], {type:'application/json'});
+      const file = new File([blob], fileName, {type:'application/json'});
+      if(navigator.canShare && navigator.canShare({files:[file]})){
+        await navigator.share({ files:[file], title: fileName });
+        saved = true;
+      }
+    }catch(e){
+      if(e.name === 'AbortError') return;
+      console.warn('share failed', e);
+    }
+
+    // ② blob URLダウンロード
+    if(!saved){
+      try{
+        const blob = new Blob([json], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = fileName;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(url), 5000);
+        saved = true;
+      }catch(e){ console.warn('blob download failed', e); }
+    }
+
+    // ③ data URIダウンロード
+    if(!saved){
+      try{
+        const b64 = btoa(unescape(encodeURIComponent(json)));
+        const a = document.createElement('a');
+        a.href = 'data:application/json;base64,' + b64;
+        a.download = fileName;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        saved = true;
+      }catch(e){ console.warn('data URI download failed', e); }
+    }
+
+    // ④ クリップボード
+    if(!saved){
+      try{
+        await navigator.clipboard.writeText(json);
+        showToast('クリップボードにコピーしました。メモアプリ等に貼って保存してください。');
+        saved = true;
+      }catch(e){ console.warn('clipboard failed', e); }
+    }
+
+    if(saved) showToast('JSONをエクスポートしました');
+    else showToast('エクスポートに失敗しました');
   }catch(e){
     console.warn('exportAsJson:', e);
     try{ showToast('エクスポートに失敗しました'); }catch(_){}
@@ -4515,19 +4558,75 @@ async function exportAsZip(){
     folder.file(filename, lines.join('\n'), {binary:false});
   });
 
+  let blob;
   try{
-    const blob=await zip.generateAsync({type:'blob',mimeType:'application/zip'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');
-    a.href=url;
-    a.download=`${novelTitle}.zip`;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},2000);
-    showToast(`${sorted.length} 話をエクスポートしました`);
+    blob=await zip.generateAsync({type:'blob',mimeType:'application/zip'});
   }catch(e){
     showToast('ZIPの生成に失敗しました');
     console.error('[export]',e);
+    return;
+  }
+
+  const fileName = `${novelTitle}.zip`;
+  let saved = false;
+
+  // ① Web Share API（Googleドライブ等に共有）
+  try{
+    const file = new File([blob], fileName, {type:'application/zip'});
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({ files:[file], title: fileName });
+      saved = true;
+    }
+  }catch(e){
+    if(e.name === 'AbortError'){
+      // ユーザーがキャンセルした場合は何もしない
+      return;
+    }
+    console.warn('share failed', e);
+  }
+
+  // ② blob URL でダウンロード
+  if(!saved){
+    try{
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;
+      a.download=fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),5000);
+      saved = true;
+    }catch(e){
+      console.warn('blob download failed', e);
+    }
+  }
+
+  // ③ data URI でダウンロード（content://環境などのフォールバック）
+  if(!saved){
+    try{
+      const dataUrl = await new Promise((resolve, reject)=>{
+        const reader = new FileReader();
+        reader.onload = ()=>resolve(reader.result);
+        reader.onerror = ()=>reject(reader.error);
+        reader.readAsDataURL(blob);
+      });
+      const a=document.createElement('a');
+      a.href=dataUrl;
+      a.download=fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      saved = true;
+    }catch(e){
+      console.warn('data URI download failed', e);
+    }
+  }
+
+  if(saved){
+    showToast(`${sorted.length} 話をエクスポートしました`);
+  }else{
+    showToast('エクスポートに失敗しました。別の方法をお試しください。');
   }
 }
 
@@ -5228,6 +5327,19 @@ function getContent(pi,qi){
 // Move caret to end of element
 function moveCursorEnd(el){
   try{const r=document.createRange(),s=window.getSelection();r.selectNodeContents(el);r.collapse(false);s.removeAllRanges();s.addRange(r);}catch(e){}
+}
+
+function getActiveEditor() {
+  // フォーカス中のcontenteditableがあればそれを使う
+  const ae = document.activeElement;
+  if (ae && ae.classList && ae.classList.contains('page-editor')) return ae;
+  // なければ現在ページの表示中サブページグループのeditorを使う
+  const pi = state.curPage;
+  const pageEl = document.getElementById(`page-${pi}`);
+  if (!pageEl) return null;
+  const activeGroup = pageEl.querySelector('.subpage-group.active');
+  const editor = activeGroup ? activeGroup.querySelector('.page-editor') : document.getElementById(`editor-${pi}`);
+  return editor || null;
 }
 
 // Select all content inside the ACTIVE sub-page group editor of page pi
@@ -10696,4 +10808,3 @@ init();
 </script>
 </body>
 </html>
-
