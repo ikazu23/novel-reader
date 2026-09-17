@@ -4252,14 +4252,15 @@ async function exportAsJson(){
       novel: JSON.parse(JSON.stringify(state.novel))
     };
     const json = JSON.stringify(data, null, 2);
+    const safeTitle = (state.novel.title || 'novel').replace(/[\\/:*?"<>|]/g, '_');
+    const fileName = safeTitle + '.json';
+    let saved = false;
+    
     const b64 = btoa(unescape(encodeURIComponent(json)));
     if (await saveAndShareFile(fileName, b64, true)) {
       showToast('JSONをエクスポートしました');
       return;
     }
-    const safeTitle = (state.novel.title || 'novel').replace(/[\\/:*?"<>|]/g, '_');
-    const fileName = safeTitle + '.json';
-    let saved = false;
 
     // ① Web Share API
     try{
@@ -4599,20 +4600,21 @@ async function exportAsZip(){
   });
 
   let blob;
-  try{
-    blob=await zip.generateAsync({type:'blob',mimeType:'application/zip'});
-    if (await saveAndShareFile(fileName, blob, false)){
-        showToast(`${sorted.length} 話をエクスポートしました`);
-        return;
-    }
-  }catch(e){
+  try {
+    blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/zip' });
+  } catch (e) {
     showToast('ZIPの生成に失敗しました');
-    console.error('[export]',e);
+    console.error('[export]', e);
     return;
   }
-
+  
   const fileName = `${novelTitle}.zip`;
   let saved = false;
+  
+  if (await saveAndShareFile(fileName, blob, false)) {
+    showToast(`${sorted.length} 話をエクスポートしました`);
+    return;
+  }
 
   // ① Web Share API（Googleドライブ等に共有）
   try{
@@ -10405,15 +10407,16 @@ async function doBackup(){
       novels,
     };
     const json = JSON.stringify(backup);
+    const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const fileName = `novel-backup-${date}.json`;
+    
+    let saved = false;
+    
     const b64 = btoa(unescape(encodeURIComponent(json)));
     if (await saveAndShareFile(fileName, b64, true)) {
       showToast('バックアップファイルを保存しました');
       return;
     }
-    const date = new Date().toISOString().slice(0,10).replace(/-/g,'');
-    const fileName = `novel-backup-${date}.json`;
-
-    let saved = false;
 
     // ① Web Share API でファイル共有（Googleドライブ等）
     try{
