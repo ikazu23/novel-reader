@@ -102,8 +102,9 @@ body{
   transition:transform .2s cubic-bezier(.25,.46,.45,.94),background .3s;
 }
 #search-overlay.bg-active{
-  background:transparent;
-  border-bottom-color:transparent;
+  background:rgba(255,255,255,0.85);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom-color:rgba(0,0,0,0.08);
 }
 #search-overlay.open{transform:translateY(0);}
 #search-input{
@@ -501,7 +502,7 @@ mark.sh.current{background:#ff8f00;color:#fff;}
   display:flex;align-items:center;justify-content:space-between;
   font-weight:bold;
 }
-#replace-modal-header .close-btn{
+#replace-modal-header .close-btn,#backup-modal-header .close-btn,#preview-modal-header .close-btn{
   background:none;border:none;cursor:pointer;padding:4px;
 }
 #replace-modal-body{
@@ -1324,6 +1325,7 @@ body.library-mode #bg-image-layer,body.library-mode #bg-overlay-layer{display:no
 #toc-screen.show{display:flex;}
 body.toc-mode #topbar,body.toc-mode #botbar,body.toc-mode #viewport,
 body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
+body.toc-mode #subpage-dots,body.library-mode #subpage-dots,body.toc-mode #tts-control-bar{display:none !important;}
 
 #toc-topbar{
   position:sticky;top:0;
@@ -1812,6 +1814,50 @@ body.library-mode #tts-control-bar{display:none !important;}
     display: none;
   }
 }
+
+/* ══════ 夜間・深夜テーマ：上下のバーやパネルも暗くする ══════ */
+body.theme-dark #topbar,
+body.theme-dark #search-overlay,
+body.theme-dark #botbar,
+body.theme-dark #eb-fixed-left,
+body.theme-dark #eb-fixed-right,
+body.theme-dark #side-panel,
+body.theme-dark #panel-header{
+  background:#232326;border-color:#333;
+}
+body.theme-dark #topbar.bg-active{background:transparent;border-bottom-color:rgba(255,255,255,0.08);}
+body.theme-dark #search-overlay.bg-active{background:rgba(20,20,24,0.85);}
+body.theme-dark #side-panel.bg-active{background:rgba(28,28,30,0.8);}
+body.theme-dark #side-panel.bg-active #panel-header{background:transparent;}
+body.theme-dark #topbar-title,
+body.theme-dark .panel-header-title,
+body.theme-dark #search-input{color:#e6e6e6;}
+body.theme-dark #topbar button,
+body.theme-dark .panel-close-btn,
+body.theme-dark .s-nav,
+body.theme-dark .eb-btn,
+body.theme-dark .eb-abtn,
+body.theme-dark .eb-step,
+body.theme-dark .eb-sizeval{color:#cfcfcf;}
+body.theme-dark .eb-step svg text{fill:#cfcfcf;}
+body.theme-dark #eb-fixed-right span{color:#cfcfcf !important;}
+body.theme-dark #topbar button:hover,
+body.theme-dark .panel-close-btn:hover{background:rgba(255,255,255,0.08);}
+body.theme-dark .eb-sep{background:#444;}
+body.theme-dark #botbar-edit-row{border-top-color:#333;}
+body.theme-dark #eb-fixed-left,body.theme-dark #eb-fixed-right{border-color:#333;}
+body.theme-dark #panel-body{color:#ddd;}
+body.theme-dark .font-btn{color:#ccc;border-bottom-color:#333;}
+body.theme-dark .ob{color:#aaa;border-bottom-color:#3a3a3a;}
+body.theme-dark .stepper-btn{background:#2c2c2e;border-color:#444;}
+body.theme-dark .stepper-val{color:#ccc;}
+body.theme-dark #tts-control-bar{background:rgba(40,40,44,0.95);}
+body.theme-dark .tts-cbtn{color:#ddd;}
+body.theme-dark #viewport.edit-mode .page-editor p{
+  background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.18);
+}
+body.theme-dark .page-editor p.tts-reading{background:rgba(0,200,200,0.14);}
+body.theme-dark .pnl{color:#666;}
 </style>
 </head>
 <body>
@@ -2443,7 +2489,7 @@ body.library-mode #tts-control-bar{display:none !important;}
       font-family:'Noto Sans JP',sans-serif;font-size:12px;
       cursor:pointer;transition:background .12s;
     " onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='none'">
-      すべてのデータをリセット
+      この本を削除
     </button>
   </div>
   </div><!-- /panel-body -->
@@ -3791,6 +3837,8 @@ function applyLoadedSettings(){
   if (ttsKeyInput) ttsKeyInput.value = s.ttsApiKey || '';
   const autoNextEl = document.getElementById('tts-auto-next-episode');
   if (autoNextEl) autoNextEl.checked = !!s.ttsAutoNextEpisode;
+  const rateLbl = document.getElementById('tts-rate-label');
+  if (rateLbl) rateLbl.textContent = (s.ttsRate || 1) + 'x';
   // Enterモードラベル
   if($.eb_enter_mode && $.eb_enter_label){
     if(s.enterInsertsBr){
@@ -3803,6 +3851,7 @@ function applyLoadedSettings(){
 
 // 即時保存
 function save(){
+  if(!state.currentNovelId || !state.novel) return;
   // 編集中のページDOMを state.pages に反映してから保存
   if(state.editMode) syncEditorToState(state.curPage);
   syncCurrentEpisode();
@@ -3828,6 +3877,7 @@ function debouncedSave(){
 // 即時保存：保留中のデバウンスをフラッシュして同期的にDBへ書き込み開始
 // ページ離脱時など、確実に最新を保存する必要がある場面で使用
 function flushSave(){
+  if(!state.currentNovelId || !state.novel){ clearTimeout(_saveTimer); _saveTimer = null; return; }
   clearTimeout(_saveTimer);
   _saveTimer = null;
   if(state.editMode && state.curPage != null){
@@ -3846,9 +3896,16 @@ async function resetAllData(){
   if(!confirm('この小説のデータをリセットしますか？\nエピソード・タイトル・カバー画像がすべて削除されます。'))return;
   try{
     if(state.currentNovelId){
-      await libDbDelete(state.currentNovelId);
-      state.library=state.library.filter(n=>n.id!==state.currentNovelId);
+      const delId = state.currentNovelId;
+      clearTimeout(_saveTimer);
+      state.currentNovelId = null;
+      state.currentEpisodeId = null;
+      if(state.editMode) state.editMode = false;
+      await libDbDelete(delId);
+      await imgDbDelete(novelBgKey(delId)).catch(()=>{});
+      state.library=state.library.filter(n=>n.id!==delId);
     }
+    closePanel();
     showLibrary();
   }catch(e){
     showToast('リセットに失敗しました');
@@ -3896,6 +3953,13 @@ function showResumePopup(ep, novelTitle){
   setTimeout(()=> popup.classList.add('show'), 200);
 }
 
+function hideResumePopup(){
+  const popup = document.getElementById('resume-popup');
+  if(popup) popup.classList.remove('show');
+  _resumeEpId = null;
+  _resumeNovelId = null;
+}
+
 function dismissResumePopup(){
   const popup = document.getElementById('resume-popup');
   if(popup) popup.classList.remove('show');
@@ -3940,7 +4004,7 @@ function showLibrary(){
   // 他の画面・オーバーレイを確実に閉じる（クリックブロックを防ぐ）
   closePanel();
   closeModal();
-  dismissResumePopup();
+  hideResumePopup();
   document.body.classList.add('library-mode');
   document.body.classList.remove('toc-mode');
   document.getElementById('library-screen').classList.add('show');
@@ -4174,6 +4238,8 @@ function hideToc(){
 }
 
 function renderToc(){
+  $.sort_newest.classList.toggle('active', state.novel.sortMode!=='oldest');
+  $.sort_oldest.classList.toggle('active', state.novel.sortMode==='oldest');
   // タイトル・作者
   const titleEl=$.toc_novel_title;
   const authorEl=$.toc_novel_author;
@@ -4355,7 +4421,11 @@ function openEpisode(id, startPos='first'){
   state.currentEpisodeId=id;
   state.novel.lastReadId=id;
   // lastReadId だけ保存（syncCurrentEpisode は呼ばない）
-  dbPut(state.novel).catch(e=>console.warn('IndexedDB save failed:',e));
+  {
+    const li = state.library.findIndex(n=>n.id===state.currentNovelId);
+    if(li>=0) state.library[li].lastReadId = id;
+    libDbPut(state.novel).catch(e=>console.warn('save lastReadId failed:',e));
+  }
   // タイトル更新
   $.topbar_title.textContent=ep.title;
   // 画面切替
@@ -4950,7 +5020,12 @@ async function exportAsZip(){
       (pg.paras||[]).forEach(para=>{
         if(para.type==='text'){
           // HTMLタグを除去してテキストだけ取り出す
-          const raw=(para.html!==undefined)?para.html.replace(/<[^>]+>/g,''):(para.text||'');
+          let raw;
+          if(para.html!==undefined){
+            const tmp=document.createElement('div');
+            tmp.innerHTML=stripFuriganaHtml(para.html).replace(/<br\s*\/?>/gi,'\n');
+            raw=tmp.textContent;
+          } else raw=para.text||'';
           lines.push(raw);
         }
       });
@@ -5204,6 +5279,7 @@ function renderAllPages(){
     vp.appendChild(el);
     el.className='page'+(pi===state.curPage?' cur':' hidden');
   });
+  updateSubPageDots(state.curPage, state.subPageIndex, countGroups(state.curPage));
   updatePageIndicator();
   // re-run search
   if(state.ui.search.open){
@@ -5386,7 +5462,8 @@ function buildParaEl(pi,qi,para){
     }
     p.style.textAlign=para.align||'left';
     p.style.fontSize=(para.size||state.settings.fontSize)+'px';
-    p.style.color=para.color||state.settings.color;
+    const _c = para.color || state.settings.color;
+    p.style.color = (!_c || _c.toLowerCase()==='#1a1208') ? 'var(--ink)' : _c;
     p.style.fontFamily=para.fontFamily||state.settings.fontFamily;
     return p;
   }
@@ -5648,7 +5725,8 @@ function syncEditorToState(pi){
         const orig = origByQi || origByIdx;
         let nodeSize = parseFloat(node.style.fontSize);
         if (isNaN(nodeSize) || !nodeSize) nodeSize = (orig && orig.size) || state.settings.fontSize;
-        const nodeColor = node.style.color || (orig && orig.color) || state.settings.color;
+        let nodeColor = node.style.color || (orig && orig.color) || state.settings.color;
+        if (/var\(--ink\)/.test(nodeColor)) nodeColor = '#1a1208';
         const builtPara = {
           type: 'text',
           text: stripFuriganaText(node.innerHTML),
@@ -7132,7 +7210,7 @@ function adjustAllEpisodesFontSize(delta) {
                 parent.removeChild(child);
               }
             });
-            para.html = el.innerHTML;
+            para.html = stripFuriganaHtml(el.innerHTML);
           }
         } else if (para.html) {
           // 表示していないエピソードは、子孫のfont-size指定だけ除去しておく
@@ -9905,6 +9983,7 @@ function applyTheme(idx) {
   state.settings.themeIdx = idx;
   document.documentElement.style.setProperty('--bg', t.bg);
   document.documentElement.style.setProperty('--ink', t.ink);
+  document.body.classList.toggle('theme-dark', isDarkThemeIdx(idx));
   document.querySelectorAll('.page').forEach(p => p.style.background = t.bg);
   const cont = $.theme_btns;
   if (cont) {
@@ -9987,7 +10066,8 @@ function resetBgDisplay(){
   $.topbar.classList.remove('bg-active');
   $.search_overlay.classList.remove('bg-active');
   $.side_panel.classList.remove('bg-active');
-  document.documentElement.style.setProperty('--bg','#ffffff');
+  const _t = THEMES[state.settings.themeIdx||0] || THEMES[0];
+  document.documentElement.style.setProperty('--bg', _t.bg);
   document.querySelectorAll('.page').forEach(p=>p.style.background='');
 }
 
@@ -10289,6 +10369,8 @@ function showToast(msg) {
     document.body.appendChild(t);
   }
   t.textContent = msg;
+  const _ttsBar = document.getElementById('tts-control-bar');
+  t.style.bottom = (_ttsBar && _ttsBar.classList.contains('show')) ? '100px' : '80px';
   t.style.opacity = '1';
   t.style.transform = 'translateX(-50%) translateY(0)';
   clearTimeout(t._timer);
@@ -10441,7 +10523,7 @@ function openTitleModal() {
   const targetEpisodeId = state.currentEpisodeId; // ← 開いた時点のエピソードIDを固定
   const targetNovelId = state.currentNovelId;
   $.modal_body.innerHTML =
-    `<input class="mi" id="title-input" value="${cur}" style="min-height:40px;resize:none;">`;
+    `<input class="mi" id="title-input" value="${escapeHtml(cur)}" style="min-height:40px;resize:none;">`;
   showModal('タイトルを編集', () => {
     const v = document.getElementById('title-input').value.trim();
     if (!v) return;
@@ -10640,6 +10722,9 @@ function getCurrentView(){
 }
 
 function hasOpenOverlay(){
+  for(const id of ['resume-popup','sleep-timer-popup','eb-furigana-popup']){
+    const el=document.getElementById(id); if(el && el.classList.contains('show')) return true;
+  }
   if($.modal_ov && $.modal_ov.classList.contains('show')) return true;
   if($.search_overlay && $.search_overlay.classList.contains('open')) return true;
   if($.side_panel && $.side_panel.classList.contains('open')) return true;
@@ -10664,6 +10749,12 @@ function hasOpenOverlay(){
 }
 
 function handleBackNavigation(){
+  const _rp=document.getElementById('resume-popup');
+  if(_rp && _rp.classList.contains('show')){ hideResumePopup(); return true; }
+  const _sp=document.getElementById('sleep-timer-popup');
+  if(_sp && _sp.classList.contains('show')){ closeSleepTimerPopup(); return true; }
+  const _fp=document.getElementById('eb-furigana-popup');
+  if(_fp && _fp.classList.contains('show')){ closeFuriganaQuickPopup(); return true; }
   if($.modal_ov && $.modal_ov.classList.contains('show')){ closeModal(); return true; }
   if($.search_overlay && $.search_overlay.classList.contains('open')){ closeSearch(); return true; }
   if($.side_panel && $.side_panel.classList.contains('open')){ closePanel(); return true; }
