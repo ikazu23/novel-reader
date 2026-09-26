@@ -1966,7 +1966,7 @@ body.browse-open #library-fab{display:none !important;}
   position:sticky;top:0;display:flex;align-items:center;gap:6px;
   height:var(--top-h);padding:0 6px;background:#fff;border-bottom:1px solid #eee;z-index:2;flex-shrink:0;
 }
-#browse-sorts{display:flex;gap:0;padding:10px 18px 0;background:#fff;}
+#browse-sorts{display:flex;gap:0;padding:10px 18px 0;background:#fff;flex-shrink:0;}
 .browse-sort{
   flex:1;background:none;border:none;border-bottom:2px solid #eee;color:#888;padding:8px 4px;
   font-family:'Noto Sans JP',sans-serif;font-size:13px;cursor:pointer;
@@ -1974,7 +1974,7 @@ body.browse-open #library-fab{display:none !important;}
 .browse-sort.active{color:#008080;border-bottom-color:#008080;font-weight:600;}
 #browse-genres{
   display:flex;gap:6px;overflow-x:auto;padding:10px 18px;background:#fff;border-bottom:1px solid #eee;
-  scrollbar-width:none;
+  scrollbar-width:none;flex-shrink:0;
 }
 #browse-genres::-webkit-scrollbar{display:none;}
 .browse-genre{
@@ -1983,7 +1983,7 @@ body.browse-open #library-fab{display:none !important;}
 }
 .browse-genre.active{background:#008080;border-color:#008080;color:#fff;}
 #browse-grid{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:24px 14px;padding:22px 28px 80px;
+  flex-shrink:0;display:grid;grid-template-columns:repeat(3,1fr);gap:24px 14px;padding:22px 28px 80px;
 }
 @media (min-width:900px){
   #browse-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:48px 32px;padding:40px 64px 100px;max-width:1100px;margin:0 auto;width:100%;}
@@ -8440,10 +8440,12 @@ function ttsTestStart() {
 ══════════════════════════════════════ */
 // ── 編集バー表示・同期 ──
 function showEB(para){
+  if(!state.editMode || isSharedNovelSafe()){ hideEB(); return; } // 閲覧中・共有作品では編集バーを出さない
   syncEB(para);
   $.botbar_edit_row.classList.add('visible');
   state.ui.ebOpen=true;placeEB();
 }
+function isSharedNovelSafe(){ return !!(state.novel && state.novel.shared); }
 function hideEB(){
   $.botbar_edit_row.classList.remove('visible');
   state.ui.ebOpen=false;closeColorPopup();
