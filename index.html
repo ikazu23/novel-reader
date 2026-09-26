@@ -1009,7 +1009,14 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 .font-btn:last-child{border-bottom:none;}
 .font-btn:hover{color:#008080;}
 .font-btn.active{color:#008080;}
-.font-btn.active::after{content:'✓';font-size:12px;color:#008080;}
+.font-btn.active::after{content:'✓';font-size:12px;color:#008080;margin-left:8px;}
+.font-btn{gap:8px;}
+.font-btn-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.font-btn-tag{flex-shrink:0;font-family:'Noto Sans JP',sans-serif;font-size:10px;color:#999;border:1px solid #ddd;border-radius:4px;padding:1px 5px;}
+.font-del-btn{flex-shrink:0;font-family:'Noto Sans JP',sans-serif;font-size:11px;color:#c54040;border:1px solid #f0d0d0;border-radius:4px;padding:3px 8px;background:#fff;}
+.font-del-btn:active{background:#fff0f0;}
+body.theme-dark .font-del-btn{background:transparent;border-color:#6a3a3a;color:#e07070;}
+body.theme-dark .font-btn-tag{border-color:#444;color:#888;}
 /* font file load */
 .font-load-row{
   display:flex;align-items:center;gap:10px;margin-top:14px;
@@ -2353,7 +2360,7 @@ body.theme-dark .page-editor [data-dkfix]{color:var(--ink) !important;}
     <div class="font-list" id="font-list"></div>
     <div class="font-load-row">
       <button class="font-load-btn" onclick="document.getElementById('font-file-input').click()">フォントファイルを読み込む</button>
-      <span class="font-load-name" id="font-load-name">未読み込み</span>
+      <span class="font-load-name" id="font-load-name">ttf / otf / woff</span>
       <input type="file" id="font-file-input" accept=".ttf,.otf,.woff,.woff2" style="display:none" onchange="loadFontFile(this)">
     </div>
   </div>
@@ -2974,31 +2981,6 @@ async function loadSavedFonts(){
     if($.font_list){
       $.font_list.innerHTML = '';
       buildFontList();
-      // 永続化されたフォントには削除ボタンを追加
-      FONTS.forEach((f, i)=>{
-        if(f.custom){
-          const btns = $.font_list.querySelectorAll('.font-btn');
-          if(btns[i]){
-            btns[i].title = '長押しで削除';
-            // 長押しで削除
-            let lpTimer = null;
-            const startLp = ()=>{
-              lpTimer = setTimeout(()=>{
-                if(confirm('「' + f.fontName + '」を削除しますか？')){
-                  removeCustomFont(f.fontName, f.family);
-                }
-              }, 600);
-            };
-            const cancelLp = ()=>{ if(lpTimer){clearTimeout(lpTimer); lpTimer=null;} };
-            btns[i].addEventListener('touchstart', startLp, {passive:true});
-            btns[i].addEventListener('touchend', cancelLp);
-            btns[i].addEventListener('touchmove', cancelLp, {passive:true});
-            btns[i].addEventListener('mousedown', startLp);
-            btns[i].addEventListener('mouseup', cancelLp);
-            btns[i].addEventListener('mouseleave', cancelLp);
-          }
-        }
-      });
     }
   }catch(e){ console.warn('loadSavedFonts:', e); }
 }
@@ -3507,10 +3489,20 @@ async function removeCustomFont(fontName, family){
     if(idx >= 0){
       FONTS.splice(idx, 1);
       // 現在使用中のフォントが削除されたものなら、デフォルトに戻す
-      if(state.settings.fontFamily === family){
+      if(lookSetting('fontFamily') === family){
         applyGlobalFont(FONTS[0].family, 0);
       }
     }
+    // このフォントを使っていた他の本・全体の既定も明朝体に戻す
+    if(state.settings.fontFamily === family){ state.settings.fontFamily = FONTS[0].family; debouncedSaveSettings(); }
+    for(const n of (state.library || [])){
+      if(n.fontFamily === family && n.id !== state.currentNovelId){
+        delete n.fontFamily;
+        libDbPut(n).catch(()=>{});
+      }
+    }
+    const styleEl = document.getElementById('custom-font-' + fontName.replace(/[^a-zA-Z0-9]/g, '_'));
+    if(styleEl) styleEl.remove();
     // UIを再描画
     if($.font_list){
       $.font_list.innerHTML = '';
@@ -3778,6 +3770,35 @@ async function loadLibrary(){
   }
 }
 
+// 見た目の設定：本を開いていればその本に、開いていなければ全体の既定に保存
+function lookSetting(key, fallback){
+  if(state.currentNovelId && state.novel && state.novel[key] != null) return state.novel[key];
+  return state.settings[key] != null ? state.settings[key] : fallback;
+}
+function storeLookSetting(key, val){
+  if(state.currentNovelId && state.novel){
+    state.novel[key] = val;
+    const li = state.library.findIndex(n=>n.id===state.currentNovelId);
+    if(li>=0) state.library[li][key] = val;
+    save();
+  } else {
+    state.settings[key] = val;
+    debouncedSaveSettings();
+  }
+}
+// 本を開いた時・ライブラリに戻った時に、その本（または既定）の見た目をまとめて反映
+function applyNovelLook(){
+  applyTheme(novelThemeIdx(state.currentNovelId ? state.novel : null));
+  applyParaLineHeight(lookSetting('lineHeight', 2.0), false);
+  applyParaSpacing(lookSetting('paraSpacing', 24), false);
+  let fam = lookSetting('fontFamily', FONTS[0].family);
+  if(!FONTS.some(f=>f.family===fam)) fam = FONTS[0].family; // 削除済みフォント
+  applyGlobalFont(fam, FONTS.findIndex(f=>f.family===fam), false);
+}
+function novelThemeIdx(novel){
+  if(novel && Number.isInteger(novel.themeIdx) && THEMES[novel.themeIdx]) return novel.themeIdx;
+  return state.settings.themeIdx || 0;
+}
 function makeNovel(title){
   return{
     id:'novel_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
@@ -3843,8 +3864,8 @@ function applyLoadedSettings(){
   // 行間・段落間の初期反映
   if(s.lineHeight == null) s.lineHeight = 2.0;
   if(s.paraSpacing == null) s.paraSpacing = 24;
-  applyParaLineHeight(s.lineHeight);
-  applyParaSpacing(s.paraSpacing);
+  applyParaLineHeight(s.lineHeight, false);
+  applyParaSpacing(s.paraSpacing, false);
   // 行間・段落間スライダーの値反映
   const lhEl = document.getElementById('global-lineheight');
   const lhVal = document.getElementById('global-lineheight-val');
@@ -4043,7 +4064,8 @@ function showLibrary(){
   if(state.currentNovelId) save();
   state.currentEpisodeId=null;
   state.currentNovelId=null;
-  // ライブラリ画面では背景をリセット
+  // ライブラリ画面では背景をリセットし、既定のテーマに戻す
+  applyNovelLook();
   resetBgDisplay();
   // 他の画面・オーバーレイを確実に閉じる（クリックブロックを防ぐ）
   closePanel();
@@ -4228,6 +4250,7 @@ async function openNovel(novelId){
   state.currentEpisodeId=null;
   hideLibrary();
   showToc();
+  applyNovelLook();
   // この本の背景画像を復元
   loadNovelBgImage(novelId);
 }
@@ -10105,13 +10128,13 @@ async function pickAndInsertImage(input){
 }
 
 function adjustLineHeight(delta){
-  let val = (state.settings.lineHeight != null ? state.settings.lineHeight : 2.0) + delta;
+  let val = lookSetting('lineHeight', 2.0) + delta;
   val = Math.round(val * 10) / 10; // 浮動小数点の誤差防止
   val = Math.min(3.0, Math.max(1.2, val));
   applyParaLineHeight(val);
 }
 function adjustParaSpacing(delta){
-  let val = (state.settings.paraSpacing != null ? state.settings.paraSpacing : 24) + delta;
+  let val = lookSetting('paraSpacing', 24) + delta;
   val = Math.min(60, Math.max(0, val));
   applyParaSpacing(val);
 }
@@ -10119,27 +10142,25 @@ function adjustParaSpacing(delta){
 /* ══════════════════════════════════════
    フォント・テーマ設定
 ══════════════════════════════════════ */
-function applyParaLineHeight(val){
+function applyParaLineHeight(val, store = true){
   val = parseFloat(val);
   if(isNaN(val)) return;
-  state.settings.lineHeight = val;
   document.documentElement.style.setProperty('--para-line-height', val);
   const lhVal = document.getElementById('global-lineheight-val');
   if(lhVal) lhVal.textContent = val.toFixed(1);
-  debouncedSaveSettings();
+  if(store) storeLookSetting('lineHeight', val);
 }
 
-function applyParaSpacing(val){
+function applyParaSpacing(val, store = true){
   val = parseInt(val);
   if(isNaN(val)) return;
-  state.settings.paraSpacing = val;
   document.documentElement.style.setProperty('--para-spacing', val + 'px');
   const psVal = document.getElementById('global-paraspacing-val');
   if(psVal) psVal.textContent = val + 'px';
-  debouncedSaveSettings();
+  if(store) storeLookSetting('paraSpacing', val);
 }
-function applyGlobalFont(family,idx){
-  state.settings.fontFamily = family;
+function applyGlobalFont(family, idx, store = true){
+  if(store) storeLookSetting('fontFamily', family);
   // 【方法1】CSS変数を更新
   try{ document.documentElement.style.setProperty('--font-body', family); }catch(_){}
   // 【方法2】インラインスタイルより強い CSS を <style> 要素で動的注入
@@ -10155,21 +10176,40 @@ function applyGlobalFont(family,idx){
   document.querySelectorAll('.font-btn').forEach((b,i)=>{
     b.classList.toggle('active', i===idx);
   });
-  debouncedSaveSettings();
 }
 function buildFontList(){
   const list=$.font_list;
   if(!list)return;
   // 現在のフォント設定にマッチするインデックスを探す（無ければ0=明朝体）
-  const currentFamily = (state.settings && state.settings.fontFamily) || FONTS[0].family;
+  const currentFamily = lookSetting('fontFamily', FONTS[0].family);
   let activeIdx = FONTS.findIndex(f => f.family === currentFamily);
   if(activeIdx < 0) activeIdx = 0;
   FONTS.forEach((f,i)=>{
     const btn=document.createElement('button');
     btn.className='font-btn'+(i===activeIdx?' active':'');
     btn.style.fontFamily=f.family;
-    btn.textContent=f.name;
+    const nameSpan=document.createElement('span');
+    nameSpan.className='font-btn-name';
+    nameSpan.textContent=f.custom ? f.fontName : f.name;
+    btn.appendChild(nameSpan);
     btn.onclick=()=>applyGlobalFont(f.family,i);
+    if(f.custom){
+      const tag=document.createElement('span');
+      tag.className='font-btn-tag';
+      tag.textContent='追加';
+      btn.appendChild(tag);
+      const del=document.createElement('span');
+      del.className='font-del-btn';
+      del.title='このフォントを削除';
+      del.textContent='削除';
+      del.onclick=(e)=>{
+        e.stopPropagation();
+        if(confirm('「' + f.fontName + '」を削除しますか？\n（このフォントを使っていた本は明朝体に戻ります）')){
+          removeCustomFont(f.fontName, f.family);
+        }
+      };
+      btn.appendChild(del);
+    }
     list.appendChild(btn);
   });
 }
@@ -10202,7 +10242,6 @@ function loadFontFile(input){
       await loadSavedFonts();
       // 即座に適用
       applyGlobalFont(family, idx);
-      if($.font_load_name) $.font_load_name.textContent=name;
       try{ showToast('フォントを保存しました'); }catch(_){}
     }catch(err){
       alert('フォントの読み込みに失敗しました');
@@ -10215,7 +10254,7 @@ function loadFontFile(input){
 function applyTheme(idx) {
   const t = THEMES[idx];
   if (!t) return;
-  state.settings.themeIdx = idx;
+  state.ui.themeIdx = idx;
   document.documentElement.style.setProperty('--bg', t.bg);
   document.documentElement.style.setProperty('--ink', t.ink);
   document.body.classList.toggle('theme-dark', isDarkThemeIdx(idx));
@@ -10225,7 +10264,7 @@ function applyTheme(idx) {
     cont.querySelectorAll('.ob').forEach((b, i) => b.classList.toggle('active', i === idx));
   }
   // 背景画像が設定されていれば、テーマの明暗に応じてオーバーレイ色を自動追従
-  if (state.novel && state.novel.bg && state.novel.bg.fileName) {
+  if (state.currentNovelId && state.novel && state.novel.bg && state.novel.bg.fileName) {
     const wantColor = isDarkThemeIdx(idx) ? 'black' : 'white';
     if ((state.novel.bg.overlayColor || 'white') !== wantColor) {
       setOverlayColor(wantColor);
@@ -10252,7 +10291,15 @@ function buildThemeBtns(){
     const btn=document.createElement('button');btn.className='ob'+(i===0?' active':'');btn.textContent=t.name;
     btn.onclick=()=>{
       applyTheme(i);
-      debouncedSaveSettings();
+      if(state.currentNovelId && state.novel){
+        state.novel.themeIdx = i;
+        const li = state.library.findIndex(n=>n.id===state.currentNovelId);
+        if(li>=0) state.library[li].themeIdx = i;
+        save();
+      } else {
+        state.settings.themeIdx = i;
+        debouncedSaveSettings();
+      }
     };
     cont.appendChild(btn);
   });
@@ -10301,7 +10348,7 @@ function resetBgDisplay(){
   $.topbar.classList.remove('bg-active');
   $.search_overlay.classList.remove('bg-active');
   $.side_panel.classList.remove('bg-active');
-  const _t = THEMES[state.settings.themeIdx||0] || THEMES[0];
+  const _t = THEMES[(state.currentNovelId && state.novel) ? novelThemeIdx(state.novel) : (state.settings.themeIdx||0)] || THEMES[0];
   document.documentElement.style.setProperty('--bg', _t.bg);
   document.querySelectorAll('.page').forEach(p=>p.style.background='');
 }
