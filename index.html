@@ -3396,6 +3396,85 @@ async function gdriveFetch(url, opts = {}){
 }
 
 // アプリ専用フォルダに保存（既存があれば上書き）
+/* ── 挿絵の同期 ──
+   本のデータとは別に、挿絵を1枚ずつ「img_画像名」というファイルでアプリ専用領域に置く。
+   まだ上げていない挿絵だけを送り、手元にない挿絵は表示するときに取りに行く。 */
+const LS_UPLOADED_IMAGES = 'gdrive-uploaded-images';
+let _gdriveRemoteImages = null; // 今回の起動で確認したドライブ上の挿絵の一覧
+function collectLibraryImageNames(){
+  const names = new Set();
+  (state.library || []).forEach(n => (n.episodes || []).forEach(ep => (ep.pages || []).forEach(pg => (pg.paras || []).forEach(pa => {
+    if(pa.type === 'image' && pa.imgName) names.add(pa.imgName);
+  }))));
+  return names;
+}
+function gdriveQ(s){ return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
+async function gdriveListRemoteImages(){
+  if(_gdriveRemoteImages) return _gdriveRemoteImages;
+  const map = new Map();
+  let pageToken = '';
+  do{
+    const url = 'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&pageSize=1000&fields=nextPageToken,files(id,name)&q=' +
+      encodeURIComponent("name contains 'img_'") + (pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : '');
+    const res = await gdriveFetch(url);
+    const d = await res.json();
+    (d.files || []).forEach(f => { if(f.name.startsWith('img_')) map.set(f.name.slice(4), f.id); });
+    pageToken = d.nextPageToken || '';
+  }while(pageToken);
+  _gdriveRemoteImages = map;
+  return map;
+}
+async function gdriveUploadImages(){
+  const names = collectLibraryImageNames();
+  if(!names.size) return;
+  let done = [];
+  try{ done = JSON.parse(localStorage.getItem(LS_UPLOADED_IMAGES) || '[]'); }catch(_){}
+  const doneSet = new Set(done);
+  const pending = [...names].filter(n => !doneSet.has(n));
+  if(!pending.length) return;
+  const remote = await gdriveListRemoteImages();
+  for(const name of pending){
+    if(remote.has(name)){ doneSet.add(name); continue; }
+    const dataUrl = await imgDbGet(name).catch(() => null);
+    if(!dataUrl) continue; // この端末にもない
+    const boundary = '-------img-' + Date.now();
+    const body = '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' +
+      JSON.stringify({ name: 'img_' + name, mimeType: 'text/plain', parents: ['appDataFolder'] }) +
+      '\r\n--' + boundary + '\r\nContent-Type: text/plain\r\n\r\n' + dataUrl + '\r\n--' + boundary + '--';
+    const res = await gdriveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+      method: 'POST', headers: {'Content-Type': 'multipart/related; boundary=' + boundary}, body,
+    });
+    const d = await res.json();
+    remote.set(name, d.id);
+    doneSet.add(name);
+    try{ localStorage.setItem(LS_UPLOADED_IMAGES, JSON.stringify([...doneSet])); }catch(_){}
+  }
+  try{ localStorage.setItem(LS_UPLOADED_IMAGES, JSON.stringify([...doneSet])); }catch(_){}
+}
+const _gdriveImageFetching = new Map();
+function gdriveFetchImage(name){
+  if(!gdriveIsSignedIn()) return Promise.resolve(null);
+  if(_gdriveImageFetching.has(name)) return _gdriveImageFetching.get(name);
+  const pr = (async () => {
+    try{
+      let id = _gdriveRemoteImages && _gdriveRemoteImages.get(name);
+      if(!id){
+        const url = 'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)&q=' +
+          encodeURIComponent("name='img_" + gdriveQ(name) + "'");
+        const d = await (await gdriveFetch(url)).json();
+        id = d.files && d.files[0] && d.files[0].id;
+      }
+      if(!id) return null;
+      const dataUrl = await (await gdriveFetch('https://www.googleapis.com/drive/v3/files/' + id + '?alt=media')).text();
+      if(!dataUrl.startsWith('data:image/')) return null;
+      await imgDbSave(name, dataUrl);
+      return dataUrl;
+    }catch(e){ console.warn('gdriveFetchImage:', e); return null; }
+  })();
+  _gdriveImageFetching.set(name, pr);
+  return pr;
+}
+
 async function gdriveUploadData(){
   if(_gdriveUploading) return;
   _gdriveUploading = true;
@@ -3429,6 +3508,7 @@ async function gdriveUploadData(){
       headers: {'Content-Type': 'multipart/related; boundary=' + boundary},
       body,
     });
+    try{ await gdriveUploadImages(); }catch(e){ console.warn('gdriveUploadImages:', e); }
     localStorage.setItem(LS_LAST_SYNC, payload.syncedAt);
     localStorage.removeItem(LS_LAST_ERR);
   }catch(e){
@@ -5509,8 +5589,11 @@ function buildParaEl(pi,qi,para){
     // imgName があればDBから取得、なければsrcをそのまま使用
     if(para.imgName){
       img.src=''; // プレースホルダー
-      imgDbGet(para.imgName).then(dataUrl=>{
-        if(dataUrl) img.src=dataUrl;
+      imgDbGet(para.imgName).then(async dataUrl=>{
+        if(dataUrl){ img.src=dataUrl; return; }
+        img.alt='挿絵を読み込み中…';
+        const fromCloud = await gdriveFetchImage(para.imgName);
+        if(fromCloud) img.src=fromCloud;
         else img.alt=`[画像なし: ${para.imgName}]`;
       });
     } else {
