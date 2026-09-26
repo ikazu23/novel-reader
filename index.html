@@ -244,9 +244,10 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 
 /* ══════ VIEW / EDIT MODE ══════ */
 #viewport:not(.edit-mode) .page-editor{
-  cursor:default;
-  user-select:none;
-  -webkit-user-select:none;
+  cursor:text;
+  user-select:text;
+  -webkit-user-select:text;
+  -webkit-touch-callout:default;
 }
 #viewport.edit-mode .page-editor{
   cursor:text;
@@ -6071,6 +6072,7 @@ function setupScrollPageTurn(pageEl,pi,groupCount){
   pageEl.addEventListener('touchend',e=>{
     subSwitchLocked=false; // タッチ終了でもリセット
     if(state.ui.transitioning||e.changedTouches.length!==1)return;
+    if(hasTextSelection()) return; // 文字選択を広げている最中はページ送りしない
     const dx=e.changedTouches[0].clientX-touchStartX;
     const dy=e.changedTouches[0].clientY-touchStartY;
     // 横方向が明らかに優勢なスワイプ
@@ -6086,7 +6088,7 @@ function setupScrollPageTurn(pageEl,pi,groupCount){
   },{passive:true});
 
   pageEl.addEventListener('touchmove',e=>{
-    if(state.ui.transitioning||subSwitchLocked)return;
+    if(state.ui.transitioning||subSwitchLocked||hasTextSelection())return;
     const dy=touchStartY-e.touches[0].clientY;
     const maxScroll=pageEl.scrollHeight-pageEl.clientHeight;
     const atTop=touchStartScrollTop<=0;
@@ -6400,6 +6402,13 @@ function toggleReadingMode() {
   document.getElementById('topbar-reading-mode')
     .classList.toggle('active', state.readingMode);
   localStorage.setItem('readingMode', state.readingMode ? '1' : '0');
+}
+
+/* ══════ 読書中の文字選択 ══════ */
+// 選択を広げている最中にスワイプでページ送りしないための判定
+function hasTextSelection(){
+  const sel = window.getSelection();
+  return !!(sel && sel.rangeCount && !sel.isCollapsed && sel.toString().trim());
 }
 
 function setupDoubleTap(){
