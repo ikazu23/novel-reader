@@ -1887,9 +1887,25 @@ body.theme-dark #viewport.edit-mode .page-editor p{
 body.theme-dark .page-editor p.tts-reading{background:rgba(0,200,200,0.14);}
 body.theme-dark .pnl{color:#666;}
 body.theme-dark .page-editor [data-dkfix]{color:var(--ink) !important;}
+
+/* ══════ PC：左右の端クリックでページ移動 ══════ */
+#viewport.edge-hover{cursor:pointer;}
+#viewport.edge-hover .page-editor{cursor:pointer;}
+.edge-hint{
+  position:fixed;top:var(--top-h);bottom:0;width:72px;z-index:40;pointer-events:none;
+  display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .18s;
+  color:rgba(0,0,0,0.35);
+}
+.edge-hint.show{opacity:1;}
+#edge-hint-left{left:0;background:linear-gradient(to right, rgba(0,0,0,0.05), transparent);}
+#edge-hint-right{right:0;background:linear-gradient(to left, rgba(0,0,0,0.05), transparent);}
+body.theme-dark .edge-hint{color:rgba(255,255,255,0.4);}
+body.toc-mode .edge-hint,body.library-mode .edge-hint{display:none;}
+body.booting{visibility:hidden}
 </style>
 </head>
-<body>
+<body class="booting">
+<script>setTimeout(function(){document.body.classList.remove('booting');},4000);</script>
 <noscript>
   <div style="max-width:640px;margin:40px auto;padding:0 20px;font-family:sans-serif;line-height:1.8;color:#222">
     <h1>イカ墨ノベル</h1>
@@ -2102,6 +2118,8 @@ body.theme-dark .page-editor [data-dkfix]{color:var(--ink) !important;}
   <!-- state.pages injected by JS -->
 </div>
 
+<div id="edge-hint-left" class="edge-hint"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>
+<div id="edge-hint-right" class="edge-hint"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
 <!-- SUB-PAGE DOTS -->
 <div id="subpage-dots"></div>
 
@@ -2737,6 +2755,7 @@ async function init(){
   setupKb();
   setupColorBtnLongPress();
   setupDoubleTap();
+  setupEdgeClick();
   setupMediaSession();
   setupNativeTtsQueueListeners();
   state.readingMode = localStorage.getItem('readingMode') === '1';
@@ -2751,6 +2770,7 @@ async function init(){
   loadLibraryName();
   // 最初はライブラリ画面を表示
   showLibrary();
+  document.body.classList.remove('booting');
   // 起動時に自動バックアップ（24時間経過していれば）
   setTimeout(()=>{ autoBackupAllNovels(); }, 2000);
   // 保存されたカスタムフォントを読み込む
@@ -4080,9 +4100,9 @@ async function resetAllData(){
       state.currentNovelId = null;
       state.currentEpisodeId = null;
       if(state.editMode) state.editMode = false;
+      state.library=state.library.filter(n=>n.id!==delId); // 先に本棚から外す（書き戻し防止）
       await libDbDelete(delId);
       await imgDbDelete(novelBgKey(delId)).catch(()=>{});
-      state.library=state.library.filter(n=>n.id!==delId);
     }
     closePanel();
     showLibrary();
@@ -4274,6 +4294,22 @@ function renderLibrary(){
         pressTimer = null;
       }
     },{passive:true});
+    // PC：マウスの長押しでも選択モードに入る
+    let mouseTimer=null, mouseX=0, mouseY=0;
+    card.addEventListener('mousedown',e=>{
+      if(e.button!==0) return;
+      mouseX=e.clientX; mouseY=e.clientY;
+      mouseTimer=setTimeout(()=>{
+        _lastLongPressAt = Date.now();
+        if(!_selectionMode) enterSelectionMode();
+        toggleNovelSelection(novel.id, card);
+        mouseTimer=null;
+      },500);
+    });
+    card.addEventListener('mousemove',e=>{
+      if(mouseTimer && (Math.abs(e.clientX-mouseX)>8 || Math.abs(e.clientY-mouseY)>8)){ clearTimeout(mouseTimer); mouseTimer=null; }
+    });
+    ['mouseup','mouseleave'].forEach(ev=>card.addEventListener(ev,()=>{ if(mouseTimer){ clearTimeout(mouseTimer); mouseTimer=null; } }));
     card.addEventListener('contextmenu',e=>{
       e.preventDefault();
       _lastLongPressAt = Date.now();
@@ -4331,8 +4367,8 @@ async function deleteSelectedNovels(){
   if(!confirm(`選択した${n}冊を削除しますか？\nこの操作は元に戻せません。`)) return;
   const ids = Array.from(_selectedNovelIds);
   for(const id of ids){
+    state.library = state.library.filter(n=>n.id!==id); // 先に本棚から外す（書き戻し防止）
     await libDbDelete(id).catch(()=>{});
-    state.library = state.library.filter(n=>n.id!==id);
   }
   // 全削除されたら新規本を作る
   if(state.library.length === 0){
@@ -4385,8 +4421,8 @@ function openNovelMenu(novelId){
 }
 
 async function deleteNovel(novelId){
+  state.library=state.library.filter(n=>n.id!==novelId); // 先に本棚から外す（書き戻し防止）
   await libDbDelete(novelId);
-  state.library=state.library.filter(n=>n.id!==novelId);
   if(state.library.length===0){
     const novel=makeNovel('無題の小説');
     novel.episodes=[makeEpisode(1,'第1話',getDefaultPages())];
@@ -4478,6 +4514,15 @@ function renderToc(){
     div.addEventListener('touchend',()=>clearTimeout(pressTimer));
     div.addEventListener('touchmove',()=>clearTimeout(pressTimer));
     div.addEventListener('contextmenu',e=>{e.preventDefault();openEpMenu(ep.id);});
+    // PC：マウスの長押しでも編集メニュー（その後のクリックで話が開かないようにする）
+    let epMouseTimer=null, epLongFired=false;
+    div.addEventListener('mousedown',e=>{
+      if(e.button!==0) return;
+      epLongFired=false;
+      epMouseTimer=setTimeout(()=>{ epLongFired=true; epMouseTimer=null; openEpMenu(ep.id); },550);
+    });
+    ['mouseup','mouseleave'].forEach(ev=>div.addEventListener(ev,()=>{ if(epMouseTimer){ clearTimeout(epMouseTimer); epMouseTimer=null; } }));
+    div.addEventListener('click',e=>{ if(epLongFired){ e.stopImmediatePropagation(); e.preventDefault(); epLongFired=false; } },true);
     list.appendChild(div);
   });
 
@@ -6208,6 +6253,7 @@ function setupScrollPageTurn(pageEl,pi,groupCount){
     subSwitchLocked=false; // タッチ終了でもリセット
     if(state.ui.transitioning||e.changedTouches.length!==1)return;
     if(hasTextSelection()) return; // 文字選択を広げている最中はページ送りしない
+    if(state.editMode) return; // 編集中は横のページ移動をしない
     const dx=e.changedTouches[0].clientX-touchStartX;
     const dy=e.changedTouches[0].clientY-touchStartY;
     // 横方向が明らかに優勢なスワイプ
@@ -6546,6 +6592,61 @@ function hasTextSelection(){
   return !!(sel && sel.rangeCount && !sel.isCollapsed && sel.toString().trim());
 }
 
+
+/* ══════ PC：閲覧中に画面の左右の端をクリックでページ移動 ══════ */
+function isPcPointer(){
+  return window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+}
+// x が左右どちらの端の領域か（本文の外側の余白＋本文の内側40px、最低でも画面幅の12%）
+function edgeZoneAt(x){
+  const vw = window.innerWidth;
+  const pageEl = document.getElementById('page-' + state.curPage);
+  const inner = pageEl && pageEl.querySelector('.page-inner');
+  let left = vw * 0.12, right = vw * 0.88;
+  if(inner){
+    const r = inner.getBoundingClientRect();
+    left = Math.max(left, r.left + 40);
+    right = Math.min(right, r.right - 40);
+  }
+  if(x <= left) return -1;
+  if(x >= right) return 1;
+  return 0;
+}
+function canEdgeNavigate(){
+  return isPcPointer() && !state.editMode && !state.ui.transitioning && state.currentEpisodeId &&
+    !document.body.classList.contains('toc-mode') && !document.body.classList.contains('library-mode');
+}
+// スマホの横スワイプと同じ：前後のページへ（最後なら次の話へ）
+function edgeNav(dir){
+  goPage(dir, 'h');
+}
+function setupEdgeClick(){
+  const vp = $.viewport;
+  const hintL = document.getElementById('edge-hint-left');
+  const hintR = document.getElementById('edge-hint-right');
+  let downX = 0, downY = 0;
+  vp.addEventListener('mousedown', e => { downX = e.clientX; downY = e.clientY; });
+  vp.addEventListener('click', e => {
+    if(!canEdgeNavigate() || e.button !== 0) return;
+    if(Math.abs(e.clientX - downX) > 6 || Math.abs(e.clientY - downY) > 6) return; // ドラッグ（文字選択）
+    if(hasTextSelection()) return;
+    if(e.target.closest && e.target.closest('button, a, .para-img-wrap')) return;
+    const z = edgeZoneAt(e.clientX);
+    if(z) edgeNav(z);
+  });
+  vp.addEventListener('mousemove', e => {
+    const z = canEdgeNavigate() ? edgeZoneAt(e.clientX) : 0;
+    vp.classList.toggle('edge-hover', z !== 0);
+    if(hintL) hintL.classList.toggle('show', z === -1);
+    if(hintR) hintR.classList.toggle('show', z === 1);
+  });
+  vp.addEventListener('mouseleave', () => {
+    vp.classList.remove('edge-hover');
+    if(hintL) hintL.classList.remove('show');
+    if(hintR) hintR.classList.remove('show');
+  });
+}
+
 function setupDoubleTap(){
   let lastTap=0;
   const vp=$.viewport;
@@ -6558,6 +6659,7 @@ function setupDoubleTap(){
   },{passive:false});
   vp.addEventListener('dblclick',e=>{
     if(state.readingMode)return;
+    if(isPcPointer() && edgeZoneAt(e.clientX)!==0) return; // 端の連打はページ送り
     if(state.editMode)return;
     enterEditMode();
   });
@@ -10841,8 +10943,11 @@ document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&(e.key==='z'||e.key==='Z')){e.preventDefault();edUndo();return;}
   if((e.ctrlKey||e.metaKey)&&(e.key==='y'||e.key==='Y')){e.preventDefault();edRedo();return;}
   if(document.activeElement&&document.activeElement.isContentEditable)return;
-  if(e.key==='ArrowRight'||e.key==='ArrowDown') goPage(1,'h');
-  if(e.key==='ArrowLeft'||e.key==='ArrowUp')    goPage(-1,'h');
+  if(state.editMode || !state.currentEpisodeId) return; // 編集中は横のページ移動をしない
+  if(document.body.classList.contains('toc-mode')||document.body.classList.contains('library-mode')) return;
+  if(/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement||{}).tagName||'')) return;
+  if(e.key==='ArrowRight'||e.key==='ArrowDown') edgeNav(1);
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp')    edgeNav(-1);
 });
 function srchNav(dir){
   if(!state.ui.search.matches.length)return;
