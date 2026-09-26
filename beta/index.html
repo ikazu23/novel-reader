@@ -1954,9 +1954,75 @@ body.shared-mode #topbar-reading-mode{display:none;}
   .work-info,.work-actions,.work-sec-title,.work-synopsis{padding-left:64px;padding-right:64px;}
   .work-cover{width:140px;height:200px;}
 }
+
+/* ══════ 作品をさがす・いいね ══════ */
+body.browse-open #library-fab{display:none !important;}
+#browse-screen{
+  position:fixed;inset:0;z-index:225;background:#f7f7f7;overflow-y:auto;
+  display:none;flex-direction:column;
+}
+#browse-screen.show{display:flex;}
+#browse-topbar{
+  position:sticky;top:0;display:flex;align-items:center;gap:6px;
+  height:var(--top-h);padding:0 6px;background:#fff;border-bottom:1px solid #eee;z-index:2;flex-shrink:0;
+}
+#browse-sorts{display:flex;gap:0;padding:10px 18px 0;background:#fff;}
+.browse-sort{
+  flex:1;background:none;border:none;border-bottom:2px solid #eee;color:#888;padding:8px 4px;
+  font-family:'Noto Sans JP',sans-serif;font-size:13px;cursor:pointer;
+}
+.browse-sort.active{color:#008080;border-bottom-color:#008080;font-weight:600;}
+#browse-genres{
+  display:flex;gap:6px;overflow-x:auto;padding:10px 18px;background:#fff;border-bottom:1px solid #eee;
+  scrollbar-width:none;
+}
+#browse-genres::-webkit-scrollbar{display:none;}
+.browse-genre{
+  flex-shrink:0;background:#fff;border:1px solid #ddd;border-radius:14px;padding:4px 12px;
+  font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#555;cursor:pointer;white-space:nowrap;
+}
+.browse-genre.active{background:#008080;border-color:#008080;color:#fff;}
+#browse-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:24px 14px;padding:22px 28px 80px;
+}
+@media (min-width:900px){
+  #browse-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:48px 32px;padding:40px 64px 100px;max-width:1100px;margin:0 auto;width:100%;}
+}
+.browse-card-meta{
+  display:flex;justify-content:space-between;gap:4px;margin-top:3px;padding:0 1px;
+  font-family:'Noto Sans JP',sans-serif;font-size:10px;color:#999;
+}
+.lib-card-flag.owned{background:#008080;}
+.like-btn{
+  display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid #e3c3c8;border-radius:14px;
+  padding:3px 10px;font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#c0506a;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.like-btn.small{padding:1px 9px;font-size:11px;}
+.like-btn.liked{background:#fdeef1;border-color:#f0a8b8;}
+.like-btn .like-heart{font-size:13px;line-height:1;}
+.like-btn:active{transform:scale(.95);}
+#toc-stats{align-items:center;flex-wrap:wrap;}
+.work-stats{align-items:center;flex-wrap:wrap;}
+
+/* ══════ PC：左右の端クリックでページ移動 ══════ */
+#viewport.edge-hover{cursor:pointer;}
+#viewport.edge-hover .page-editor{cursor:pointer;}
+.edge-hint{
+  position:fixed;top:var(--top-h);bottom:0;width:72px;z-index:40;pointer-events:none;
+  display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .18s;
+  color:rgba(0,0,0,0.35);
+}
+.edge-hint.show{opacity:1;}
+#edge-hint-left{left:0;background:linear-gradient(to right, rgba(0,0,0,0.05), transparent);}
+#edge-hint-right{right:0;background:linear-gradient(to left, rgba(0,0,0,0.05), transparent);}
+body.theme-dark .edge-hint{color:rgba(255,255,255,0.4);}
+body.toc-mode .edge-hint,body.library-mode .edge-hint{display:none;}
+body.booting{visibility:hidden}
 </style>
 </head>
-<body>
+<body class="booting">
+<script>setTimeout(function(){document.body.classList.remove('booting');},4000);</script>
 <noscript>
   <div style="max-width:640px;margin:40px auto;padding:0 20px;font-family:sans-serif;line-height:1.8;color:#222">
     <h1>イカ墨ノベル</h1>
@@ -1990,6 +2056,9 @@ body.shared-mode #topbar-reading-mode{display:none;}
       onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
     >マイライブラリ</span>
     <span id="beta-badge" style="flex-shrink:0;font-family:'Noto Sans JP',sans-serif;font-size:10px;font-weight:700;color:#fff;background:#e0701b;border-radius:10px;padding:2px 8px;">試験版</span>
+    <button class="lib-tb-btn" onclick="openBrowse()" title="作品をさがす">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+    </button>
     <button class="lib-tb-btn" onclick="openBackupMenu()" title="バックアップ・復元" style="position:relative;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.5" fill="currentColor" stroke="none"/></svg>
     </button>
@@ -2038,6 +2107,21 @@ body.shared-mode #topbar-reading-mode{display:none;}
   </button>
 </div>
 <input type="file" id="restore-file-input" accept=".json,application/json" style="display:none" onchange="doRestore(this)">
+<!-- 作品をさがす（一覧） -->
+<div id="browse-screen">
+  <div id="browse-topbar">
+    <button class="toc-tb-btn" onclick="closeBrowse()" title="戻る">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="toc-tb-title">作品をさがす</span>
+    <button class="toc-tb-btn" onclick="loadBrowse()" title="再読み込み">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15A9 9 0 1 1 18.36 5.64L23 10"/></svg>
+    </button>
+  </div>
+  <div id="browse-sorts"></div>
+  <div id="browse-genres"></div>
+  <div id="browse-grid"></div>
+</div>
 <!-- 作品ページ（共有リンクから開く） -->
 <div id="work-screen">
   <div id="work-topbar">
@@ -2186,6 +2270,8 @@ body.shared-mode #topbar-reading-mode{display:none;}
   <!-- state.pages injected by JS -->
 </div>
 
+<div id="edge-hint-left" class="edge-hint"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>
+<div id="edge-hint-right" class="edge-hint"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
 <!-- SUB-PAGE DOTS -->
 <div id="subpage-dots"></div>
 
@@ -2613,6 +2699,12 @@ body.shared-mode #topbar-reading-mode{display:none;}
 
   <div class="ps shared-only" style="margin-top:32px;">
     <div class="pl">この作品について</div>
+    <button onclick="removeCurrentFromLibrary()" style="
+      width:100%;background:none;border:1px solid #ddd;
+      color:#555;padding:10px;border-radius:8px;margin-bottom:8px;
+      font-family:'Noto Sans JP',sans-serif;font-size:12px;cursor:pointer;">
+      本棚から削除
+    </button>
     <button onclick="closePanel();openReportModal();" style="
       width:100%;background:none;border:1px solid #f0d0d0;
       color:#c54040;padding:10px;border-radius:8px;
@@ -2838,6 +2930,7 @@ async function init(){
   setupKb();
   setupColorBtnLongPress();
   setupDoubleTap();
+  setupEdgeClick();
   setupMediaSession();
   setupNativeTtsQueueListeners();
   state.readingMode = localStorage.getItem(LS_PREFIX+'readingMode') === '1';
@@ -2852,6 +2945,7 @@ async function init(){
   loadLibraryName();
   // 最初はライブラリ画面を表示
   showLibrary();
+  document.body.classList.remove('booting');
   // 共有リンク（?work=作品ID）から来たら作品ページを開く
   {
     const wq = new URLSearchParams(location.search).get('work');
@@ -4190,9 +4284,9 @@ async function resetAllData(){
       state.currentNovelId = null;
       state.currentEpisodeId = null;
       if(state.editMode) state.editMode = false;
+      state.library=state.library.filter(n=>n.id!==delId); // 先に本棚から外す（書き戻し防止）
       await libDbDelete(delId);
       await imgDbDelete(novelBgKey(delId)).catch(()=>{});
-      state.library=state.library.filter(n=>n.id!==delId);
     }
     closePanel();
     showLibrary();
@@ -4387,6 +4481,22 @@ function renderLibrary(){
         pressTimer = null;
       }
     },{passive:true});
+    // PC：マウスの長押しでも選択モードに入る
+    let mouseTimer=null, mouseX=0, mouseY=0;
+    card.addEventListener('mousedown',e=>{
+      if(e.button!==0) return;
+      mouseX=e.clientX; mouseY=e.clientY;
+      mouseTimer=setTimeout(()=>{
+        _lastLongPressAt = Date.now();
+        if(!_selectionMode) enterSelectionMode();
+        toggleNovelSelection(novel.id, card);
+        mouseTimer=null;
+      },500);
+    });
+    card.addEventListener('mousemove',e=>{
+      if(mouseTimer && (Math.abs(e.clientX-mouseX)>8 || Math.abs(e.clientY-mouseY)>8)){ clearTimeout(mouseTimer); mouseTimer=null; }
+    });
+    ['mouseup','mouseleave'].forEach(ev=>card.addEventListener(ev,()=>{ if(mouseTimer){ clearTimeout(mouseTimer); mouseTimer=null; } }));
     card.addEventListener('contextmenu',e=>{
       e.preventDefault();
       _lastLongPressAt = Date.now();
@@ -4444,8 +4554,8 @@ async function deleteSelectedNovels(){
   if(!confirm(`選択した${n}冊を削除しますか？\nこの操作は元に戻せません。`)) return;
   const ids = Array.from(_selectedNovelIds);
   for(const id of ids){
+    state.library = state.library.filter(n=>n.id!==id); // 先に本棚から外す（書き戻し防止）
     await libDbDelete(id).catch(()=>{});
-    state.library = state.library.filter(n=>n.id!==id);
   }
   // 全削除されたら新規本を作る
   if(state.library.length === 0){
@@ -4499,8 +4609,8 @@ function openNovelMenu(novelId){
 }
 
 async function deleteNovel(novelId){
+  state.library=state.library.filter(n=>n.id!==novelId); // 先に本棚から外す（書き戻し防止）
   await libDbDelete(novelId);
-  state.library=state.library.filter(n=>n.id!==novelId);
   if(state.library.length===0){
     const novel=makeNovel('無題の小説');
     novel.episodes=[makeEpisode(1,'第1話',getDefaultPages())];
@@ -4525,6 +4635,7 @@ function showToc(){
   document.getElementById('library-screen').classList.remove('show');
   document.getElementById('library-fab').style.display='none';
   renderToc();
+  checkOpenSharedNovelSoon();
 }
 
 function hideToc(){
@@ -4588,6 +4699,7 @@ function renderToc(){
     `;
     div.onclick=(e)=>{
       // 番号バッジ長押しでメニュー(将来用)
+      if(isSharedNovel()){ openSharedEpisodeFresh(ep.id); return; }
       openEpisode(ep.id);
     };
     // 長押しで編集メニュー
@@ -4598,6 +4710,15 @@ function renderToc(){
     div.addEventListener('touchend',()=>clearTimeout(pressTimer));
     div.addEventListener('touchmove',()=>clearTimeout(pressTimer));
     div.addEventListener('contextmenu',e=>{e.preventDefault();openEpMenu(ep.id);});
+    // PC：マウスの長押しでも編集メニュー（その後のクリックで話が開かないようにする）
+    let epMouseTimer=null, epLongFired=false;
+    div.addEventListener('mousedown',e=>{
+      if(e.button!==0) return;
+      epLongFired=false;
+      epMouseTimer=setTimeout(()=>{ epLongFired=true; epMouseTimer=null; openEpMenu(ep.id); },550);
+    });
+    ['mouseup','mouseleave'].forEach(ev=>div.addEventListener(ev,()=>{ if(epMouseTimer){ clearTimeout(epMouseTimer); epMouseTimer=null; } }));
+    div.addEventListener('click',e=>{ if(epLongFired){ e.stopImmediatePropagation(); e.preventDefault(); epLongFired=false; } },true);
     list.appendChild(div);
   });
 
@@ -6336,6 +6457,7 @@ function setupScrollPageTurn(pageEl,pi,groupCount){
     subSwitchLocked=false; // タッチ終了でもリセット
     if(state.ui.transitioning||e.changedTouches.length!==1)return;
     if(hasTextSelection()) return; // 文字選択を広げている最中はページ送りしない
+    if(state.editMode) return; // 編集中は横のページ移動をしない
     const dx=e.changedTouches[0].clientX-touchStartX;
     const dy=e.changedTouches[0].clientY-touchStartY;
     // 横方向が明らかに優勢なスワイプ
@@ -6692,7 +6814,7 @@ function isSharedNovel(n){ n = n || state.novel; return !!(n && n.shared); }
 function isTrialNovel(n){ n = n || state.novel; return !!(n && n.trial); }
 
 async function workApi(path, opts = {}){
-  const res = await fetch(WORK_API + path, Object.assign({ headers: {'Content-Type':'application/json'} }, opts));
+  const res = await fetch(WORK_API + path, Object.assign({ headers: {'Content-Type':'application/json'}, cache: 'no-store' }, opts));
   let data = {};
   try{ data = await res.json(); }catch(_){}
   if(!res.ok && res.status !== 410){
@@ -6978,7 +7100,7 @@ async function openWorkDetail(workId){
   const body = document.getElementById('work-body');
   body.innerHTML = '<div class="work-msg">読み込み中...</div>';
   let meta;
-  try{ meta = await workApi('/w/' + workId); }
+  try{ meta = await workApi('/w/' + workId + '?device=' + getDeviceId()); }
   catch(e){ body.innerHTML = '<div class="work-msg">作品を読み込めませんでした。通信状態を確認してください。</div>'; return; }
   if(_workScreenId !== workId) return;
   if(meta.status !== 'public'){
@@ -6995,12 +7117,12 @@ async function openWorkDetail(workId){
         <div class="work-title">${escapeHtml(meta.title)}</div>
         <div class="work-author">${escapeHtml(meta.author || '')}</div>
         <div class="work-genre">${escapeHtml(meta.genre || '')}</div>
-        <div class="work-stats"><span><span class="ts-num">${meta.epCount}</span> 話</span>${updated ? `<span>更新 ${escapeHtml(updated)}</span>` : ''}</div>
+        <div class="work-stats"><span><span class="ts-num">${meta.epCount}</span> 話</span>${updated ? `<span>更新 ${escapeHtml(updated)}</span>` : ''}${likeButtonHtml(workId, meta.likes, meta.liked, 'small')}</div>
       </div>
     </div>
     <div class="work-actions">
       ${inLib
-        ? `<button class="work-btn primary" onclick="closeWorkDetail();openNovel('shared_${workId}')">本棚で開く</button>`
+        ? `<button class="work-btn primary" onclick="closeWorkDetail();closeBrowse();openNovel('shared_${workId}')">本棚で開く</button>`
         : `<button class="work-btn primary" onclick="addWorkToLibrary('${workId}')">本棚に追加</button>
            <button class="work-btn" onclick="startTrial('${workId}')">試し読み（${Math.min(TRIAL_EPISODES, meta.epCount)}話まで）</button>`}
     </div>
@@ -7077,6 +7199,7 @@ async function addWorkToLibrary(workId){
     state.library.push(JSON.parse(JSON.stringify(novel)));
     if(isTrialNovel()){ state.currentNovelId = null; state.currentEpisodeId = null; }
     closeWorkDetail();
+    closeBrowse();
     await openNovel(nid);
     showToast('本棚に追加しました');
   }catch(e){
@@ -7111,6 +7234,7 @@ async function startTrial(workId){
     state.novel = novel;
     state.currentEpisodeId = null;
     closeWorkDetail();
+    closeBrowse();
     hideLibrary();
     showToc();
     applyNovelLook();
@@ -7136,7 +7260,8 @@ function showTrialEnd(){
 async function persistSharedNovel(n){
   const copy = JSON.parse(JSON.stringify(n));
   const i = state.library.findIndex(x => x.id === n.id);
-  if(i >= 0) state.library[i] = copy;
+  if(i < 0) return; // 確認している間に本棚から削除された
+  state.library[i] = copy;
   await libDbPut(copy).catch(e => console.warn('persistShared:', e));
 }
 async function checkSharedUpdates(novelId, opts = {}){
@@ -7248,8 +7373,10 @@ function applySharedModeUI(){
   document.body.classList.toggle('shared-mode', shared);
   if($.toc_novel_title) $.toc_novel_title.contentEditable = shared ? 'false' : 'true';
   if($.toc_novel_author) $.toc_novel_author.contentEditable = shared ? 'false' : 'true';
+  if($.toc_cover_placeholder) $.toc_cover_placeholder.innerHTML = shared ? '表紙なし' : 'カバー画像<br>を追加';
 }
 function renderTocSharedExtras(){
+  refreshTocLike();
   const list = $.toc_list;
   const n = state.novel;
   if(!n || !n.shared || !list) return;
@@ -7268,6 +7395,200 @@ function renderTocSharedExtras(){
   }
 }
 
+
+/* ────────── 最新の話を確実に読む ────────── */
+// 目次で話をタップしたら、まず最新かを確認してから開く（最大2.5秒待つ）
+async function openSharedEpisodeFresh(id){
+  const n = state.novel;
+  if(!n || !n.shared || n.trial || n.shared.status !== 'public'){ openEpisode(id); return; }
+  try{
+    await Promise.race([ checkSharedUpdates(state.currentNovelId, { silent: true }), new Promise(r => setTimeout(r, 2500)) ]);
+  }catch(_){}
+  if(state.novel && state.novel.episodes.find(e => e.id === id)) openEpisode(id);
+  else{ renderToc(); showToast('この話は作者が削除しました'); }
+}
+// 目次に戻ってきた時・アプリに戻ってきた時も確認
+function checkOpenSharedNovelSoon(){
+  const n = state.novel;
+  if(!state.currentNovelId || !n || !n.shared || n.trial || n.shared.status === 'blocked') return;
+  if(state.currentEpisodeId) return;
+  checkSharedUpdates(state.currentNovelId, { silent: true });
+}
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState !== 'visible') return;
+  if(document.body.classList.contains('toc-mode')) checkOpenSharedNovelSoon();
+  else if(document.body.classList.contains('library-mode') && !state.currentNovelId){
+    state.library.forEach(n => { if(n.shared) n.shared.lastCheck = 0; });
+    checkAllSharedUpdates();
+  }
+});
+
+/* ────────── 共有作品を本棚から削除 ────────── */
+async function removeCurrentFromLibrary(){
+  const n = state.novel;
+  if(!n || !state.currentNovelId) return;
+  if(!confirm(`「${n.title}」を本棚から削除しますか？\n作品ページからいつでも追加し直せます。`)) return;
+  const id = state.currentNovelId;
+  clearTimeout(_saveTimer);
+  state.currentNovelId = null;
+  state.currentEpisodeId = null;
+  state.library = state.library.filter(x => x.id !== id); // 先に本棚から外す（書き戻し防止）
+  await libDbDelete(id).catch(() => {});
+  closePanel();
+  showLibrary();
+  showToast('本棚から削除しました');
+}
+
+/* ────────── いいね ────────── */
+function getDeviceId(){
+  const k = LS_PREFIX + 'device-id';
+  let d = localStorage.getItem(k);
+  if(!d){
+    d = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
+    localStorage.setItem(k, d);
+  }
+  return d;
+}
+function likeButtonHtml(workId, likes, liked, cls){
+  return `<button class="like-btn ${cls || ''} ${liked ? 'liked' : ''}" data-work="${workId}" onclick="toggleLike('${workId}', this)">
+    <span class="like-heart">${liked ? '♥' : '♡'}</span><span class="like-count">${likes || 0}</span></button>`;
+}
+async function toggleLike(workId, btn){
+  const liked = btn.classList.contains('liked');
+  // 先に見た目を変えておく
+  const setUi = (on, count) => document.querySelectorAll(`.like-btn[data-work="${workId}"]`).forEach(b => {
+    b.classList.toggle('liked', on);
+    b.querySelector('.like-heart').textContent = on ? '♥' : '♡';
+    if(count != null) b.querySelector('.like-count').textContent = count;
+  });
+  const cur = parseInt(btn.querySelector('.like-count').textContent) || 0;
+  setUi(!liked, Math.max(0, cur + (liked ? -1 : 1)));
+  try{
+    const r = await workApi('/like', { method: 'POST', body: JSON.stringify({ workId, device: getDeviceId(), like: !liked }) });
+    setUi(r.liked, r.likes);
+    const n = state.library.find(x => x.shared && x.shared.workId === workId);
+    if(n){ n.shared.likes = r.likes; n.shared.liked = r.liked; }
+    if(state.novel && state.novel.shared && state.novel.shared.workId === workId){ state.novel.shared.likes = r.likes; state.novel.shared.liked = r.liked; }
+  }catch(e){
+    setUi(liked, cur);
+    showToast('いいねできませんでした');
+  }
+}
+// 目次（共有作品）の統計の横に いいね を出す
+async function refreshTocLike(){
+  const n = state.novel;
+  const stats = document.getElementById('toc-stats');
+  if(!stats) return;
+  stats.querySelectorAll('.like-btn').forEach(b => b.remove());
+  if(!n || !n.shared || n.shared.status !== 'public') return;
+  const wid = n.shared.workId;
+  stats.insertAdjacentHTML('beforeend', likeButtonHtml(wid, n.shared.likes || 0, !!n.shared.liked, 'small'));
+  try{
+    const m = await workApi(`/w/${wid}?device=${getDeviceId()}`);
+    if(m.status === 'public' && state.novel && state.novel.shared && state.novel.shared.workId === wid){
+      state.novel.shared.likes = m.likes; state.novel.shared.liked = m.liked;
+      document.querySelectorAll(`.like-btn[data-work="${wid}"]`).forEach(b => {
+        b.classList.toggle('liked', !!m.liked);
+        b.querySelector('.like-heart').textContent = m.liked ? '♥' : '♡';
+        b.querySelector('.like-count').textContent = m.likes || 0;
+      });
+    }
+  }catch(_){}
+}
+
+/* ────────── 作品をさがす（一覧） ────────── */
+let _browse = { sort: 'popular', genre: '' };
+function openBrowse(){
+  document.getElementById('browse-screen').classList.add('show');
+  document.body.classList.add('browse-open');
+  renderBrowseFilters();
+  loadBrowse();
+}
+function closeBrowse(){
+  document.getElementById('browse-screen').classList.remove('show');
+  document.body.classList.remove('browse-open');
+}
+function renderBrowseFilters(){
+  const sorts = [['popular','人気'],['new','新着'],['updated','更新']];
+  document.getElementById('browse-sorts').innerHTML = sorts.map(([v, l]) =>
+    `<button class="browse-sort ${_browse.sort === v ? 'active' : ''}" onclick="_browse.sort='${v}';renderBrowseFilters();loadBrowse();">${l}</button>`).join('');
+  document.getElementById('browse-genres').innerHTML = [['', 'すべて'], ...WORK_GENRES.map(g => [g, g])].map(([v, l]) =>
+    `<button class="browse-genre ${_browse.genre === v ? 'active' : ''}" onclick="_browse.genre='${v}';renderBrowseFilters();loadBrowse();">${l}</button>`).join('');
+}
+async function loadBrowse(){
+  const grid = document.getElementById('browse-grid');
+  grid.innerHTML = '<div class="work-msg" style="grid-column:1/-1">読み込み中...</div>';
+  let data;
+  try{ data = await workApi(`/works?sort=${_browse.sort}&genre=${encodeURIComponent(_browse.genre)}`); }
+  catch(e){ grid.innerHTML = '<div class="work-msg" style="grid-column:1/-1">一覧を読み込めませんでした</div>'; return; }
+  const works = data.works || [];
+  if(!works.length){ grid.innerHTML = '<div class="work-msg" style="grid-column:1/-1">まだ作品がありません</div>'; return; }
+  grid.innerHTML = works.map(w => `
+    <div class="lib-card" onclick="openWorkDetail('${w.id}')">
+      <div class="lib-card-cover" style="${w.cover ? `background-image:url('${w.cover}')` : ''}">
+        ${w.cover ? '' : `<div class="lib-card-cover-placeholder"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span>カバーなし</span></div>`}
+        <div class="lib-card-ep-badge">全${w.epCount}話</div>
+        ${state.library.some(n => n.id === 'shared_' + w.id) ? '<div class="lib-card-flag owned">本棚</div>' : ''}
+      </div>
+      <div class="lib-card-title">${escapeHtml(w.title)}</div>
+      <div class="browse-card-meta"><span>${escapeHtml(w.genre || '')}</span><span>♡ ${w.likes || 0}</span></div>
+    </div>`).join('');
+}
+
+/* ══════ PC：閲覧中に画面の左右の端をクリックでページ移動 ══════ */
+function isPcPointer(){
+  return window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+}
+// x が左右どちらの端の領域か（本文の外側の余白＋本文の内側40px、最低でも画面幅の12%）
+function edgeZoneAt(x){
+  const vw = window.innerWidth;
+  const pageEl = document.getElementById('page-' + state.curPage);
+  const inner = pageEl && pageEl.querySelector('.page-inner');
+  let left = vw * 0.12, right = vw * 0.88;
+  if(inner){
+    const r = inner.getBoundingClientRect();
+    left = Math.max(left, r.left + 40);
+    right = Math.min(right, r.right - 40);
+  }
+  if(x <= left) return -1;
+  if(x >= right) return 1;
+  return 0;
+}
+function canEdgeNavigate(){
+  return isPcPointer() && !state.editMode && !state.ui.transitioning && state.currentEpisodeId &&
+    !document.body.classList.contains('toc-mode') && !document.body.classList.contains('library-mode');
+}
+// スマホの横スワイプと同じ：前後のページへ（最後なら次の話へ）
+function edgeNav(dir){
+  goPage(dir, 'h');
+}
+function setupEdgeClick(){
+  const vp = $.viewport;
+  const hintL = document.getElementById('edge-hint-left');
+  const hintR = document.getElementById('edge-hint-right');
+  let downX = 0, downY = 0;
+  vp.addEventListener('mousedown', e => { downX = e.clientX; downY = e.clientY; });
+  vp.addEventListener('click', e => {
+    if(!canEdgeNavigate() || e.button !== 0) return;
+    if(Math.abs(e.clientX - downX) > 6 || Math.abs(e.clientY - downY) > 6) return; // ドラッグ（文字選択）
+    if(hasTextSelection()) return;
+    if(e.target.closest && e.target.closest('button, a, .para-img-wrap')) return;
+    const z = edgeZoneAt(e.clientX);
+    if(z) edgeNav(z);
+  });
+  vp.addEventListener('mousemove', e => {
+    const z = canEdgeNavigate() ? edgeZoneAt(e.clientX) : 0;
+    vp.classList.toggle('edge-hover', z !== 0);
+    if(hintL) hintL.classList.toggle('show', z === -1);
+    if(hintR) hintR.classList.toggle('show', z === 1);
+  });
+  vp.addEventListener('mouseleave', () => {
+    vp.classList.remove('edge-hover');
+    if(hintL) hintL.classList.remove('show');
+    if(hintR) hintR.classList.remove('show');
+  });
+}
+
 function setupDoubleTap(){
   let lastTap=0;
   const vp=$.viewport;
@@ -7280,6 +7601,7 @@ function setupDoubleTap(){
   },{passive:false});
   vp.addEventListener('dblclick',e=>{
     if(state.readingMode||isSharedNovel())return;
+    if(isPcPointer() && edgeZoneAt(e.clientX)!==0) return; // 端の連打はページ送り
     if(state.editMode)return;
     enterEditMode();
   });
@@ -11563,8 +11885,11 @@ document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&(e.key==='z'||e.key==='Z')){e.preventDefault();edUndo();return;}
   if((e.ctrlKey||e.metaKey)&&(e.key==='y'||e.key==='Y')){e.preventDefault();edRedo();return;}
   if(document.activeElement&&document.activeElement.isContentEditable)return;
-  if(e.key==='ArrowRight'||e.key==='ArrowDown') goPage(1,'h');
-  if(e.key==='ArrowLeft'||e.key==='ArrowUp')    goPage(-1,'h');
+  if(state.editMode || !state.currentEpisodeId) return; // 編集中は横のページ移動をしない
+  if(document.body.classList.contains('toc-mode')||document.body.classList.contains('library-mode')) return;
+  if(/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement||{}).tagName||'')) return;
+  if(e.key==='ArrowRight'||e.key==='ArrowDown') edgeNav(1);
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp')    edgeNav(-1);
 });
 function srchNav(dir){
   if(!state.ui.search.matches.length)return;
@@ -11876,6 +12201,7 @@ function getCurrentView(){
 
 function hasOpenOverlay(){
   { const ws=document.getElementById('work-screen'); if(ws && ws.classList.contains('show')) return true; }
+  { const bs=document.getElementById('browse-screen'); if(bs && bs.classList.contains('show')) return true; }
   for(const id of ['resume-popup','sleep-timer-popup','eb-furigana-popup']){
     const el=document.getElementById(id); if(el && el.classList.contains('show')) return true;
   }
@@ -11904,6 +12230,7 @@ function hasOpenOverlay(){
 
 function handleBackNavigation(){
   { const ws=document.getElementById('work-screen'); if(ws && ws.classList.contains('show') && !($.modal_ov && $.modal_ov.classList.contains('show'))){ closeWorkDetail(); return true; } }
+  { const bs=document.getElementById('browse-screen'); if(bs && bs.classList.contains('show') && !($.modal_ov && $.modal_ov.classList.contains('show'))){ closeBrowse(); return true; } }
   const _rp=document.getElementById('resume-popup');
   if(_rp && _rp.classList.contains('show')){ hideResumePopup(); return true; }
   const _sp=document.getElementById('sleep-timer-popup');
