@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>小説リーダー</title>
+<title>イカ墨ノベル</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#11d1d1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="小説">
+<meta name="apple-mobile-web-app-title" content="イカ墨ノベル">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;500;700&family=Noto+Sans+JP:wght@300;400;500&family=Shippori+Mincho+B1:wght@400;500;700&family=M+PLUS+Rounded+1c:wght@400;500&display=swap');
@@ -1372,7 +1372,7 @@ body.toc-mode #subpage-dots,body.library-mode #subpage-dots,body.toc-mode #tts-c
   display:flex;align-items:center;justify-content:center;
   font-size:11px;opacity:0;transition:opacity .15s;
 }
-#toc-cover:hover .cover-edit-hint{opacity:1;}
+@media (hover:hover){#toc-cover.has-image:hover .cover-edit-hint{opacity:1;}}
 
 #toc-info-text{flex:1;min-width:0;display:flex;flex-direction:column;}
 #toc-novel-title{
@@ -1858,6 +1858,7 @@ body.theme-dark #viewport.edit-mode .page-editor p{
 }
 body.theme-dark .page-editor p.tts-reading{background:rgba(0,200,200,0.14);}
 body.theme-dark .pnl{color:#666;}
+body.theme-dark .page-editor [data-dkfix]{color:var(--ink) !important;}
 </style>
 </head>
 <body>
@@ -2999,10 +3000,41 @@ function getActiveFuriganaRulesForPara(para) {
   return [...indivRules, ...globalRules].sort((a, b) => b.word.length - a.word.length);
 }
 
+/* ── 夜間・深夜テーマ用：黒っぽい文字色だけをテーマの文字色で表示する ──
+   データは書き換えず、表示用の目印（data-dkfix）を付けるだけ。保存時には外す */
+function parseCssColor(c){
+  if(!c) return null;
+  c = String(c).trim().toLowerCase();
+  let m = c.match(/^#([0-9a-f]{3,8})$/);
+  if(m){
+    let h = m[1];
+    if(h.length === 3 || h.length === 4) h = h.split('').map(x=>x+x).join('');
+    return [parseInt(h.substr(0,2),16), parseInt(h.substr(2,2),16), parseInt(h.substr(4,2),16)];
+  }
+  m = c.match(/^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/);
+  if(m) return [+m[1], +m[2], +m[3]];
+  if(c === 'black') return [0,0,0];
+  return null;
+}
+function isNearBlack(c){
+  const rgb = parseCssColor(c);
+  if(!rgb) return false;
+  const [r,g,b] = rgb;
+  const bright = 0.299*r + 0.587*g + 0.114*b;
+  const chroma = Math.max(r,g,b) - Math.min(r,g,b);
+  return bright < 90 && chroma < 48; // 暗くて色味の薄いもの＝黒・濃いグレー
+}
+function markDarkTextForTheme(root){
+  root.querySelectorAll('[style*="color"], font[color]').forEach(el=>{
+    const c = el.style.color || el.getAttribute('color');
+    if(isNearBlack(c)) el.setAttribute('data-dkfix','');
+  });
+}
 function stripFuriganaHtml(html){
-  if(!html || html.indexOf('<ruby') === -1) return html;
+  if(!html || (html.indexOf('<ruby') === -1 && html.indexOf('data-dkfix') === -1)) return html;
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
+  tmp.querySelectorAll('[data-dkfix]').forEach(el=>el.removeAttribute('data-dkfix'));
   tmp.querySelectorAll('ruby').forEach(ruby=>{
     const rt = ruby.querySelector('rt');
     if(rt) rt.remove();
@@ -5454,6 +5486,7 @@ function buildParaEl(pi,qi,para){
     p.dataset.pi=pi; p.dataset.qi=qi; p.dataset.type='text';
     if (typeof para.html === 'string' && para.html !== '') {
       p.innerHTML = shouldShowFuriganaDisplay() ? buildFuriganaDisplayHtml(para) : para.html;
+      markDarkTextForTheme(p);
     }else if(para.text){
       p.textContent=para.text;
     }else{
@@ -5463,7 +5496,8 @@ function buildParaEl(pi,qi,para){
     p.style.textAlign=para.align||'left';
     p.style.fontSize=(para.size||state.settings.fontSize)+'px';
     const _c = para.color || state.settings.color;
-    p.style.color = (!_c || _c.toLowerCase()==='#1a1208') ? 'var(--ink)' : _c;
+    p.style.color = (!_c || isNearBlack(_c)) ? 'var(--ink)' : _c;
+    if(_c && isNearBlack(_c)) p.dataset.origColor = _c;
     p.style.fontFamily=para.fontFamily||state.settings.fontFamily;
     return p;
   }
@@ -5726,7 +5760,7 @@ function syncEditorToState(pi){
         let nodeSize = parseFloat(node.style.fontSize);
         if (isNaN(nodeSize) || !nodeSize) nodeSize = (orig && orig.size) || state.settings.fontSize;
         let nodeColor = node.style.color || (orig && orig.color) || state.settings.color;
-        if (/var\(--ink\)/.test(nodeColor)) nodeColor = '#1a1208';
+        if (/var\(--ink\)/.test(nodeColor)) nodeColor = (node.dataset && node.dataset.origColor) || (orig && orig.color) || '#1a1208';
         const builtPara = {
           type: 'text',
           text: stripFuriganaText(node.innerHTML),
@@ -6353,7 +6387,7 @@ function setupDoubleTap(){
 function nativePlaybackStart(title, text){
   try{
     if(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.Playback){
-      window.Capacitor.Plugins.Playback.start({ title: title || '小説リーダー', text: text || '読み上げ中…' });
+      window.Capacitor.Plugins.Playback.start({ title: title || 'イカ墨ノベル', text: text || '読み上げ中…' });
     }
   }catch(e){ console.warn('nativePlaybackStart:', e); }
 }
@@ -6966,7 +7000,7 @@ function ttsTestStartFull() {
   updateTtsBarVisibility();
   updateTtsPlayPauseIcon();
   try {
-    navigator.mediaSession.metadata = new MediaMetadata({ title: 'TTSテスト', artist: '小説リーダー' });
+    navigator.mediaSession.metadata = new MediaMetadata({ title: 'TTSテスト', artist: 'イカ墨ノベル' });
     navigator.mediaSession.playbackState = 'playing';
   } catch (e) {}
   playNextTtsChunk();
@@ -6977,7 +7011,7 @@ function ttsTestStart() {
   state.tts.playing = true;
   try {
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: 'TTSテスト', artist: '小説リーダー', album: '小説リーダー'
+      title: 'TTSテスト', artist: 'イカ墨ノベル', album: 'イカ墨ノベル'
     });
     navigator.mediaSession.playbackState = 'playing';
   } catch (e) {}
@@ -9548,7 +9582,11 @@ function autoAddGroup(pi) {
     return;
   }
   
-  const insertAt = pg.paras.length;
+  if(state.editMode) syncEditorToState(pi);
+  const insertAt = state.pages[pi].paras.length;
+  _undoStack.push(JSON.stringify(state.pages));
+  if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
+  _redoStack.length = 0;
   
   state.pages[pi].paras.splice(insertAt, 0, {type:'group-break'});
   // 新グループの先頭に空段落を追加（<br>を入れてカーソルが立つようにする）
