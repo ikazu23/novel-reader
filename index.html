@@ -7498,10 +7498,12 @@ function ttsTestStart() {
 ══════════════════════════════════════ */
 // ── 編集バー表示・同期 ──
 function showEB(para){
+  if(!state.editMode || isSharedNovelSafe()){ hideEB(); return; } // 閲覧中・共有作品では編集バーを出さない
   syncEB(para);
   $.botbar_edit_row.classList.add('visible');
   state.ui.ebOpen=true;placeEB();
 }
+function isSharedNovelSafe(){ return !!(state.novel && state.novel.shared); }
 function hideEB(){
   $.botbar_edit_row.classList.remove('visible');
   state.ui.ebOpen=false;closeColorPopup();
