@@ -4616,6 +4616,17 @@ async function exportAsJson(){
       exportedAt: new Date().toISOString(),
       novel: JSON.parse(JSON.stringify(state.novel))
     };
+    // 挿絵も一緒に入れる（本のデータには画像の名前しか入っていないため）
+    const imgNames = new Set();
+    (data.novel.episodes || []).forEach(ep => (ep.pages || []).forEach(pg => (pg.paras || []).forEach(pa => {
+      if(pa.type === 'image' && pa.imgName) imgNames.add(pa.imgName);
+    })));
+    if(imgNames.size){
+      data.images = {};
+      for(const name of imgNames){
+        try{ const d = await imgDbGet(name); if(d) data.images[name] = d; }catch(_){}
+      }
+    }
     const json = JSON.stringify(data, null, 2);
     const safeTitle = (state.novel.title || 'novel').replace(/[\\/:*?"<>|]/g, '_');
     const fileName = safeTitle + '.json';
@@ -4723,6 +4734,14 @@ async function handleJsonImport(event){
       state.library[idx] = imported;
     } else {
       state.library.push(imported);
+    }
+    // 一緒に入っていた挿絵を保存
+    if(data && data.images && typeof data.images === 'object'){
+      for(const [name, dataUrl] of Object.entries(data.images)){
+        if(typeof dataUrl === 'string' && dataUrl.startsWith('data:image/')){
+          try{ await imgDbSave(name, dataUrl); }catch(_){}
+        }
+      }
     }
     await libDbPut(imported);
     try{ showToast('「' + (imported.title || '') + '」をインポートしました'); }catch(_){}
