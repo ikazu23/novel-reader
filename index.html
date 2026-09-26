@@ -2324,12 +2324,24 @@ body.theme-dark .page-editor [data-dkfix]{color:var(--ink) !important;}
   <div class="pl">読み上げエンジン</div>
   <div class="pr" id="tts-engine-btns">
     <button class="ob" id="tts-eng-device" onclick="setTtsEngine('device')">端末音声（無料）</button>
-    <button class="ob" id="tts-eng-cloud" onclick="setTtsEngine('cloud')">Google Cloud（制作中）</button>
+    <button class="ob" id="tts-eng-cloud" onclick="setTtsEngine('cloud')">Google Cloud</button>
   </div>
   <div id="tts-cloud-settings" style="margin-top:10px;">
     <input type="password" id="tts-api-key-input" placeholder="APIキーを入力"
       style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:13px;margin-bottom:6px;box-sizing:border-box;"
       onblur="saveTtsApiKey(this)">
+  </div>
+  <div id="tts-voice-settings" style="margin-top:10px;">
+    <div style="font-family:'Noto Sans JP',sans-serif;font-size:11px;color:#999;margin-bottom:6px;">声</div>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <select id="tts-voice-select" onchange="onTtsVoiceChange(this)"
+        style="flex:1;min-width:0;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:13px;background:#fff;color:#222;font-family:'Noto Sans JP',sans-serif;"></select>
+      <button onclick="previewTtsVoice()" title="試聴"
+        style="flex-shrink:0;padding:8px 12px;border:1px solid #008080;color:#008080;background:none;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">試聴</button>
+    </div>
+    <button id="tts-voice-reload" onclick="loadCloudVoices(true)"
+      style="margin-top:6px;background:none;border:none;color:#3a6d8c;font-size:11px;cursor:pointer;padding:2px 0;font-family:'Noto Sans JP',sans-serif;">声の一覧を読み込み直す</button>
+    <div id="tts-voice-hint" style="font-family:'Noto Sans JP',sans-serif;font-size:10px;color:#aaa;line-height:1.6;margin-top:4px;"></div>
   </div>
   <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#333;cursor:pointer;">
     <input type="checkbox" id="tts-auto-next-episode" onchange="toggleTtsAutoNextEpisode(this)" style="width:16px;height:16px;accent-color:#008080;cursor:pointer;">
@@ -6535,7 +6547,8 @@ async function speakWithDeviceTts(text) {
     utter.lang = 'ja-JP';
     utter.rate = rate;
     const voices = speechSynthesis.getVoices();
-    const jaVoice = voices.find(v => v.lang === 'ja-JP') || voices.find(v => v.lang && v.lang.startsWith('ja'));
+    const chosen = state.settings.ttsDeviceVoice && voices.find(v => v.voiceURI === state.settings.ttsDeviceVoice);
+    const jaVoice = chosen || voices.find(v => v.lang === 'ja-JP') || voices.find(v => v.lang && v.lang.startsWith('ja'));
     if (jaVoice) utter.voice = jaVoice;
     state.tts.deviceUtter = utter;
     utter.onend = resolve;
@@ -6544,12 +6557,166 @@ async function speakWithDeviceTts(text) {
   });
 }
 
+/* ══════ 声の選択 ══════ */
+const TTS_SAMPLE_TEXT = 'こんにちは。イカ墨ノベルの読み上げテストです。今日はどんな物語を読みましょうか。';
+const CLOUD_VOICE_CACHE_KEY = 'tts-cloud-voices';
+// 自然さの順（上ほど人間っぽい・高い）
+const CLOUD_VOICE_TYPES = [
+  {key:'Chirp3-HD', label:'Chirp 3 HD（最も自然）'},
+  {key:'Chirp-HD',  label:'Chirp HD'},
+  {key:'Neural2',   label:'Neural2'},
+  {key:'Wavenet',   label:'WaveNet'},
+  {key:'Standard',  label:'Standard（機械的・安い）'},
+];
+function cloudVoiceType(name){
+  const t = CLOUD_VOICE_TYPES.find(t => name.indexOf('-' + t.key + '-') !== -1);
+  return t ? t.key : 'その他';
+}
+function cloudVoiceLabel(v){
+  const short = v.name.replace(/^ja-JP-/, '').replace(/^(Chirp3-HD|Chirp-HD|Neural2|Wavenet|Standard)-/, '');
+  const g = v.ssmlGender === 'FEMALE' ? '女性' : v.ssmlGender === 'MALE' ? '男性' : '';
+  const t = cloudVoiceType(v.name);
+  return (t === 'その他' ? '' : t.replace('Chirp3-HD','Chirp3') + ' ') + short + (g ? '（' + g + '）' : '');
+}
+
+async function loadCloudVoices(force){
+  const sel = document.getElementById('tts-voice-select');
+  const hint = document.getElementById('tts-voice-hint');
+  if(!sel) return;
+  let voices = null;
+  if(!force){
+    try{ voices = JSON.parse(localStorage.getItem(CLOUD_VOICE_CACHE_KEY) || 'null'); }catch(_){}
+  }
+  if(!voices){
+    const key = state.settings.ttsApiKey;
+    if(!key){
+      sel.innerHTML = '<option value="">APIキーを入れると声を選べます</option>';
+      if(hint) hint.textContent = '';
+      return;
+    }
+    sel.innerHTML = '<option value="">読み込み中...</option>';
+    try{
+      const res = await fetch('https://texttospeech.googleapis.com/v1/voices?languageCode=ja-JP&key=' + encodeURIComponent(key));
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      voices = (data.voices || []).filter(v => (v.languageCodes || []).includes('ja-JP'))
+        .map(v => ({name: v.name, ssmlGender: v.ssmlGender}));
+      localStorage.setItem(CLOUD_VOICE_CACHE_KEY, JSON.stringify(voices));
+    }catch(e){
+      console.warn('loadCloudVoices:', e);
+      sel.innerHTML = '<option value="">一覧を取得できません（APIキーを確認）</option>';
+      if(hint) hint.textContent = 'Cloud Text-to-Speech API が有効になっているか、APIキーの制限を確認してください。';
+      return;
+    }
+  }
+  const cur = state.settings.ttsVoice || '';
+  sel.innerHTML = '';
+  const groups = {};
+  voices.forEach(v => { (groups[cloudVoiceType(v.name)] = groups[cloudVoiceType(v.name)] || []).push(v); });
+  [...CLOUD_VOICE_TYPES.map(t=>t.key), 'その他'].forEach(k => {
+    if(!groups[k]) return;
+    const og = document.createElement('optgroup');
+    og.label = (CLOUD_VOICE_TYPES.find(t=>t.key===k) || {label:k}).label;
+    groups[k].sort((a,b)=>a.name.localeCompare(b.name)).forEach(v => {
+      const o = document.createElement('option');
+      o.value = v.name; o.textContent = cloudVoiceLabel(v);
+      if(v.name === cur) o.selected = true;
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  });
+  if(!cur || !voices.some(v => v.name === cur)){
+    // 未選択なら一番自然な声を初期値に
+    const best = sel.querySelector('option');
+    if(best){ best.selected = true; state.settings.ttsVoice = best.value; debouncedSaveSettings(); }
+  }
+  if(hint) hint.textContent = '上ほど自然な声です。Chirp 3 HD / Neural2 / WaveNet は Standard より料金が高く、無料枠も種類ごとに別です。';
+}
+
+function getDeviceJaVoices(){
+  if(!('speechSynthesis' in window)) return [];
+  return speechSynthesis.getVoices().filter(v => v.lang && v.lang.replace('_','-').toLowerCase().startsWith('ja'));
+}
+function populateDeviceVoices(){
+  const sel = document.getElementById('tts-voice-select');
+  const hint = document.getElementById('tts-voice-hint');
+  if(!sel) return;
+  const voices = getDeviceJaVoices();
+  const cur = state.settings.ttsDeviceVoice || '';
+  sel.innerHTML = '';
+  const def = document.createElement('option');
+  def.value = ''; def.textContent = '端末の標準';
+  sel.appendChild(def);
+  voices.forEach(v => {
+    const o = document.createElement('option');
+    o.value = v.voiceURI; o.textContent = v.name + (v.localService ? '' : '（オンライン）');
+    if(v.voiceURI === cur) o.selected = true;
+    sel.appendChild(o);
+  });
+  if(hint){
+    hint.textContent = gdriveIsNativeTts()
+      ? 'アプリ版は端末の設定（テキスト読み上げの優先エンジン）の声を使います。声を変えたい場合は Android の設定から変更してください。'
+      : (voices.length ? '端末に入っている日本語の声から選べます。' : '日本語の声が見つかりません。');
+  }
+}
+function gdriveIsNativeTts(){
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+if('speechSynthesis' in window){
+  speechSynthesis.addEventListener('voiceschanged', ()=>{
+    if((state.settings.ttsEngine || 'device') === 'device') populateDeviceVoices();
+  });
+}
+
+function onTtsVoiceChange(sel){
+  if((state.settings.ttsEngine || 'device') === 'cloud') state.settings.ttsVoice = sel.value;
+  else state.settings.ttsDeviceVoice = sel.value;
+  _ttsAudioCache.clear();
+  debouncedSaveSettings();
+}
+
+let _ttsPreviewAudio = null;
+async function previewTtsVoice(){
+  const engine = state.settings.ttsEngine || 'device';
+  try{
+    if(_ttsPreviewAudio){ _ttsPreviewAudio.pause(); _ttsPreviewAudio = null; }
+    if('speechSynthesis' in window) speechSynthesis.cancel();
+    if(engine === 'cloud'){
+      showToast('音声を生成中...');
+      const b64 = await synthesizeChirp(TTS_SAMPLE_TEXT);
+      _ttsPreviewAudio = new Audio('data:audio/mp3;base64,' + b64);
+      _ttsPreviewAudio.playbackRate = state.settings.ttsRate || 1;
+      await _ttsPreviewAudio.play();
+    } else {
+      await speakWithDeviceTts(TTS_SAMPLE_TEXT);
+    }
+  }catch(e){
+    showToast('試聴できませんでした：' + e.message);
+  }
+}
+
+// クラウド音声の先読み（段落の切れ目の待ち時間をなくす）
+const _ttsAudioCache = new Map();
+function ttsGetCloudAudio(idx){
+  const item = state.tts.queue[idx];
+  if(!item) return null;
+  const key = idx + '|' + (state.settings.ttsVoice || '') + '|' + item.text;
+  if(!_ttsAudioCache.has(key)){
+    const pr = synthesizeChirp(item.text);
+    pr.catch(()=>_ttsAudioCache.delete(key));
+    _ttsAudioCache.set(key, pr);
+    // 古いものを捨てる
+    if(_ttsAudioCache.size > 6) _ttsAudioCache.delete(_ttsAudioCache.keys().next().value);
+  }
+  return _ttsAudioCache.get(key);
+}
+
 const TTS_CHUNK_MAX_CHARS = 1400; // APIの1リクエストあたりの文字数制限への安全マージン
 
 async function synthesizeChirp(text) {
   const apiKey = state.settings.ttsApiKey;
   if (!apiKey) { showToast('設定画面でAPIキーを入力してください'); throw new Error('no api key'); }
-  const voiceName = state.settings.ttsVoice || 'ja-JP-Standard-A';
+  const voiceName = state.settings.ttsVoice || 'ja-JP-Neural2-B';
   const rate = state.settings.ttsRate || 1;
   const res = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + apiKey, {
     method: 'POST',
@@ -6778,11 +6945,17 @@ function updateTtsEngineUI() {
   document.getElementById('tts-eng-cloud').classList.toggle('active', engine === 'cloud');
   const cloudSettings = document.getElementById('tts-cloud-settings');
   if (cloudSettings) cloudSettings.style.display = (engine === 'cloud') ? 'block' : 'none';
+  const reload = document.getElementById('tts-voice-reload');
+  if (reload) reload.style.display = (engine === 'cloud') ? '' : 'none';
+  if (engine === 'cloud') loadCloudVoices(false); else populateDeviceVoices();
 }
 
 function saveTtsApiKey(el) {
-  state.settings.ttsApiKey = el.value.trim();
+  const v = el.value.trim();
+  const changed = v !== (state.settings.ttsApiKey || '');
+  state.settings.ttsApiKey = v;
   debouncedSaveSettings();
+  if(changed && (state.settings.ttsEngine || 'device') === 'cloud') loadCloudVoices(true);
 }
 
 function stopCurrentAudioOnly() {
@@ -6794,6 +6967,7 @@ function stopCurrentAudioOnly() {
 
 function stopTts(){
   nativePlaybackStop();
+  _ttsAudioCache.clear();
   if(state.tts.audio){ state.tts.audio.pause(); state.tts.audio = null; }
   if('speechSynthesis' in window){ speechSynthesis.cancel(); }
   const NativeTts = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
@@ -6860,6 +7034,8 @@ function getGroupPlainTexts(pi, g){
     let t = (p.text || (p.html || '').replace(/<[^>]+>/g, '')).trim();
     if (t) {
       t = applyFuriganaForTts(t, p);
+      // 読み飛ばし指定で空になった／記号だけの段落は読まない（空の音声で止まるのを防ぐ）
+      if (!/[\p{L}\p{N}]/u.test(t)) continue;
       texts.push(t);
       qis.push(qi);
     }
@@ -6940,13 +7116,17 @@ async function playNextTtsChunk(){
 
   try{
     if(useCloud){
-      showToast('音声を生成中...');
-      const audioContent = await synthesizeChirp(text);
+      const pending = ttsGetCloudAudio(state.tts.idx);
+      if(state.tts.idx === 0 || !pending) showToast('音声を生成中...');
+      const audioContent = await (pending || synthesizeChirp(text));
+      if(!state.tts.playing) return;
+      ttsGetCloudAudio(state.tts.idx + 1); // 次の段落を先に作っておく
+      if(!audioContent){ ttsSkipBrokenChunk('空の音声'); return; }
       const audio = new Audio('data:audio/mp3;base64,' + audioContent);
       audio.playbackRate = state.settings.ttsRate || 1;
       state.tts.audio = audio;
-      audio.onended = () => { state.tts.idx++; playNextTtsChunk(); };
-      audio.onerror = () => { showToast('再生に失敗しました'); state.tts.playing = false; };
+      audio.onended = () => { _ttsFailStreak = 0; state.tts.idx++; playNextTtsChunk(); };
+      audio.onerror = () => { ttsSkipBrokenChunk('再生エラー'); };
       await audio.play();
     } else {
       await speakWithDeviceTts(text);
@@ -6954,9 +7134,26 @@ async function playNextTtsChunk(){
       playNextTtsChunk();
     }
   }catch(e){
-    showToast('読み上げに失敗しました: ' + e.message);
-    state.tts.playing = false;
+    if(e && e.message === 'no api key'){ state.tts.playing = false; updateTtsPlayPauseIcon(); return; }
+    ttsSkipBrokenChunk(e && e.message);
   }
+}
+
+// 1段落だけ読めなかった時は飛ばして次へ。連続3回失敗したら止める
+let _ttsFailStreak = 0;
+function ttsSkipBrokenChunk(reason){
+  if(!state.tts.playing) return;
+  _ttsFailStreak++;
+  console.warn('TTS chunk skipped:', state.tts.idx, reason);
+  if(_ttsFailStreak >= 3){
+    _ttsFailStreak = 0;
+    showToast('読み上げに失敗しました: ' + (reason || '不明なエラー'));
+    state.tts.playing = false;
+    updateTtsPlayPauseIcon();
+    return;
+  }
+  state.tts.idx++;
+  setTimeout(playNextTtsChunk, 50);
 }
 
 const TTS_NEXT_EPISODE_DELAY_MS = 3000;
