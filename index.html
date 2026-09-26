@@ -244,9 +244,10 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 
 /* ══════ VIEW / EDIT MODE ══════ */
 #viewport:not(.edit-mode) .page-editor{
-  cursor:default;
-  user-select:none;
-  -webkit-user-select:none;
+  cursor:text;
+  user-select:text;
+  -webkit-user-select:text;
+  -webkit-touch-callout:default;
 }
 #viewport.edit-mode .page-editor{
   cursor:text;
@@ -1009,7 +1010,14 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 .font-btn:last-child{border-bottom:none;}
 .font-btn:hover{color:#008080;}
 .font-btn.active{color:#008080;}
-.font-btn.active::after{content:'✓';font-size:12px;color:#008080;}
+.font-btn.active::after{content:'✓';font-size:12px;color:#008080;margin-left:8px;}
+.font-btn{gap:8px;}
+.font-btn-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.font-btn-tag{flex-shrink:0;font-family:'Noto Sans JP',sans-serif;font-size:10px;color:#999;border:1px solid #ddd;border-radius:4px;padding:1px 5px;}
+.font-del-btn{flex-shrink:0;font-family:'Noto Sans JP',sans-serif;font-size:11px;color:#c54040;border:1px solid #f0d0d0;border-radius:4px;padding:3px 8px;background:#fff;}
+.font-del-btn:active{background:#fff0f0;}
+body.theme-dark .font-del-btn{background:transparent;border-color:#6a3a3a;color:#e07070;}
+body.theme-dark .font-btn-tag{border-color:#444;color:#888;}
 /* font file load */
 .font-load-row{
   display:flex;align-items:center;gap:10px;margin-top:14px;
@@ -2324,12 +2332,24 @@ body.theme-dark .page-editor [data-dkfix]{color:var(--ink) !important;}
   <div class="pl">読み上げエンジン</div>
   <div class="pr" id="tts-engine-btns">
     <button class="ob" id="tts-eng-device" onclick="setTtsEngine('device')">端末音声（無料）</button>
-    <button class="ob" id="tts-eng-cloud" onclick="setTtsEngine('cloud')">Google Cloud（制作中）</button>
+    <button class="ob" id="tts-eng-cloud" onclick="setTtsEngine('cloud')">Google 高音質（有料）</button>
   </div>
   <div id="tts-cloud-settings" style="margin-top:10px;">
     <input type="password" id="tts-api-key-input" placeholder="APIキーを入力"
       style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:13px;margin-bottom:6px;box-sizing:border-box;"
       onblur="saveTtsApiKey(this)">
+  </div>
+  <div id="tts-voice-settings" style="margin-top:10px;">
+    <div style="font-family:'Noto Sans JP',sans-serif;font-size:11px;color:#999;margin-bottom:6px;">声</div>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <select id="tts-voice-select" onchange="onTtsVoiceChange(this)"
+        style="flex:1;min-width:0;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:13px;background:#fff;color:#222;font-family:'Noto Sans JP',sans-serif;"></select>
+      <button onclick="previewTtsVoice()" title="試聴"
+        style="flex-shrink:0;padding:8px 12px;border:1px solid #008080;color:#008080;background:none;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">試聴</button>
+    </div>
+    <button id="tts-voice-reload" onclick="loadCloudVoices(true)"
+      style="margin-top:6px;background:none;border:none;color:#3a6d8c;font-size:11px;cursor:pointer;padding:2px 0;font-family:'Noto Sans JP',sans-serif;">声の一覧を読み込み直す</button>
+    <div id="tts-voice-hint" style="font-family:'Noto Sans JP',sans-serif;font-size:10px;color:#aaa;line-height:1.6;margin-top:4px;"></div>
   </div>
   <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#333;cursor:pointer;">
     <input type="checkbox" id="tts-auto-next-episode" onchange="toggleTtsAutoNextEpisode(this)" style="width:16px;height:16px;accent-color:#008080;cursor:pointer;">
@@ -2341,7 +2361,7 @@ body.theme-dark .page-editor [data-dkfix]{color:var(--ink) !important;}
     <div class="font-list" id="font-list"></div>
     <div class="font-load-row">
       <button class="font-load-btn" onclick="document.getElementById('font-file-input').click()">フォントファイルを読み込む</button>
-      <span class="font-load-name" id="font-load-name">未読み込み</span>
+      <span class="font-load-name" id="font-load-name">ttf / otf / woff</span>
       <input type="file" id="font-file-input" accept=".ttf,.otf,.woff,.woff2" style="display:none" onchange="loadFontFile(this)">
     </div>
   </div>
@@ -2962,31 +2982,6 @@ async function loadSavedFonts(){
     if($.font_list){
       $.font_list.innerHTML = '';
       buildFontList();
-      // 永続化されたフォントには削除ボタンを追加
-      FONTS.forEach((f, i)=>{
-        if(f.custom){
-          const btns = $.font_list.querySelectorAll('.font-btn');
-          if(btns[i]){
-            btns[i].title = '長押しで削除';
-            // 長押しで削除
-            let lpTimer = null;
-            const startLp = ()=>{
-              lpTimer = setTimeout(()=>{
-                if(confirm('「' + f.fontName + '」を削除しますか？')){
-                  removeCustomFont(f.fontName, f.family);
-                }
-              }, 600);
-            };
-            const cancelLp = ()=>{ if(lpTimer){clearTimeout(lpTimer); lpTimer=null;} };
-            btns[i].addEventListener('touchstart', startLp, {passive:true});
-            btns[i].addEventListener('touchend', cancelLp);
-            btns[i].addEventListener('touchmove', cancelLp, {passive:true});
-            btns[i].addEventListener('mousedown', startLp);
-            btns[i].addEventListener('mouseup', cancelLp);
-            btns[i].addEventListener('mouseleave', cancelLp);
-          }
-        }
-      });
     }
   }catch(e){ console.warn('loadSavedFonts:', e); }
 }
@@ -3495,10 +3490,20 @@ async function removeCustomFont(fontName, family){
     if(idx >= 0){
       FONTS.splice(idx, 1);
       // 現在使用中のフォントが削除されたものなら、デフォルトに戻す
-      if(state.settings.fontFamily === family){
+      if(lookSetting('fontFamily') === family){
         applyGlobalFont(FONTS[0].family, 0);
       }
     }
+    // このフォントを使っていた他の本・全体の既定も明朝体に戻す
+    if(state.settings.fontFamily === family){ state.settings.fontFamily = FONTS[0].family; debouncedSaveSettings(); }
+    for(const n of (state.library || [])){
+      if(n.fontFamily === family && n.id !== state.currentNovelId){
+        delete n.fontFamily;
+        libDbPut(n).catch(()=>{});
+      }
+    }
+    const styleEl = document.getElementById('custom-font-' + fontName.replace(/[^a-zA-Z0-9]/g, '_'));
+    if(styleEl) styleEl.remove();
     // UIを再描画
     if($.font_list){
       $.font_list.innerHTML = '';
@@ -3766,6 +3771,35 @@ async function loadLibrary(){
   }
 }
 
+// 見た目の設定：本を開いていればその本に、開いていなければ全体の既定に保存
+function lookSetting(key, fallback){
+  if(state.currentNovelId && state.novel && state.novel[key] != null) return state.novel[key];
+  return state.settings[key] != null ? state.settings[key] : fallback;
+}
+function storeLookSetting(key, val){
+  if(state.currentNovelId && state.novel){
+    state.novel[key] = val;
+    const li = state.library.findIndex(n=>n.id===state.currentNovelId);
+    if(li>=0) state.library[li][key] = val;
+    save();
+  } else {
+    state.settings[key] = val;
+    debouncedSaveSettings();
+  }
+}
+// 本を開いた時・ライブラリに戻った時に、その本（または既定）の見た目をまとめて反映
+function applyNovelLook(){
+  applyTheme(novelThemeIdx(state.currentNovelId ? state.novel : null));
+  applyParaLineHeight(lookSetting('lineHeight', 2.0), false);
+  applyParaSpacing(lookSetting('paraSpacing', 24), false);
+  let fam = lookSetting('fontFamily', FONTS[0].family);
+  if(!FONTS.some(f=>f.family===fam)) fam = FONTS[0].family; // 削除済みフォント
+  applyGlobalFont(fam, FONTS.findIndex(f=>f.family===fam), false);
+}
+function novelThemeIdx(novel){
+  if(novel && Number.isInteger(novel.themeIdx) && THEMES[novel.themeIdx]) return novel.themeIdx;
+  return state.settings.themeIdx || 0;
+}
 function makeNovel(title){
   return{
     id:'novel_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
@@ -3831,8 +3865,8 @@ function applyLoadedSettings(){
   // 行間・段落間の初期反映
   if(s.lineHeight == null) s.lineHeight = 2.0;
   if(s.paraSpacing == null) s.paraSpacing = 24;
-  applyParaLineHeight(s.lineHeight);
-  applyParaSpacing(s.paraSpacing);
+  applyParaLineHeight(s.lineHeight, false);
+  applyParaSpacing(s.paraSpacing, false);
   // 行間・段落間スライダーの値反映
   const lhEl = document.getElementById('global-lineheight');
   const lhVal = document.getElementById('global-lineheight-val');
@@ -4031,7 +4065,8 @@ function showLibrary(){
   if(state.currentNovelId) save();
   state.currentEpisodeId=null;
   state.currentNovelId=null;
-  // ライブラリ画面では背景をリセット
+  // ライブラリ画面では背景をリセットし、既定のテーマに戻す
+  applyNovelLook();
   resetBgDisplay();
   // 他の画面・オーバーレイを確実に閉じる（クリックブロックを防ぐ）
   closePanel();
@@ -4216,6 +4251,7 @@ async function openNovel(novelId){
   state.currentEpisodeId=null;
   hideLibrary();
   showToc();
+  applyNovelLook();
   // この本の背景画像を復元
   loadNovelBgImage(novelId);
 }
@@ -6036,6 +6072,7 @@ function setupScrollPageTurn(pageEl,pi,groupCount){
   pageEl.addEventListener('touchend',e=>{
     subSwitchLocked=false; // タッチ終了でもリセット
     if(state.ui.transitioning||e.changedTouches.length!==1)return;
+    if(hasTextSelection()) return; // 文字選択を広げている最中はページ送りしない
     const dx=e.changedTouches[0].clientX-touchStartX;
     const dy=e.changedTouches[0].clientY-touchStartY;
     // 横方向が明らかに優勢なスワイプ
@@ -6051,7 +6088,7 @@ function setupScrollPageTurn(pageEl,pi,groupCount){
   },{passive:true});
 
   pageEl.addEventListener('touchmove',e=>{
-    if(state.ui.transitioning||subSwitchLocked)return;
+    if(state.ui.transitioning||subSwitchLocked||hasTextSelection())return;
     const dy=touchStartY-e.touches[0].clientY;
     const maxScroll=pageEl.scrollHeight-pageEl.clientHeight;
     const atTop=touchStartScrollTop<=0;
@@ -6367,6 +6404,13 @@ function toggleReadingMode() {
   localStorage.setItem('readingMode', state.readingMode ? '1' : '0');
 }
 
+/* ══════ 読書中の文字選択 ══════ */
+// 選択を広げている最中にスワイプでページ送りしないための判定
+function hasTextSelection(){
+  const sel = window.getSelection();
+  return !!(sel && sel.rangeCount && !sel.isCollapsed && sel.toString().trim());
+}
+
 function setupDoubleTap(){
   let lastTap=0;
   const vp=$.viewport;
@@ -6535,7 +6579,8 @@ async function speakWithDeviceTts(text) {
     utter.lang = 'ja-JP';
     utter.rate = rate;
     const voices = speechSynthesis.getVoices();
-    const jaVoice = voices.find(v => v.lang === 'ja-JP') || voices.find(v => v.lang && v.lang.startsWith('ja'));
+    const chosen = state.settings.ttsDeviceVoice && voices.find(v => v.voiceURI === state.settings.ttsDeviceVoice);
+    const jaVoice = chosen || voices.find(v => v.lang === 'ja-JP') || voices.find(v => v.lang && v.lang.startsWith('ja'));
     if (jaVoice) utter.voice = jaVoice;
     state.tts.deviceUtter = utter;
     utter.onend = resolve;
@@ -6544,12 +6589,166 @@ async function speakWithDeviceTts(text) {
   });
 }
 
+/* ══════ 声の選択 ══════ */
+const TTS_SAMPLE_TEXT = 'こんにちは。イカ墨ノベルの読み上げテストです。今日はどんな物語を読みましょうか。';
+const CLOUD_VOICE_CACHE_KEY = 'tts-cloud-voices';
+// 自然さの順（上ほど人間っぽい・高い）
+const CLOUD_VOICE_TYPES = [
+  {key:'Chirp3-HD', label:'Chirp 3 HD（最も自然）'},
+  {key:'Chirp-HD',  label:'Chirp HD'},
+  {key:'Neural2',   label:'Neural2'},
+  {key:'Wavenet',   label:'WaveNet'},
+  {key:'Standard',  label:'Standard（機械的・安い）'},
+];
+function cloudVoiceType(name){
+  const t = CLOUD_VOICE_TYPES.find(t => name.indexOf('-' + t.key + '-') !== -1);
+  return t ? t.key : 'その他';
+}
+function cloudVoiceLabel(v){
+  const short = v.name.replace(/^ja-JP-/, '').replace(/^(Chirp3-HD|Chirp-HD|Neural2|Wavenet|Standard)-/, '');
+  const g = v.ssmlGender === 'FEMALE' ? '女性' : v.ssmlGender === 'MALE' ? '男性' : '';
+  const t = cloudVoiceType(v.name);
+  return (t === 'その他' ? '' : t.replace('Chirp3-HD','Chirp3') + ' ') + short + (g ? '（' + g + '）' : '');
+}
+
+async function loadCloudVoices(force){
+  const sel = document.getElementById('tts-voice-select');
+  const hint = document.getElementById('tts-voice-hint');
+  if(!sel) return;
+  let voices = null;
+  if(!force){
+    try{ voices = JSON.parse(localStorage.getItem(CLOUD_VOICE_CACHE_KEY) || 'null'); }catch(_){}
+  }
+  if(!voices){
+    const key = state.settings.ttsApiKey;
+    if(!key){
+      sel.innerHTML = '<option value="">APIキーを入れると声を選べます</option>';
+      if(hint) hint.textContent = '';
+      return;
+    }
+    sel.innerHTML = '<option value="">読み込み中...</option>';
+    try{
+      const res = await fetch('https://texttospeech.googleapis.com/v1/voices?languageCode=ja-JP&key=' + encodeURIComponent(key));
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      voices = (data.voices || []).filter(v => (v.languageCodes || []).includes('ja-JP'))
+        .map(v => ({name: v.name, ssmlGender: v.ssmlGender}));
+      localStorage.setItem(CLOUD_VOICE_CACHE_KEY, JSON.stringify(voices));
+    }catch(e){
+      console.warn('loadCloudVoices:', e);
+      sel.innerHTML = '<option value="">一覧を取得できません（APIキーを確認）</option>';
+      if(hint) hint.textContent = 'Cloud Text-to-Speech API が有効になっているか、APIキーの制限を確認してください。';
+      return;
+    }
+  }
+  const cur = state.settings.ttsVoice || '';
+  sel.innerHTML = '';
+  const groups = {};
+  voices.forEach(v => { (groups[cloudVoiceType(v.name)] = groups[cloudVoiceType(v.name)] || []).push(v); });
+  [...CLOUD_VOICE_TYPES.map(t=>t.key), 'その他'].forEach(k => {
+    if(!groups[k]) return;
+    const og = document.createElement('optgroup');
+    og.label = (CLOUD_VOICE_TYPES.find(t=>t.key===k) || {label:k}).label;
+    groups[k].sort((a,b)=>a.name.localeCompare(b.name)).forEach(v => {
+      const o = document.createElement('option');
+      o.value = v.name; o.textContent = cloudVoiceLabel(v);
+      if(v.name === cur) o.selected = true;
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  });
+  if(!cur || !voices.some(v => v.name === cur)){
+    // 未選択なら一番自然な声を初期値に
+    const best = sel.querySelector('option');
+    if(best){ best.selected = true; state.settings.ttsVoice = best.value; debouncedSaveSettings(); }
+  }
+  if(hint) hint.textContent = '上ほど自然な声です。Chirp 3 HD / Neural2 / WaveNet は Standard より料金が高く、無料枠も種類ごとに別です。';
+}
+
+function getDeviceJaVoices(){
+  if(!('speechSynthesis' in window)) return [];
+  return speechSynthesis.getVoices().filter(v => v.lang && v.lang.replace('_','-').toLowerCase().startsWith('ja'));
+}
+function populateDeviceVoices(){
+  const sel = document.getElementById('tts-voice-select');
+  const hint = document.getElementById('tts-voice-hint');
+  if(!sel) return;
+  const voices = getDeviceJaVoices();
+  const cur = state.settings.ttsDeviceVoice || '';
+  sel.innerHTML = '';
+  const def = document.createElement('option');
+  def.value = ''; def.textContent = '端末の標準';
+  sel.appendChild(def);
+  voices.forEach(v => {
+    const o = document.createElement('option');
+    o.value = v.voiceURI; o.textContent = v.name + (v.localService ? '' : '（オンライン）');
+    if(v.voiceURI === cur) o.selected = true;
+    sel.appendChild(o);
+  });
+  if(hint){
+    hint.textContent = gdriveIsNativeTts()
+      ? 'アプリ版は端末の設定（テキスト読み上げの優先エンジン）の声を使います。声を変えたい場合は Android の設定から変更してください。'
+      : (voices.length ? '端末に入っている日本語の声から選べます。' : '日本語の声が見つかりません。');
+  }
+}
+function gdriveIsNativeTts(){
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+if('speechSynthesis' in window){
+  speechSynthesis.addEventListener('voiceschanged', ()=>{
+    if((state.settings.ttsEngine || 'device') === 'device') populateDeviceVoices();
+  });
+}
+
+function onTtsVoiceChange(sel){
+  if((state.settings.ttsEngine || 'device') === 'cloud') state.settings.ttsVoice = sel.value;
+  else state.settings.ttsDeviceVoice = sel.value;
+  _ttsAudioCache.clear();
+  debouncedSaveSettings();
+}
+
+let _ttsPreviewAudio = null;
+async function previewTtsVoice(){
+  const engine = state.settings.ttsEngine || 'device';
+  try{
+    if(_ttsPreviewAudio){ _ttsPreviewAudio.pause(); _ttsPreviewAudio = null; }
+    if('speechSynthesis' in window) speechSynthesis.cancel();
+    if(engine === 'cloud'){
+      showToast('音声を生成中...');
+      const b64 = await synthesizeChirp(TTS_SAMPLE_TEXT);
+      _ttsPreviewAudio = new Audio('data:audio/mp3;base64,' + b64);
+      _ttsPreviewAudio.playbackRate = state.settings.ttsRate || 1;
+      await _ttsPreviewAudio.play();
+    } else {
+      await speakWithDeviceTts(TTS_SAMPLE_TEXT);
+    }
+  }catch(e){
+    showToast('試聴できませんでした：' + e.message);
+  }
+}
+
+// クラウド音声の先読み（段落の切れ目の待ち時間をなくす）
+const _ttsAudioCache = new Map();
+function ttsGetCloudAudio(idx){
+  const item = state.tts.queue[idx];
+  if(!item) return null;
+  const key = idx + '|' + (state.settings.ttsVoice || '') + '|' + item.text;
+  if(!_ttsAudioCache.has(key)){
+    const pr = synthesizeChirp(item.text);
+    pr.catch(()=>_ttsAudioCache.delete(key));
+    _ttsAudioCache.set(key, pr);
+    // 古いものを捨てる
+    if(_ttsAudioCache.size > 6) _ttsAudioCache.delete(_ttsAudioCache.keys().next().value);
+  }
+  return _ttsAudioCache.get(key);
+}
+
 const TTS_CHUNK_MAX_CHARS = 1400; // APIの1リクエストあたりの文字数制限への安全マージン
 
 async function synthesizeChirp(text) {
   const apiKey = state.settings.ttsApiKey;
   if (!apiKey) { showToast('設定画面でAPIキーを入力してください'); throw new Error('no api key'); }
-  const voiceName = state.settings.ttsVoice || 'ja-JP-Standard-A';
+  const voiceName = state.settings.ttsVoice || 'ja-JP-Neural2-B';
   const rate = state.settings.ttsRate || 1;
   const res = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + apiKey, {
     method: 'POST',
@@ -6778,11 +6977,17 @@ function updateTtsEngineUI() {
   document.getElementById('tts-eng-cloud').classList.toggle('active', engine === 'cloud');
   const cloudSettings = document.getElementById('tts-cloud-settings');
   if (cloudSettings) cloudSettings.style.display = (engine === 'cloud') ? 'block' : 'none';
+  const reload = document.getElementById('tts-voice-reload');
+  if (reload) reload.style.display = (engine === 'cloud') ? '' : 'none';
+  if (engine === 'cloud') loadCloudVoices(false); else populateDeviceVoices();
 }
 
 function saveTtsApiKey(el) {
-  state.settings.ttsApiKey = el.value.trim();
+  const v = el.value.trim();
+  const changed = v !== (state.settings.ttsApiKey || '');
+  state.settings.ttsApiKey = v;
   debouncedSaveSettings();
+  if(changed && (state.settings.ttsEngine || 'device') === 'cloud') loadCloudVoices(true);
 }
 
 function stopCurrentAudioOnly() {
@@ -6794,6 +6999,7 @@ function stopCurrentAudioOnly() {
 
 function stopTts(){
   nativePlaybackStop();
+  _ttsAudioCache.clear();
   if(state.tts.audio){ state.tts.audio.pause(); state.tts.audio = null; }
   if('speechSynthesis' in window){ speechSynthesis.cancel(); }
   const NativeTts = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
@@ -6860,6 +7066,8 @@ function getGroupPlainTexts(pi, g){
     let t = (p.text || (p.html || '').replace(/<[^>]+>/g, '')).trim();
     if (t) {
       t = applyFuriganaForTts(t, p);
+      // 読み飛ばし指定で空になった／記号だけの段落は読まない（空の音声で止まるのを防ぐ）
+      if (!/[\p{L}\p{N}]/u.test(t)) continue;
       texts.push(t);
       qis.push(qi);
     }
@@ -6940,13 +7148,17 @@ async function playNextTtsChunk(){
 
   try{
     if(useCloud){
-      showToast('音声を生成中...');
-      const audioContent = await synthesizeChirp(text);
+      const pending = ttsGetCloudAudio(state.tts.idx);
+      if(state.tts.idx === 0 || !pending) showToast('音声を生成中...');
+      const audioContent = await (pending || synthesizeChirp(text));
+      if(!state.tts.playing) return;
+      ttsGetCloudAudio(state.tts.idx + 1); // 次の段落を先に作っておく
+      if(!audioContent){ ttsSkipBrokenChunk('空の音声'); return; }
       const audio = new Audio('data:audio/mp3;base64,' + audioContent);
       audio.playbackRate = state.settings.ttsRate || 1;
       state.tts.audio = audio;
-      audio.onended = () => { state.tts.idx++; playNextTtsChunk(); };
-      audio.onerror = () => { showToast('再生に失敗しました'); state.tts.playing = false; };
+      audio.onended = () => { _ttsFailStreak = 0; state.tts.idx++; playNextTtsChunk(); };
+      audio.onerror = () => { ttsSkipBrokenChunk('再生エラー'); };
       await audio.play();
     } else {
       await speakWithDeviceTts(text);
@@ -6954,9 +7166,26 @@ async function playNextTtsChunk(){
       playNextTtsChunk();
     }
   }catch(e){
-    showToast('読み上げに失敗しました: ' + e.message);
-    state.tts.playing = false;
+    if(e && e.message === 'no api key'){ state.tts.playing = false; updateTtsPlayPauseIcon(); return; }
+    ttsSkipBrokenChunk(e && e.message);
   }
+}
+
+// 1段落だけ読めなかった時は飛ばして次へ。連続3回失敗したら止める
+let _ttsFailStreak = 0;
+function ttsSkipBrokenChunk(reason){
+  if(!state.tts.playing) return;
+  _ttsFailStreak++;
+  console.warn('TTS chunk skipped:', state.tts.idx, reason);
+  if(_ttsFailStreak >= 3){
+    _ttsFailStreak = 0;
+    showToast('読み上げに失敗しました: ' + (reason || '不明なエラー'));
+    state.tts.playing = false;
+    updateTtsPlayPauseIcon();
+    return;
+  }
+  state.tts.idx++;
+  setTimeout(playNextTtsChunk, 50);
 }
 
 const TTS_NEXT_EPISODE_DELAY_MS = 3000;
@@ -9908,13 +10137,13 @@ async function pickAndInsertImage(input){
 }
 
 function adjustLineHeight(delta){
-  let val = (state.settings.lineHeight != null ? state.settings.lineHeight : 2.0) + delta;
+  let val = lookSetting('lineHeight', 2.0) + delta;
   val = Math.round(val * 10) / 10; // 浮動小数点の誤差防止
   val = Math.min(3.0, Math.max(1.2, val));
   applyParaLineHeight(val);
 }
 function adjustParaSpacing(delta){
-  let val = (state.settings.paraSpacing != null ? state.settings.paraSpacing : 24) + delta;
+  let val = lookSetting('paraSpacing', 24) + delta;
   val = Math.min(60, Math.max(0, val));
   applyParaSpacing(val);
 }
@@ -9922,27 +10151,25 @@ function adjustParaSpacing(delta){
 /* ══════════════════════════════════════
    フォント・テーマ設定
 ══════════════════════════════════════ */
-function applyParaLineHeight(val){
+function applyParaLineHeight(val, store = true){
   val = parseFloat(val);
   if(isNaN(val)) return;
-  state.settings.lineHeight = val;
   document.documentElement.style.setProperty('--para-line-height', val);
   const lhVal = document.getElementById('global-lineheight-val');
   if(lhVal) lhVal.textContent = val.toFixed(1);
-  debouncedSaveSettings();
+  if(store) storeLookSetting('lineHeight', val);
 }
 
-function applyParaSpacing(val){
+function applyParaSpacing(val, store = true){
   val = parseInt(val);
   if(isNaN(val)) return;
-  state.settings.paraSpacing = val;
   document.documentElement.style.setProperty('--para-spacing', val + 'px');
   const psVal = document.getElementById('global-paraspacing-val');
   if(psVal) psVal.textContent = val + 'px';
-  debouncedSaveSettings();
+  if(store) storeLookSetting('paraSpacing', val);
 }
-function applyGlobalFont(family,idx){
-  state.settings.fontFamily = family;
+function applyGlobalFont(family, idx, store = true){
+  if(store) storeLookSetting('fontFamily', family);
   // 【方法1】CSS変数を更新
   try{ document.documentElement.style.setProperty('--font-body', family); }catch(_){}
   // 【方法2】インラインスタイルより強い CSS を <style> 要素で動的注入
@@ -9958,21 +10185,40 @@ function applyGlobalFont(family,idx){
   document.querySelectorAll('.font-btn').forEach((b,i)=>{
     b.classList.toggle('active', i===idx);
   });
-  debouncedSaveSettings();
 }
 function buildFontList(){
   const list=$.font_list;
   if(!list)return;
   // 現在のフォント設定にマッチするインデックスを探す（無ければ0=明朝体）
-  const currentFamily = (state.settings && state.settings.fontFamily) || FONTS[0].family;
+  const currentFamily = lookSetting('fontFamily', FONTS[0].family);
   let activeIdx = FONTS.findIndex(f => f.family === currentFamily);
   if(activeIdx < 0) activeIdx = 0;
   FONTS.forEach((f,i)=>{
     const btn=document.createElement('button');
     btn.className='font-btn'+(i===activeIdx?' active':'');
     btn.style.fontFamily=f.family;
-    btn.textContent=f.name;
+    const nameSpan=document.createElement('span');
+    nameSpan.className='font-btn-name';
+    nameSpan.textContent=f.custom ? f.fontName : f.name;
+    btn.appendChild(nameSpan);
     btn.onclick=()=>applyGlobalFont(f.family,i);
+    if(f.custom){
+      const tag=document.createElement('span');
+      tag.className='font-btn-tag';
+      tag.textContent='追加';
+      btn.appendChild(tag);
+      const del=document.createElement('span');
+      del.className='font-del-btn';
+      del.title='このフォントを削除';
+      del.textContent='削除';
+      del.onclick=(e)=>{
+        e.stopPropagation();
+        if(confirm('「' + f.fontName + '」を削除しますか？\n（このフォントを使っていた本は明朝体に戻ります）')){
+          removeCustomFont(f.fontName, f.family);
+        }
+      };
+      btn.appendChild(del);
+    }
     list.appendChild(btn);
   });
 }
@@ -10005,7 +10251,6 @@ function loadFontFile(input){
       await loadSavedFonts();
       // 即座に適用
       applyGlobalFont(family, idx);
-      if($.font_load_name) $.font_load_name.textContent=name;
       try{ showToast('フォントを保存しました'); }catch(_){}
     }catch(err){
       alert('フォントの読み込みに失敗しました');
@@ -10018,7 +10263,7 @@ function loadFontFile(input){
 function applyTheme(idx) {
   const t = THEMES[idx];
   if (!t) return;
-  state.settings.themeIdx = idx;
+  state.ui.themeIdx = idx;
   document.documentElement.style.setProperty('--bg', t.bg);
   document.documentElement.style.setProperty('--ink', t.ink);
   document.body.classList.toggle('theme-dark', isDarkThemeIdx(idx));
@@ -10028,7 +10273,7 @@ function applyTheme(idx) {
     cont.querySelectorAll('.ob').forEach((b, i) => b.classList.toggle('active', i === idx));
   }
   // 背景画像が設定されていれば、テーマの明暗に応じてオーバーレイ色を自動追従
-  if (state.novel && state.novel.bg && state.novel.bg.fileName) {
+  if (state.currentNovelId && state.novel && state.novel.bg && state.novel.bg.fileName) {
     const wantColor = isDarkThemeIdx(idx) ? 'black' : 'white';
     if ((state.novel.bg.overlayColor || 'white') !== wantColor) {
       setOverlayColor(wantColor);
@@ -10055,7 +10300,15 @@ function buildThemeBtns(){
     const btn=document.createElement('button');btn.className='ob'+(i===0?' active':'');btn.textContent=t.name;
     btn.onclick=()=>{
       applyTheme(i);
-      debouncedSaveSettings();
+      if(state.currentNovelId && state.novel){
+        state.novel.themeIdx = i;
+        const li = state.library.findIndex(n=>n.id===state.currentNovelId);
+        if(li>=0) state.library[li].themeIdx = i;
+        save();
+      } else {
+        state.settings.themeIdx = i;
+        debouncedSaveSettings();
+      }
     };
     cont.appendChild(btn);
   });
@@ -10104,7 +10357,7 @@ function resetBgDisplay(){
   $.topbar.classList.remove('bg-active');
   $.search_overlay.classList.remove('bg-active');
   $.side_panel.classList.remove('bg-active');
-  const _t = THEMES[state.settings.themeIdx||0] || THEMES[0];
+  const _t = THEMES[(state.currentNovelId && state.novel) ? novelThemeIdx(state.novel) : (state.settings.themeIdx||0)] || THEMES[0];
   document.documentElement.style.setProperty('--bg', _t.bg);
   document.querySelectorAll('.page').forEach(p=>p.style.background='');
 }

@@ -1,7 +1,7 @@
 {
-  "name": "小説リーダー",
-  "short_name": "小説",
-  "description": "オフラインで使える小説リーダー",
+  "name": "イカ墨ノベル",
+  "short_name": "イカ墨ノベル",
+  "description": "オフラインで使える小説リーダー「イカ墨ノベル」",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
