@@ -4289,11 +4289,11 @@ function flushSave(){
 }
 
 async function resetAllData(){
+  if(state.currentNovelId && publishedIn([state.novel]).length){ alert(PUBLISHED_NO_DELETE); return; }
   if(!confirm('この小説のデータをリセットしますか？\nエピソード・タイトル・カバー画像がすべて削除されます。'))return;
   try{
     if(state.currentNovelId){
       const delId = state.currentNovelId;
-      await unpublishBeforeDelete([state.library.find(n=>n.id===delId)]);
       clearTimeout(_saveTimer);
       state.currentNovelId = null;
       state.currentEpisodeId = null;
@@ -4565,10 +4565,11 @@ function updateSelectionCount(){
 async function deleteSelectedNovels(){
   if(_selectedNovelIds.size === 0) return;
   const n = _selectedNovelIds.size;
+  if(publishedIn(Array.from(_selectedNovelIds).map(id => state.library.find(x => x.id === id))).length){
+    alert(PUBLISHED_NO_DELETE); return;
+  }
   const ids = Array.from(_selectedNovelIds);
-  const pubN = publishedIn(ids.map(id => state.library.find(x => x.id === id))).length;
-  if(!confirm(`選択した${n}冊を削除しますか？\nこの操作は元に戻せません。` + (pubN ? `\n\n※ 公開中の作品（${pubN}冊）は公開もやめます。` : ''))) return;
-  await unpublishBeforeDelete(ids.map(id => state.library.find(x => x.id === id)));
+  if(!confirm(`選択した${n}冊を削除しますか？\nこの操作は元に戻せません。`)) return;
   for(const id of ids){
     state.library = state.library.filter(n=>n.id!==id); // 先に本棚から外す（書き戻し防止）
     await libDbDelete(id).catch(()=>{});
@@ -4620,13 +4621,13 @@ async function createNewNovel(){
 function openNovelMenu(novelId){
   const novel=state.library.find(n=>n.id===novelId);
   if(!novel)return;
-  const pub = publishedIn([novel]).length;
-  if(!confirm(`「${novel.title||'無題の小説'}」を削除しますか？\nこの操作は元に戻せません。` + (pub ? '\n\n※ 公開中なので、公開もやめます。' : '')))return;
+  if(publishedIn([novel]).length){ alert(PUBLISHED_NO_DELETE); return; }
+  if(!confirm(`「${novel.title||'無題の小説'}」を削除しますか？\nこの操作は元に戻せません。`))return;
   deleteNovel(novelId);
 }
 
 async function deleteNovel(novelId){
-  await unpublishBeforeDelete([state.library.find(n=>n.id===novelId)]);
+  if(publishedIn([state.library.find(n=>n.id===novelId)]).length){ alert(PUBLISHED_NO_DELETE); return; }
   state.library=state.library.filter(n=>n.id!==novelId); // 先に本棚から外す（書き戻し防止）
   await libDbDelete(novelId);
   if(state.library.length===0){
@@ -7129,14 +7130,9 @@ async function unpublishWorkById(workId, opts = {}){
   if(!opts.silent){ showToast('公開をやめました'); renderMyWorks(); }
   return true;
 }
-// 本を消すとき、公開中なら公開もやめる
+// 公開中の本は消せない（読者の手元の作品が更新されなくなるのを防ぐ）
 function publishedIn(novels){ return novels.filter(n => n && n.publish && n.publish.workId && n.publish.status === 'public'); }
-async function unpublishBeforeDelete(novels){
-  const pubs = publishedIn(novels);
-  let failed = 0;
-  for(const n of pubs){ if(!(await unpublishWorkById(n.publish.workId, { silent: true }))) failed++; }
-  if(failed) alert(`${failed}冊は公開をやめられませんでした。\nあとで「バックアップ」メニューの「自分の公開作品」からやめられます。`);
-}
+const PUBLISHED_NO_DELETE = '公開中の作品は削除できません。\n先に「公開をやめる」をしてから削除してください。';
 
 async function copyText(t){
   try{ await navigator.clipboard.writeText(t); showToast('コピーしました'); }
