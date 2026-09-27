@@ -2,34 +2,14 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>イカ墨ノベル</title>
-<meta name="description" content="イカ墨ノベルは、ブラウザで使える無料の小説リーダーです。テキストやHTMLを取り込んで、オフラインでも読めます。読み上げ、ふりがな、置換、夜間テーマ、本ごとの見た目設定、Googleドライブ同期に対応。スマホのホーム画面に追加してアプリのように使えます。">
-<link rel="canonical" href="https://ikazu23.github.io/novel-reader/">
-<meta name="robots" content="index,follow">
-<meta name="google-site-verification" content="CbERytln58krZ6x10OR8RH-m8vo3qT4LIkjYLzfmF4o" />
-<!-- SNSで共有した時のカード表示 -->
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="イカ墨ノベル">
-<meta property="og:title" content="イカ墨ノベル｜オフラインで読める無料の小説リーダー">
-<meta property="og:description" content="イカ墨ノベルは、ブラウザで使える無料の小説リーダーです。テキストやHTMLを取り込んで、オフラインでも読めます。読み上げ、ふりがな、置換、夜間テーマ、本ごとの見た目設定、Googleドライブ同期に対応。スマホのホーム画面に追加してアプリのように使えます。">
-<meta property="og:url" content="https://ikazu23.github.io/novel-reader/">
-<meta property="og:image" content="https://ikazu23.github.io/novel-reader/icon-512.png">
-<meta property="og:locale" content="ja_JP">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="イカ墨ノベル｜オフラインで読める無料の小説リーダー">
-<meta name="twitter:description" content="イカ墨ノベルは、ブラウザで使える無料の小説リーダーです。テキストやHTMLを取り込んで、オフラインでも読めます。読み上げ、ふりがな、置換、夜間テーマ、本ごとの見た目設定、Googleドライブ同期に対応。スマホのホーム画面に追加してアプリのように使えます。">
-<meta name="twitter:image" content="https://ikazu23.github.io/novel-reader/icon-512.png">
-<!-- 検索エンジン向け：このページが何のアプリか -->
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"イカ墨ノベル","alternateName":"Ikasumi Novel","url":"https://ikazu23.github.io/novel-reader/","description":"イカ墨ノベルは、ブラウザで使える無料の小説リーダーです。テキストやHTMLを取り込んで、オフラインでも読めます。読み上げ、ふりがな、置換、夜間テーマ、本ごとの見た目設定、Googleドライブ同期に対応。スマホのホーム画面に追加してアプリのように使えます。","applicationCategory":"BookApplication","operatingSystem":"Web, Android, iOS","inLanguage":"ja","offers":{"@type":"Offer","price":"0","priceCurrency":"JPY"}}
-</script>
+<title>小説リーダー</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#11d1d1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="イカ墨ノベル">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<meta name="apple-mobile-web-app-title" content="小説">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;500;700&family=Noto+Sans+JP:wght@300;400;500&family=Shippori+Mincho+B1:wght@400;500;700&family=M+PLUS+Rounded+1c:wght@400;500&display=swap');
@@ -123,9 +103,8 @@ body{
   transition:transform .2s cubic-bezier(.25,.46,.45,.94),background .3s;
 }
 #search-overlay.bg-active{
-  background:rgba(255,255,255,0.85);
-  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-  border-bottom-color:rgba(0,0,0,0.08);
+  background:transparent;
+  border-bottom-color:transparent;
 }
 #search-overlay.open{transform:translateY(0);}
 #search-input{
@@ -265,10 +244,9 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 
 /* ══════ VIEW / EDIT MODE ══════ */
 #viewport:not(.edit-mode) .page-editor{
-  cursor:text;
-  user-select:text;
-  -webkit-user-select:text;
-  -webkit-touch-callout:default;
+  cursor:default;
+  user-select:none;
+  -webkit-user-select:none;
 }
 #viewport.edit-mode .page-editor{
   cursor:text;
@@ -524,7 +502,7 @@ mark.sh.current{background:#ff8f00;color:#fff;}
   display:flex;align-items:center;justify-content:space-between;
   font-weight:bold;
 }
-#replace-modal-header .close-btn,#backup-modal-header .close-btn,#preview-modal-header .close-btn{
+#replace-modal-header .close-btn{
   background:none;border:none;cursor:pointer;padding:4px;
 }
 #replace-modal-body{
@@ -1031,14 +1009,7 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 .font-btn:last-child{border-bottom:none;}
 .font-btn:hover{color:#008080;}
 .font-btn.active{color:#008080;}
-.font-btn.active::after{content:'✓';font-size:12px;color:#008080;margin-left:8px;}
-.font-btn{gap:8px;}
-.font-btn-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.font-btn-tag{flex-shrink:0;font-family:'Noto Sans JP',sans-serif;font-size:10px;color:#999;border:1px solid #ddd;border-radius:4px;padding:1px 5px;}
-.font-del-btn{flex-shrink:0;font-family:'Noto Sans JP',sans-serif;font-size:11px;color:#c54040;border:1px solid #f0d0d0;border-radius:4px;padding:3px 8px;background:#fff;}
-.font-del-btn:active{background:#fff0f0;}
-body.theme-dark .font-del-btn{background:transparent;border-color:#6a3a3a;color:#e07070;}
-body.theme-dark .font-btn-tag{border-color:#444;color:#888;}
+.font-btn.active::after{content:'✓';font-size:12px;color:#008080;}
 /* font file load */
 .font-load-row{
   display:flex;align-items:center;gap:10px;margin-top:14px;
@@ -1354,7 +1325,6 @@ body.library-mode #bg-image-layer,body.library-mode #bg-overlay-layer{display:no
 #toc-screen.show{display:flex;}
 body.toc-mode #topbar,body.toc-mode #botbar,body.toc-mode #viewport,
 body.toc-mode #bg-image-layer,body.toc-mode #bg-overlay-layer{display:none;}
-body.toc-mode #subpage-dots,body.library-mode #subpage-dots,body.toc-mode #tts-control-bar{display:none !important;}
 
 #toc-topbar{
   position:sticky;top:0;
@@ -1401,7 +1371,7 @@ body.toc-mode #subpage-dots,body.library-mode #subpage-dots,body.toc-mode #tts-c
   display:flex;align-items:center;justify-content:center;
   font-size:11px;opacity:0;transition:opacity .15s;
 }
-@media (hover:hover){#toc-cover.has-image:hover .cover-edit-hint{opacity:1;}}
+#toc-cover:hover .cover-edit-hint{opacity:1;}
 
 #toc-info-text{flex:1;min-width:0;display:flex;flex-direction:column;}
 #toc-novel-title{
@@ -1843,83 +1813,9 @@ body.library-mode #tts-control-bar{display:none !important;}
     display: none;
   }
 }
-
-/* ══════ 夜間・深夜テーマ：上下のバーやパネルも暗くする ══════ */
-body.theme-dark #topbar,
-body.theme-dark #search-overlay,
-body.theme-dark #botbar,
-body.theme-dark #eb-fixed-left,
-body.theme-dark #eb-fixed-right,
-body.theme-dark #side-panel,
-body.theme-dark #panel-header{
-  background:#232326;border-color:#333;
-}
-body.theme-dark #topbar.bg-active{background:transparent;border-bottom-color:rgba(255,255,255,0.08);}
-body.theme-dark #search-overlay.bg-active{background:rgba(20,20,24,0.85);}
-body.theme-dark #side-panel.bg-active{background:rgba(28,28,30,0.8);}
-body.theme-dark #side-panel.bg-active #panel-header{background:transparent;}
-body.theme-dark #topbar-title,
-body.theme-dark .panel-header-title,
-body.theme-dark #search-input{color:#e6e6e6;}
-body.theme-dark #topbar button,
-body.theme-dark .panel-close-btn,
-body.theme-dark .s-nav,
-body.theme-dark .eb-btn,
-body.theme-dark .eb-abtn,
-body.theme-dark .eb-step,
-body.theme-dark .eb-sizeval{color:#cfcfcf;}
-body.theme-dark .eb-step svg text{fill:#cfcfcf;}
-body.theme-dark #eb-fixed-right span{color:#cfcfcf !important;}
-body.theme-dark #topbar button:hover,
-body.theme-dark .panel-close-btn:hover{background:rgba(255,255,255,0.08);}
-body.theme-dark .eb-sep{background:#444;}
-body.theme-dark #botbar-edit-row{border-top-color:#333;}
-body.theme-dark #eb-fixed-left,body.theme-dark #eb-fixed-right{border-color:#333;}
-body.theme-dark #panel-body{color:#ddd;}
-body.theme-dark .font-btn{color:#ccc;border-bottom-color:#333;}
-body.theme-dark .ob{color:#aaa;border-bottom-color:#3a3a3a;}
-body.theme-dark .stepper-btn{background:#2c2c2e;border-color:#444;}
-body.theme-dark .stepper-val{color:#ccc;}
-body.theme-dark #tts-control-bar{background:rgba(40,40,44,0.95);}
-body.theme-dark .tts-cbtn{color:#ddd;}
-body.theme-dark #viewport.edit-mode .page-editor p{
-  background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.18);
-}
-body.theme-dark .page-editor p.tts-reading{background:rgba(0,200,200,0.14);}
-body.theme-dark .pnl{color:#666;}
-body.theme-dark .page-editor [data-dkfix]{color:var(--ink) !important;}
-
-/* ══════ PC：左右の端クリックでページ移動 ══════ */
-#viewport.edge-hover{cursor:pointer;}
-#viewport.edge-hover .page-editor{cursor:pointer;}
-.edge-hint{
-  position:fixed;top:var(--top-h);bottom:0;width:72px;z-index:40;pointer-events:none;
-  display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .18s;
-  color:rgba(0,0,0,0.35);
-}
-.edge-hint.show{opacity:1;}
-#edge-hint-left{left:0;background:linear-gradient(to right, rgba(0,0,0,0.05), transparent);}
-#edge-hint-right{right:0;background:linear-gradient(to left, rgba(0,0,0,0.05), transparent);}
-body.theme-dark .edge-hint{color:rgba(255,255,255,0.4);}
-body.toc-mode .edge-hint,body.library-mode .edge-hint{display:none;}
-body.booting{visibility:hidden}
 </style>
 </head>
-<body class="booting">
-<script>setTimeout(function(){document.body.classList.remove('booting');},4000);</script>
-<noscript>
-  <div style="max-width:640px;margin:40px auto;padding:0 20px;font-family:sans-serif;line-height:1.8;color:#222">
-    <h1>イカ墨ノベル</h1>
-    <p>ブラウザで使える無料の小説リーダーです。テキストファイルやHTMLを取り込んで、オフラインでも読めます。</p>
-    <ul>
-      <li>読み上げ（端末音声・Google高音質）</li>
-      <li>ふりがな・読み方辞書、置換ルール、一人称変換</li>
-      <li>夜間テーマ、行間・フォントなど本ごとの見た目設定</li>
-      <li>Googleドライブ同期、バックアップ</li>
-    </ul>
-    <p>ご利用にはJavaScriptを有効にしてください。</p>
-  </div>
-</noscript>
+<body>
 
 <!-- LIBRARY SCREEN -->
 <div id="library-screen">
@@ -2119,8 +2015,6 @@ body.booting{visibility:hidden}
   <!-- state.pages injected by JS -->
 </div>
 
-<div id="edge-hint-left" class="edge-hint"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>
-<div id="edge-hint-right" class="edge-hint"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
 <!-- SUB-PAGE DOTS -->
 <div id="subpage-dots"></div>
 
@@ -2384,24 +2278,12 @@ body.booting{visibility:hidden}
   <div class="pl">読み上げエンジン</div>
   <div class="pr" id="tts-engine-btns">
     <button class="ob" id="tts-eng-device" onclick="setTtsEngine('device')">端末音声（無料）</button>
-    <button class="ob" id="tts-eng-cloud" onclick="setTtsEngine('cloud')">Google 高音質（有料）</button>
+    <button class="ob" id="tts-eng-cloud" onclick="setTtsEngine('cloud')">Google Cloud（制作中）</button>
   </div>
   <div id="tts-cloud-settings" style="margin-top:10px;">
     <input type="password" id="tts-api-key-input" placeholder="APIキーを入力"
       style="width:100%;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:13px;margin-bottom:6px;box-sizing:border-box;"
       onblur="saveTtsApiKey(this)">
-  </div>
-  <div id="tts-voice-settings" style="margin-top:10px;">
-    <div style="font-family:'Noto Sans JP',sans-serif;font-size:11px;color:#999;margin-bottom:6px;">声</div>
-    <div style="display:flex;gap:6px;align-items:center;">
-      <select id="tts-voice-select" onchange="onTtsVoiceChange(this)"
-        style="flex:1;min-width:0;padding:8px;border:1px solid #ccc;border-radius:6px;font-size:13px;background:#fff;color:#222;font-family:'Noto Sans JP',sans-serif;"></select>
-      <button onclick="previewTtsVoice()" title="試聴"
-        style="flex-shrink:0;padding:8px 12px;border:1px solid #008080;color:#008080;background:none;border-radius:6px;font-size:12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">試聴</button>
-    </div>
-    <button id="tts-voice-reload" onclick="loadCloudVoices(true)"
-      style="margin-top:6px;background:none;border:none;color:#3a6d8c;font-size:11px;cursor:pointer;padding:2px 0;font-family:'Noto Sans JP',sans-serif;">声の一覧を読み込み直す</button>
-    <div id="tts-voice-hint" style="font-family:'Noto Sans JP',sans-serif;font-size:10px;color:#aaa;line-height:1.6;margin-top:4px;"></div>
   </div>
   <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#333;cursor:pointer;">
     <input type="checkbox" id="tts-auto-next-episode" onchange="toggleTtsAutoNextEpisode(this)" style="width:16px;height:16px;accent-color:#008080;cursor:pointer;">
@@ -2413,7 +2295,7 @@ body.booting{visibility:hidden}
     <div class="font-list" id="font-list"></div>
     <div class="font-load-row">
       <button class="font-load-btn" onclick="document.getElementById('font-file-input').click()">フォントファイルを読み込む</button>
-      <span class="font-load-name" id="font-load-name">ttf / otf / woff</span>
+      <span class="font-load-name" id="font-load-name">未読み込み</span>
       <input type="file" id="font-file-input" accept=".ttf,.otf,.woff,.woff2" style="display:none" onchange="loadFontFile(this)">
     </div>
   </div>
@@ -2562,7 +2444,7 @@ body.booting{visibility:hidden}
       font-family:'Noto Sans JP',sans-serif;font-size:12px;
       cursor:pointer;transition:background .12s;
     " onmouseover="this.style.background='#fff5f5'" onmouseout="this.style.background='none'">
-      この本を削除
+      すべてのデータをリセット
     </button>
   </div>
   </div><!-- /panel-body -->
@@ -2756,7 +2638,6 @@ async function init(){
   setupKb();
   setupColorBtnLongPress();
   setupDoubleTap();
-  setupEdgeClick();
   setupMediaSession();
   setupNativeTtsQueueListeners();
   state.readingMode = localStorage.getItem('readingMode') === '1';
@@ -2771,7 +2652,6 @@ async function init(){
   loadLibraryName();
   // 最初はライブラリ画面を表示
   showLibrary();
-  document.body.classList.remove('booting');
   // 起動時に自動バックアップ（24時間経過していれば）
   setTimeout(()=>{ autoBackupAllNovels(); }, 2000);
   // 保存されたカスタムフォントを読み込む
@@ -3036,6 +2916,31 @@ async function loadSavedFonts(){
     if($.font_list){
       $.font_list.innerHTML = '';
       buildFontList();
+      // 永続化されたフォントには削除ボタンを追加
+      FONTS.forEach((f, i)=>{
+        if(f.custom){
+          const btns = $.font_list.querySelectorAll('.font-btn');
+          if(btns[i]){
+            btns[i].title = '長押しで削除';
+            // 長押しで削除
+            let lpTimer = null;
+            const startLp = ()=>{
+              lpTimer = setTimeout(()=>{
+                if(confirm('「' + f.fontName + '」を削除しますか？')){
+                  removeCustomFont(f.fontName, f.family);
+                }
+              }, 600);
+            };
+            const cancelLp = ()=>{ if(lpTimer){clearTimeout(lpTimer); lpTimer=null;} };
+            btns[i].addEventListener('touchstart', startLp, {passive:true});
+            btns[i].addEventListener('touchend', cancelLp);
+            btns[i].addEventListener('touchmove', cancelLp, {passive:true});
+            btns[i].addEventListener('mousedown', startLp);
+            btns[i].addEventListener('mouseup', cancelLp);
+            btns[i].addEventListener('mouseleave', cancelLp);
+          }
+        }
+      });
     }
   }catch(e){ console.warn('loadSavedFonts:', e); }
 }
@@ -3049,41 +2954,10 @@ function getActiveFuriganaRulesForPara(para) {
   return [...indivRules, ...globalRules].sort((a, b) => b.word.length - a.word.length);
 }
 
-/* ── 夜間・深夜テーマ用：黒っぽい文字色だけをテーマの文字色で表示する ──
-   データは書き換えず、表示用の目印（data-dkfix）を付けるだけ。保存時には外す */
-function parseCssColor(c){
-  if(!c) return null;
-  c = String(c).trim().toLowerCase();
-  let m = c.match(/^#([0-9a-f]{3,8})$/);
-  if(m){
-    let h = m[1];
-    if(h.length === 3 || h.length === 4) h = h.split('').map(x=>x+x).join('');
-    return [parseInt(h.substr(0,2),16), parseInt(h.substr(2,2),16), parseInt(h.substr(4,2),16)];
-  }
-  m = c.match(/^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/);
-  if(m) return [+m[1], +m[2], +m[3]];
-  if(c === 'black') return [0,0,0];
-  return null;
-}
-function isNearBlack(c){
-  const rgb = parseCssColor(c);
-  if(!rgb) return false;
-  const [r,g,b] = rgb;
-  const bright = 0.299*r + 0.587*g + 0.114*b;
-  const chroma = Math.max(r,g,b) - Math.min(r,g,b);
-  return bright < 90 && chroma < 48; // 暗くて色味の薄いもの＝黒・濃いグレー
-}
-function markDarkTextForTheme(root){
-  root.querySelectorAll('[style*="color"], font[color]').forEach(el=>{
-    const c = el.style.color || el.getAttribute('color');
-    if(isNearBlack(c)) el.setAttribute('data-dkfix','');
-  });
-}
 function stripFuriganaHtml(html){
-  if(!html || (html.indexOf('<ruby') === -1 && html.indexOf('data-dkfix') === -1)) return html;
+  if(!html || html.indexOf('<ruby') === -1) return html;
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
-  tmp.querySelectorAll('[data-dkfix]').forEach(el=>el.removeAttribute('data-dkfix'));
   tmp.querySelectorAll('ruby').forEach(ruby=>{
     const rt = ruby.querySelector('rt');
     if(rt) rt.remove();
@@ -3181,440 +3055,293 @@ function toggleFuriganaDisplay(el){
 }
 
 /* ══════════════════════════════════════
-   Google Drive 自動同期（リフレッシュトークン方式）
-   ・ログインは最初の1回だけ。以降は Worker 経由で自動更新
-   ・アクセストークンが切れても、裏で勝手に取り直す（ポップアップなし）
-   ・Web版はリダイレクトでログイン、APK版は下の方のネイティブ用ブロックで上書き
+   Google Drive 自動同期
 ══════════════════════════════════════ */
 
 const GDRIVE_CLIENT_ID = '1065503937621-mr4legtegr2rjbt5udr1bm3mqfupnigd.apps.googleusercontent.com';
 const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
 const GDRIVE_FILE_NAME = 'novel-reader-data.json';
-// ↓ Cloudflare Worker のURL（末尾スラッシュなし）に書き換える
-const TOKEN_WORKER_URL = 'https://novel-reader-token.qoo25p.workers.dev';
-
-const LS_REFRESH = 'gdrive-refresh-token';
-const LS_ACCESS = 'gdrive-token';
-const LS_FLAG = 'gdrive-signed-in';
-const LS_OAUTH_STATE = 'gdrive-oauth-state';
-const LS_LAST_SYNC = 'gdrive-last-sync';
-const LS_LAST_ERR = 'gdrive-last-error';
-
+let _gdriveTokenClient = null;
 let _gdriveAccessToken = null;
 let _gdriveTokenExpiresAt = 0;
 let _gdriveAutoSyncTimer = null;
-let _gdriveRefreshing = null;
-let _gdriveUploading = false;
 
-function gdriveIsNative(){
-  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-}
-function gdriveGetRefreshToken(){ try{ return localStorage.getItem(LS_REFRESH); }catch(_){ return null; } }
-// 「接続中」＝リフレッシュトークンを持っている
-function gdriveIsSignedIn(){ return !!gdriveGetRefreshToken(); }
-
+// アクセストークンをlocalStorageに保存/復元（リロードのたびのポップアップを防ぐ）
 function gdriveSaveTokenToStorage(){
-  try{ localStorage.setItem(LS_ACCESS, JSON.stringify({token:_gdriveAccessToken, expiresAt:_gdriveTokenExpiresAt})); }catch(_){}
+  try{
+    localStorage.setItem('gdrive-token', JSON.stringify({
+      token: _gdriveAccessToken,
+      expiresAt: _gdriveTokenExpiresAt
+    }));
+  }catch(_){}
 }
 function gdriveLoadTokenFromStorage(){
   try{
-    const d = JSON.parse(localStorage.getItem(LS_ACCESS) || 'null');
-    if(d && d.token && d.expiresAt && Date.now() < d.expiresAt){
-      _gdriveAccessToken = d.token; _gdriveTokenExpiresAt = d.expiresAt; return true;
+    const raw = localStorage.getItem('gdrive-token');
+    if(!raw) return false;
+    const data = JSON.parse(raw);
+    if(data && data.token && data.expiresAt && Date.now() < data.expiresAt){
+      _gdriveAccessToken = data.token;
+      _gdriveTokenExpiresAt = data.expiresAt;
+      return true;
     }
   }catch(_){}
   return false;
 }
-function gdriveSetAccess(token, expiresIn){
-  _gdriveAccessToken = token;
-  // 期限の1分前には切れた扱いにして、ギリギリで失敗しないようにする
-  _gdriveTokenExpiresAt = Date.now() + ((expiresIn || 3600) - 60) * 1000;
-  gdriveSaveTokenToStorage();
-}
 
-async function gdriveWorkerCall(path, body){
-  const res = await fetch(TOKEN_WORKER_URL + path, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(body),
-  });
-  let data = {};
-  try{ data = await res.json(); }catch(_){}
-  if(!res.ok){
-    const err = new Error(data.error || ('HTTP ' + res.status));
-    err.status = res.status;
-    throw err;
+function gdriveInit(){
+  if(typeof google === 'undefined' || !google.accounts){
+    setTimeout(gdriveInit, 500);
+    return;
   }
-  return data;
-}
-
-// 認可コード → トークン（Web・APK共通）
-async function gdriveExchangeCode(code, redirectUri){
-  const data = await gdriveWorkerCall('/token', { code, redirect_uri: redirectUri || '' });
-  if(!data.refresh_token){
-    // 以前に許可済みの場合などで返らないことがある
-    throw new Error('リフレッシュトークンが取得できませんでした。Googleアカウントの「サードパーティのアクセス」からこのアプリを削除して、もう一度ログインしてください');
-  }
-  localStorage.setItem(LS_REFRESH, data.refresh_token);
-  localStorage.setItem(LS_FLAG, '1');
-  localStorage.removeItem(LS_LAST_ERR);
-  gdriveSetAccess(data.access_token, data.expires_in);
-}
-
-// リフレッシュ（同時に複数呼ばれても1回にまとめる）
-function gdriveRefresh(){
-  if(_gdriveRefreshing) return _gdriveRefreshing;
-  _gdriveRefreshing = (async ()=>{
-    const rt = gdriveGetRefreshToken();
-    if(!rt) throw new Error('未ログインです');
-    try{
-      const data = await gdriveWorkerCall('/refresh', { refresh_token: rt });
-      gdriveSetAccess(data.access_token, data.expires_in);
-      if(data.refresh_token) localStorage.setItem(LS_REFRESH, data.refresh_token);
-      return _gdriveAccessToken;
-    }catch(e){
-      if(e.status === 401){
-        // アクセスを取り消された等。再ログインが必要
-        localStorage.removeItem(LS_REFRESH);
-        localStorage.removeItem(LS_ACCESS);
-        _gdriveAccessToken = null; _gdriveTokenExpiresAt = 0;
-        updateGdriveUI('expired');
-        throw new Error('ログインが無効になりました。再ログインしてください');
-      }
-      throw e; // 通信エラー等はトークンを残して次回に再挑戦
-    }
-  })();
-  const clear = ()=>{ _gdriveRefreshing = null; };
-  _gdriveRefreshing.then(clear, clear);
-  return _gdriveRefreshing;
-}
-
-async function gdriveEnsureToken(){
-  if(_gdriveAccessToken && Date.now() < _gdriveTokenExpiresAt) return _gdriveAccessToken;
-  return gdriveRefresh();
-}
-
-function gdriveRedirectUri(){
-  return location.origin + location.pathname.replace(/index\.html$/, '');
-}
-
-// Web版ログイン：Googleのページへ移動して戻ってくる
-function gdriveSignIn(){
-  const st = Math.random().toString(36).slice(2) + Date.now().toString(36);
-  try{ localStorage.setItem(LS_OAUTH_STATE, st); }catch(_){}
-  try{ flushSave(); }catch(_){}
-  const p = new URLSearchParams({
-    client_id: GDRIVE_CLIENT_ID,
-    redirect_uri: gdriveRedirectUri(),
-    response_type: 'code',
-    scope: GDRIVE_SCOPE,
-    access_type: 'offline',
-    prompt: 'consent',          // 毎回リフレッシュトークンを確実にもらう
-    include_granted_scopes: 'true',
-    state: st,
-  });
-  location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + p.toString();
-}
-
-// Googleから戻ってきた時の処理
-async function gdriveHandleRedirect(){
-  const q = new URLSearchParams(location.search);
-  const code = q.get('code'), err = q.get('error'), st = q.get('state');
-  if(!code && !err) return;
-  // URLから ?code=... を消す
-  try{ history.replaceState(history.state, '', location.pathname + location.hash); }catch(_){}
-  const expected = localStorage.getItem(LS_OAUTH_STATE);
-  localStorage.removeItem(LS_OAUTH_STATE);
-  if(err){ showToast('ログインをキャンセルしました'); return; }
-  if(!expected || st !== expected){ showToast('ログインに失敗しました（state不一致）'); return; }
   try{
-    showToast('Google Driveに接続中...');
-    await gdriveExchangeCode(code, gdriveRedirectUri());
-    showToast('Google Driveに接続しました');
-  }catch(e){
-    console.warn('gdriveHandleRedirect:', e);
-    alert('Google接続に失敗しました：' + e.message);
-  }
+    _gdriveTokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: GDRIVE_CLIENT_ID,
+      scope: GDRIVE_SCOPE,
+      callback: (response)=>{
+        if(response.error){
+          console.warn('OAuth error:', response);
+          updateGdriveUI(false);
+          return;
+        }
+        _gdriveAccessToken = response.access_token;
+        _gdriveTokenExpiresAt = Date.now() + (response.expires_in || 3600) * 1000;
+        try{ localStorage.setItem('gdrive-signed-in', '1'); }catch(_){}
+        gdriveSaveTokenToStorage();
+        updateGdriveUI(true);
+        try{ showToast('Google Driveに接続しました'); }catch(_){}
+      },
+    });
+    if(localStorage.getItem('gdrive-signed-in') === '1'){
+      if(gdriveLoadTokenFromStorage()){
+        updateGdriveUI(true);
+      } else {
+        _gdriveTokenClient.requestAccessToken({prompt: ''});
+      }
+    }
+  }catch(e){ console.warn('gdriveInit:', e); }
 }
 
-async function gdriveInit(){
-  if(!gdriveIsNative()) await gdriveHandleRedirect();
-  gdriveLoadTokenFromStorage();
-  if(gdriveIsSignedIn()) updateGdriveUI(true);
-  else if(localStorage.getItem(LS_FLAG) === '1') updateGdriveUI('expired'); // 旧方式からの移行もここ
-  else updateGdriveUI(false);
-}
-
-function updateGdriveUI(st){
+function updateGdriveUI(signedIn){
+  // ライブラリのバックアップメニュー内
   const status = document.getElementById('gdrive-menu-status');
   const signinBtn = document.getElementById('gdrive-menu-signin');
   const syncBtn = document.getElementById('gdrive-menu-sync');
   const restoreBtn = document.getElementById('gdrive-menu-restore');
   const signoutBtn = document.getElementById('gdrive-menu-signout');
-  const show = (el, on)=>{ if(el) el.style.display = on ? 'flex' : 'none'; };
-  const label = (t)=>{ if(signinBtn && signinBtn.lastChild) signinBtn.lastChild.textContent = '\n    ' + t + '\n  '; };
-  if(st === true){
-    const lastErr = localStorage.getItem(LS_LAST_ERR);
-    const last = localStorage.getItem(LS_LAST_SYNC);
-    if(status){
-      if(lastErr){ status.textContent = '⚠ 同期エラー：' + lastErr; status.style.color = '#c54040'; }
-      else{
-        status.textContent = '✓ Google Drive 接続中' + (last ? '（最終同期 ' + new Date(last).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}) + '）' : '');
-        status.style.color = '#3a6d8c';
-      }
-    }
-    show(signinBtn,false); show(syncBtn,true); show(restoreBtn,true); show(signoutBtn,true);
-  } else if(st === 'expired'){
-    if(status){ status.textContent = '⚠ 再ログインが必要です'; status.style.color = '#c54040'; }
-    label('Googleで再ログイン');
-    show(signinBtn,true); show(syncBtn,false); show(restoreBtn,false); show(signoutBtn,true);
+  if(signedIn){
+    if(status){ status.textContent = '✓ Google Drive 接続中（自動同期: 30秒）'; status.style.color = '#3a6d8c'; }
+    if(signinBtn) signinBtn.style.display = 'none';
+    if(syncBtn) syncBtn.style.display = 'flex';
+    if(restoreBtn) restoreBtn.style.display = 'flex';
+    if(signoutBtn) signoutBtn.style.display = 'flex';
   } else {
     if(status){ status.textContent = 'クラウド未接続'; status.style.color = '#888'; }
-    label('Googleでログイン');
-    show(signinBtn,true); show(syncBtn,false); show(restoreBtn,false); show(signoutBtn,false);
+    if(signinBtn) signinBtn.style.display = 'flex';
+    if(syncBtn) syncBtn.style.display = 'none';
+    if(restoreBtn) restoreBtn.style.display = 'none';
+    if(signoutBtn) signoutBtn.style.display = 'none';
   }
 }
 
-function gdriveClearLocalAuth(){
-  _gdriveAccessToken = null; _gdriveTokenExpiresAt = 0;
-  [LS_REFRESH, LS_ACCESS, LS_FLAG, LS_LAST_ERR].forEach(k=>{ try{ localStorage.removeItem(k); }catch(_){} });
-  clearTimeout(_gdriveAutoSyncTimer); _gdriveAutoSyncTimer = null;
+function gdriveSignIn(){
+  if(!_gdriveTokenClient){
+    try{ showToast('Googleサービス初期化中。少し待ってから再度お試しください'); }catch(_){}
+    gdriveInit();
+    return;
+  }
+  _gdriveTokenClient.requestAccessToken({prompt: 'select_account'});
+}
+
+function gdriveSignOut(){
+  if(_gdriveAccessToken && typeof google !== 'undefined' && google.accounts){
+    try{ google.accounts.oauth2.revoke(_gdriveAccessToken, ()=>{}); }catch(_){}
+  }
+  _gdriveAccessToken = null;
+  _gdriveTokenExpiresAt = 0;
+  try { localStorage.removeItem('gdrive-signed-in'); } catch (_) {}
+  try { localStorage.removeItem('gdrive-token'); } catch (_) {} 
   updateGdriveUI(false);
+  try{ showToast('ログアウトしました'); }catch(_){}
 }
 
-async function gdriveSignOut(){
-  const rt = gdriveGetRefreshToken();
-  if(rt){
-    // Google側のアクセス許可も取り消す（失敗しても無視）
-    try{ await fetch('https://oauth2.googleapis.com/revoke?token=' + encodeURIComponent(rt), {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}}); }catch(_){}
-  }
-  gdriveClearLocalAuth();
-  showToast('ログアウトしました');
+function gdriveIsSignedIn(){
+  return !!_gdriveAccessToken && Date.now() < _gdriveTokenExpiresAt;
 }
 
-// アプリ専用フォルダ内の指定ファイルを検索（なければnull）
+// アクセストークンが期限切れなら更新（無音）
+function gdriveEnsureToken(){
+  return new Promise((resolve, reject)=>{
+    if(gdriveIsSignedIn()){ resolve(_gdriveAccessToken); return; }
+    if(!_gdriveTokenClient){ reject(new Error('not initialized')); return; }
+    const orig = _gdriveTokenClient.callback;
+    _gdriveTokenClient.callback = (response)=>{
+      _gdriveTokenClient.callback = orig;
+      if (response.error) { reject(response); return; }
+      _gdriveAccessToken = response.access_token;
+      _gdriveTokenExpiresAt = Date.now() + (response.expires_in || 3600) * 1000;
+      gdriveSaveTokenToStorage();
+      resolve(_gdriveAccessToken);
+    };
+    _gdriveTokenClient.requestAccessToken({prompt: ''});
+  });
+}
+
+// アプリ専用フォルダ内の指定ファイルを検索（IDを返す、なければnull）
 async function gdriveFindFile(){
   await gdriveEnsureToken();
   const url = 'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name,modifiedTime)&q=' + encodeURIComponent("name='" + GDRIVE_FILE_NAME + "'");
-  const res = await gdriveFetch(url);
+  const res = await fetch(url, {
+    headers: {'Authorization': 'Bearer ' + _gdriveAccessToken}
+  });
+  if(!res.ok) throw new Error('find file failed: ' + res.status);
   const data = await res.json();
   return (data.files && data.files[0]) || null;
 }
 
-// トークン付きfetch。401なら1回だけリフレッシュして再試行
-async function gdriveFetch(url, opts = {}){
-  const doFetch = ()=> fetch(url, Object.assign({}, opts, {
-    headers: Object.assign({}, opts.headers || {}, {'Authorization': 'Bearer ' + _gdriveAccessToken})
-  }));
-  let res = await doFetch();
-  if(res.status === 401){
-    _gdriveTokenExpiresAt = 0;
-    await gdriveRefresh();
-    res = await doFetch();
-  }
-  if(!res.ok) throw new Error('Drive API ' + res.status);
-  return res;
-}
-
-// アプリ専用フォルダに保存（既存があれば上書き）
-/* ── 挿絵の同期 ──
-   本のデータとは別に、挿絵を1枚ずつ「img_画像名」というファイルでアプリ専用領域に置く。
-   まだ上げていない挿絵だけを送り、手元にない挿絵は表示するときに取りに行く。 */
-const LS_UPLOADED_IMAGES = 'gdrive-uploaded-images';
-let _gdriveRemoteImages = null; // 今回の起動で確認したドライブ上の挿絵の一覧
-function collectLibraryImageNames(){
-  const names = new Set();
-  (state.library || []).forEach(n => (n.episodes || []).forEach(ep => (ep.pages || []).forEach(pg => (pg.paras || []).forEach(pa => {
-    if(pa.type === 'image' && pa.imgName) names.add(pa.imgName);
-  }))));
-  return names;
-}
-function gdriveQ(s){ return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
-async function gdriveListRemoteImages(){
-  if(_gdriveRemoteImages) return _gdriveRemoteImages;
-  const map = new Map();
-  let pageToken = '';
-  do{
-    const url = 'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&pageSize=1000&fields=nextPageToken,files(id,name)&q=' +
-      encodeURIComponent("name contains 'img_'") + (pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : '');
-    const res = await gdriveFetch(url);
-    const d = await res.json();
-    (d.files || []).forEach(f => { if(f.name.startsWith('img_')) map.set(f.name.slice(4), f.id); });
-    pageToken = d.nextPageToken || '';
-  }while(pageToken);
-  _gdriveRemoteImages = map;
-  return map;
-}
-async function gdriveUploadImages(){
-  const names = collectLibraryImageNames();
-  if(!names.size) return;
-  let done = [];
-  try{ done = JSON.parse(localStorage.getItem(LS_UPLOADED_IMAGES) || '[]'); }catch(_){}
-  const doneSet = new Set(done);
-  const pending = [...names].filter(n => !doneSet.has(n));
-  if(!pending.length) return;
-  const remote = await gdriveListRemoteImages();
-  for(const name of pending){
-    if(remote.has(name)){ doneSet.add(name); continue; }
-    const dataUrl = await imgDbGet(name).catch(() => null);
-    if(!dataUrl) continue; // この端末にもない
-    const boundary = '-------img-' + Date.now();
-    const body = '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' +
-      JSON.stringify({ name: 'img_' + name, mimeType: 'text/plain', parents: ['appDataFolder'] }) +
-      '\r\n--' + boundary + '\r\nContent-Type: text/plain\r\n\r\n' + dataUrl + '\r\n--' + boundary + '--';
-    const res = await gdriveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
-      method: 'POST', headers: {'Content-Type': 'multipart/related; boundary=' + boundary}, body,
-    });
-    const d = await res.json();
-    remote.set(name, d.id);
-    doneSet.add(name);
-    try{ localStorage.setItem(LS_UPLOADED_IMAGES, JSON.stringify([...doneSet])); }catch(_){}
-  }
-  try{ localStorage.setItem(LS_UPLOADED_IMAGES, JSON.stringify([...doneSet])); }catch(_){}
-}
-const _gdriveImageFetching = new Map();
-function gdriveFetchImage(name){
-  if(!gdriveIsSignedIn()) return Promise.resolve(null);
-  if(_gdriveImageFetching.has(name)) return _gdriveImageFetching.get(name);
-  const pr = (async () => {
-    try{
-      let id = _gdriveRemoteImages && _gdriveRemoteImages.get(name);
-      if(!id){
-        const url = 'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name)&q=' +
-          encodeURIComponent("name='img_" + gdriveQ(name) + "'");
-        const d = await (await gdriveFetch(url)).json();
-        id = d.files && d.files[0] && d.files[0].id;
-      }
-      if(!id) return null;
-      const dataUrl = await (await gdriveFetch('https://www.googleapis.com/drive/v3/files/' + id + '?alt=media')).text();
-      if(!dataUrl.startsWith('data:image/')) return null;
-      await imgDbSave(name, dataUrl);
-      return dataUrl;
-    }catch(e){ console.warn('gdriveFetchImage:', e); return null; }
-  })();
-  _gdriveImageFetching.set(name, pr);
-  return pr;
-}
-
+// アプリ専用フォルダにファイルを保存（既存があれば上書き）
 async function gdriveUploadData(){
-  if(_gdriveUploading) return;
-  _gdriveUploading = true;
-  try{
-    await gdriveEnsureToken();
-    const payload = {
-      app: 'novel-reader',
-      version: 1,
-      syncedAt: new Date().toISOString(),
-      library: state.library || [],
-      settings: Object.assign({}, state.settings || {}, {ttsApiKey: undefined}), // APIキーは上げない
-    };
-    const json = JSON.stringify(payload);
-    const existing = await gdriveFindFile();
-    const boundary = '-------novel-boundary-' + Date.now();
-    const meta = { name: GDRIVE_FILE_NAME, mimeType: 'application/json' };
-    if(!existing) meta.parents = ['appDataFolder'];
-    const body =
-      '--' + boundary + '\r\n' +
-      'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
-      JSON.stringify(meta) + '\r\n' +
-      '--' + boundary + '\r\n' +
-      'Content-Type: application/json\r\n\r\n' +
-      json + '\r\n' +
-      '--' + boundary + '--';
-    const url = existing
-      ? 'https://www.googleapis.com/upload/drive/v3/files/' + existing.id + '?uploadType=multipart'
-      : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
-    await gdriveFetch(url, {
-      method: existing ? 'PATCH' : 'POST',
-      headers: {'Content-Type': 'multipart/related; boundary=' + boundary},
-      body,
-    });
-    try{ await gdriveUploadImages(); }catch(e){ console.warn('gdriveUploadImages:', e); }
-    localStorage.setItem(LS_LAST_SYNC, payload.syncedAt);
-    localStorage.removeItem(LS_LAST_ERR);
-  }catch(e){
-    try{ localStorage.setItem(LS_LAST_ERR, e.message || '不明'); }catch(_){}
-    throw e;
-  }finally{
-    _gdriveUploading = false;
-    if(gdriveIsSignedIn()) updateGdriveUI(true);
-  }
-}
+  await gdriveEnsureToken();
+  // 全ライブラリのスナップショットを作成
+  const payload = {
+    app: 'novel-reader',
+    version: 1,
+    syncedAt: new Date().toISOString(),
+    library: state.library || [],
+    settings: state.settings || {}
+  };
+  const json = JSON.stringify(payload);
+  const existing = await gdriveFindFile();
 
-async function gdriveDownloadData(){
-  const file = await gdriveFindFile();
-  if(!file) return null;
-  const res = await gdriveFetch('https://www.googleapis.com/drive/v3/files/' + file.id + '?alt=media');
+  // multipart upload
+  const boundary = '-------novel-boundary-' + Date.now();
+  const meta = {
+    name: GDRIVE_FILE_NAME,
+    mimeType: 'application/json'
+  };
+  if(!existing){
+    meta.parents = ['appDataFolder'];
+  }
+  const body =
+    '--' + boundary + '\r\n' +
+    'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
+    JSON.stringify(meta) + '\r\n' +
+    '--' + boundary + '\r\n' +
+    'Content-Type: application/json\r\n\r\n' +
+    json + '\r\n' +
+    '--' + boundary + '--';
+
+  const url = existing
+    ? 'https://www.googleapis.com/upload/drive/v3/files/' + existing.id + '?uploadType=multipart'
+    : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+  const method = existing ? 'PATCH' : 'POST';
+  const res = await fetch(url, {
+    method: method,
+    headers: {
+      'Authorization': 'Bearer ' + _gdriveAccessToken,
+      'Content-Type': 'multipart/related; boundary=' + boundary
+    },
+    body: body
+  });
+  if(!res.ok) throw new Error('upload failed: ' + res.status);
   return await res.json();
 }
 
-// 「クラウドへ同期」
+// クラウドからデータを取得
+async function gdriveDownloadData(){
+  await gdriveEnsureToken();
+  const file = await gdriveFindFile();
+  if(!file) return null;
+  const res = await fetch('https://www.googleapis.com/drive/v3/files/' + file.id + '?alt=media', {
+    headers: {'Authorization': 'Bearer ' + _gdriveAccessToken}
+  });
+  if(!res.ok) throw new Error('download failed: ' + res.status);
+  return await res.json();
+}
+
+// 「今すぐ同期」ボタン
 async function gdriveSyncNow(){
-  if(!gdriveIsSignedIn()){ gdriveSignIn(); return; }
+  if(!gdriveIsSignedIn()){
+    gdriveSignIn();
+    return;
+  }
+  const btn = document.getElementById('gdrive-sync-btn');
+  if(btn){ btn.disabled = true; btn.textContent = '同期中...'; }
   try{
+    // 編集中エピソードを同期
     if(state.editMode && state.curPage != null){
       try{ syncEditorToState(state.curPage); }catch(_){}
       syncCurrentEpisode();
     }
-    showToast('同期中...');
     await gdriveUploadData();
-    showToast('クラウドに同期しました');
+    try{ showToast('クラウドに同期しました'); }catch(_){}
   }catch(e){
     console.warn('gdriveSyncNow:', e);
-    showToast('同期失敗：' + e.message);
+    try{ showToast('同期に失敗しました'); }catch(_){}
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = '☁ 今すぐ同期'; }
   }
 }
 
-// 「クラウドから復元」
+// クラウドから復元
 async function gdriveRestoreFromCloud(){
-  if(!gdriveIsSignedIn()){ gdriveSignIn(); return; }
+  if(!gdriveIsSignedIn()){
+    gdriveSignIn();
+    return;
+  }
   if(!confirm('クラウドのデータでローカルを上書きしますか？\n（現在の状態は新たなバックアップとして保存されます）')) return;
+  const btn = document.getElementById('gdrive-restore-btn');
+  if(btn){ btn.disabled = true; btn.textContent = '復元中...'; }
   try{
-    showToast('復元中...');
     const data = await gdriveDownloadData();
-    if(!data || !data.library){ showToast('クラウドにデータがありません'); return; }
-    if(state.library){ for(const novel of state.library) await autoBackup(novel, true, true); }
+    if(!data || !data.library){
+      try{ showToast('クラウドにデータがありません'); }catch(_){}
+      return;
+    }
+    // 現在の状態を強制バックアップ
+    if(state.library){
+      for(const novel of state.library){
+        await autoBackup(novel, true, true);
+      }
+    }
+    // ライブラリを置換
     state.library = data.library;
-    for(const novel of state.library) await libDbPut(novel);
+    // 各本をDBに保存
+    for(const novel of state.library){
+      await libDbPut(novel);
+    }
+    // 設定もマージ（クラウド優先）
     if(data.settings){
-      const keepKey = state.settings.ttsApiKey;
       state.settings = Object.assign({}, state.settings, data.settings);
-      if(keepKey) state.settings.ttsApiKey = keepKey;
       try{ debouncedSaveSettings(); }catch(_){}
     }
+    // 開いている本があれば閉じる
     if(state.editMode) exitEditMode();
     state.currentNovelId = null;
     state.currentEpisodeId = null;
+    state.novel = null;
     showLibrary();
-    showToast('クラウドから復元しました');
+    if(typeof renderLibrary === 'function') renderLibrary();
+    try{ showToast('クラウドから復元しました'); }catch(_){}
   }catch(e){
     console.warn('gdriveRestoreFromCloud:', e);
-    showToast('復元失敗：' + e.message);
+    try{ showToast('復元に失敗しました'); }catch(_){}
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = '☁ クラウドから復元'; }
   }
 }
 
-// 編集後の自動同期（30秒デバウンス）
+// 編集後の自動同期スケジュール（30秒のデバウンス）
 function scheduleGdriveAutoSync(){
   if(!gdriveIsSignedIn()) return;
   if(_gdriveAutoSyncTimer) clearTimeout(_gdriveAutoSyncTimer);
   _gdriveAutoSyncTimer = setTimeout(async ()=>{
-    _gdriveAutoSyncTimer = null;
-    try{ await gdriveUploadData(); console.log('[gdrive] auto sync done'); }
-    catch(e){
-      console.warn('auto sync:', e);
-      try{ showToast('クラウド同期に失敗：' + e.message); }catch(_){}
-    }
-  }, 30000);
+    try{
+      await gdriveUploadData();
+      console.log('[gdrive] auto sync done');
+    }catch(e){ console.warn('auto sync:', e); }
+  }, 30000); // 30秒
 }
-
-// バックグラウンドに回る時、保留中の同期を即実行
-document.addEventListener('visibilitychange', ()=>{
-  if(document.visibilityState === 'hidden' && _gdriveAutoSyncTimer){
-    clearTimeout(_gdriveAutoSyncTimer);
-    _gdriveAutoSyncTimer = null;
-    gdriveUploadData().catch(()=>{});
-  }
-});
 
 async function removeCustomFont(fontName, family){
   try{
@@ -3624,20 +3351,10 @@ async function removeCustomFont(fontName, family){
     if(idx >= 0){
       FONTS.splice(idx, 1);
       // 現在使用中のフォントが削除されたものなら、デフォルトに戻す
-      if(lookSetting('fontFamily') === family){
+      if(state.settings.fontFamily === family){
         applyGlobalFont(FONTS[0].family, 0);
       }
     }
-    // このフォントを使っていた他の本・全体の既定も明朝体に戻す
-    if(state.settings.fontFamily === family){ state.settings.fontFamily = FONTS[0].family; debouncedSaveSettings(); }
-    for(const n of (state.library || [])){
-      if(n.fontFamily === family && n.id !== state.currentNovelId){
-        delete n.fontFamily;
-        libDbPut(n).catch(()=>{});
-      }
-    }
-    const styleEl = document.getElementById('custom-font-' + fontName.replace(/[^a-zA-Z0-9]/g, '_'));
-    if(styleEl) styleEl.remove();
     // UIを再描画
     if($.font_list){
       $.font_list.innerHTML = '';
@@ -3905,35 +3622,6 @@ async function loadLibrary(){
   }
 }
 
-// 見た目の設定：本を開いていればその本に、開いていなければ全体の既定に保存
-function lookSetting(key, fallback){
-  if(state.currentNovelId && state.novel && state.novel[key] != null) return state.novel[key];
-  return state.settings[key] != null ? state.settings[key] : fallback;
-}
-function storeLookSetting(key, val){
-  if(state.currentNovelId && state.novel){
-    state.novel[key] = val;
-    const li = state.library.findIndex(n=>n.id===state.currentNovelId);
-    if(li>=0) state.library[li][key] = val;
-    save();
-  } else {
-    state.settings[key] = val;
-    debouncedSaveSettings();
-  }
-}
-// 本を開いた時・ライブラリに戻った時に、その本（または既定）の見た目をまとめて反映
-function applyNovelLook(){
-  applyTheme(novelThemeIdx(state.currentNovelId ? state.novel : null));
-  applyParaLineHeight(lookSetting('lineHeight', 2.0), false);
-  applyParaSpacing(lookSetting('paraSpacing', 24), false);
-  let fam = lookSetting('fontFamily', FONTS[0].family);
-  if(!FONTS.some(f=>f.family===fam)) fam = FONTS[0].family; // 削除済みフォント
-  applyGlobalFont(fam, FONTS.findIndex(f=>f.family===fam), false);
-}
-function novelThemeIdx(novel){
-  if(novel && Number.isInteger(novel.themeIdx) && THEMES[novel.themeIdx]) return novel.themeIdx;
-  return state.settings.themeIdx || 0;
-}
 function makeNovel(title){
   return{
     id:'novel_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
@@ -3999,8 +3687,8 @@ function applyLoadedSettings(){
   // 行間・段落間の初期反映
   if(s.lineHeight == null) s.lineHeight = 2.0;
   if(s.paraSpacing == null) s.paraSpacing = 24;
-  applyParaLineHeight(s.lineHeight, false);
-  applyParaSpacing(s.paraSpacing, false);
+  applyParaLineHeight(s.lineHeight);
+  applyParaSpacing(s.paraSpacing);
   // 行間・段落間スライダーの値反映
   const lhEl = document.getElementById('global-lineheight');
   const lhVal = document.getElementById('global-lineheight-val');
@@ -4037,8 +3725,6 @@ function applyLoadedSettings(){
   if (ttsKeyInput) ttsKeyInput.value = s.ttsApiKey || '';
   const autoNextEl = document.getElementById('tts-auto-next-episode');
   if (autoNextEl) autoNextEl.checked = !!s.ttsAutoNextEpisode;
-  const rateLbl = document.getElementById('tts-rate-label');
-  if (rateLbl) rateLbl.textContent = (s.ttsRate || 1) + 'x';
   // Enterモードラベル
   if($.eb_enter_mode && $.eb_enter_label){
     if(s.enterInsertsBr){
@@ -4051,7 +3737,6 @@ function applyLoadedSettings(){
 
 // 即時保存
 function save(){
-  if(!state.currentNovelId || !state.novel) return;
   // 編集中のページDOMを state.pages に反映してから保存
   if(state.editMode) syncEditorToState(state.curPage);
   syncCurrentEpisode();
@@ -4077,7 +3762,6 @@ function debouncedSave(){
 // 即時保存：保留中のデバウンスをフラッシュして同期的にDBへ書き込み開始
 // ページ離脱時など、確実に最新を保存する必要がある場面で使用
 function flushSave(){
-  if(!state.currentNovelId || !state.novel){ clearTimeout(_saveTimer); _saveTimer = null; return; }
   clearTimeout(_saveTimer);
   _saveTimer = null;
   if(state.editMode && state.curPage != null){
@@ -4096,16 +3780,9 @@ async function resetAllData(){
   if(!confirm('この小説のデータをリセットしますか？\nエピソード・タイトル・カバー画像がすべて削除されます。'))return;
   try{
     if(state.currentNovelId){
-      const delId = state.currentNovelId;
-      clearTimeout(_saveTimer);
-      state.currentNovelId = null;
-      state.currentEpisodeId = null;
-      if(state.editMode) state.editMode = false;
-      state.library=state.library.filter(n=>n.id!==delId); // 先に本棚から外す（書き戻し防止）
-      await libDbDelete(delId);
-      await imgDbDelete(novelBgKey(delId)).catch(()=>{});
+      await libDbDelete(state.currentNovelId);
+      state.library=state.library.filter(n=>n.id!==state.currentNovelId);
     }
-    closePanel();
     showLibrary();
   }catch(e){
     showToast('リセットに失敗しました');
@@ -4153,13 +3830,6 @@ function showResumePopup(ep, novelTitle){
   setTimeout(()=> popup.classList.add('show'), 200);
 }
 
-function hideResumePopup(){
-  const popup = document.getElementById('resume-popup');
-  if(popup) popup.classList.remove('show');
-  _resumeEpId = null;
-  _resumeNovelId = null;
-}
-
 function dismissResumePopup(){
   const popup = document.getElementById('resume-popup');
   if(popup) popup.classList.remove('show');
@@ -4199,13 +3869,12 @@ function showLibrary(){
   if(state.currentNovelId) save();
   state.currentEpisodeId=null;
   state.currentNovelId=null;
-  // ライブラリ画面では背景をリセットし、既定のテーマに戻す
-  applyNovelLook();
+  // ライブラリ画面では背景をリセット
   resetBgDisplay();
   // 他の画面・オーバーレイを確実に閉じる（クリックブロックを防ぐ）
   closePanel();
   closeModal();
-  hideResumePopup();
+  dismissResumePopup();
   document.body.classList.add('library-mode');
   document.body.classList.remove('toc-mode');
   document.getElementById('library-screen').classList.add('show');
@@ -4295,22 +3964,6 @@ function renderLibrary(){
         pressTimer = null;
       }
     },{passive:true});
-    // PC：マウスの長押しでも選択モードに入る
-    let mouseTimer=null, mouseX=0, mouseY=0;
-    card.addEventListener('mousedown',e=>{
-      if(e.button!==0) return;
-      mouseX=e.clientX; mouseY=e.clientY;
-      mouseTimer=setTimeout(()=>{
-        _lastLongPressAt = Date.now();
-        if(!_selectionMode) enterSelectionMode();
-        toggleNovelSelection(novel.id, card);
-        mouseTimer=null;
-      },500);
-    });
-    card.addEventListener('mousemove',e=>{
-      if(mouseTimer && (Math.abs(e.clientX-mouseX)>8 || Math.abs(e.clientY-mouseY)>8)){ clearTimeout(mouseTimer); mouseTimer=null; }
-    });
-    ['mouseup','mouseleave'].forEach(ev=>card.addEventListener(ev,()=>{ if(mouseTimer){ clearTimeout(mouseTimer); mouseTimer=null; } }));
     card.addEventListener('contextmenu',e=>{
       e.preventDefault();
       _lastLongPressAt = Date.now();
@@ -4368,8 +4021,8 @@ async function deleteSelectedNovels(){
   if(!confirm(`選択した${n}冊を削除しますか？\nこの操作は元に戻せません。`)) return;
   const ids = Array.from(_selectedNovelIds);
   for(const id of ids){
-    state.library = state.library.filter(n=>n.id!==id); // 先に本棚から外す（書き戻し防止）
     await libDbDelete(id).catch(()=>{});
+    state.library = state.library.filter(n=>n.id!==id);
   }
   // 全削除されたら新規本を作る
   if(state.library.length === 0){
@@ -4401,7 +4054,6 @@ async function openNovel(novelId){
   state.currentEpisodeId=null;
   hideLibrary();
   showToc();
-  applyNovelLook();
   // この本の背景画像を復元
   loadNovelBgImage(novelId);
 }
@@ -4422,8 +4074,8 @@ function openNovelMenu(novelId){
 }
 
 async function deleteNovel(novelId){
-  state.library=state.library.filter(n=>n.id!==novelId); // 先に本棚から外す（書き戻し防止）
   await libDbDelete(novelId);
+  state.library=state.library.filter(n=>n.id!==novelId);
   if(state.library.length===0){
     const novel=makeNovel('無題の小説');
     novel.episodes=[makeEpisode(1,'第1話',getDefaultPages())];
@@ -4456,8 +4108,6 @@ function hideToc(){
 }
 
 function renderToc(){
-  $.sort_newest.classList.toggle('active', state.novel.sortMode!=='oldest');
-  $.sort_oldest.classList.toggle('active', state.novel.sortMode==='oldest');
   // タイトル・作者
   const titleEl=$.toc_novel_title;
   const authorEl=$.toc_novel_author;
@@ -4515,15 +4165,6 @@ function renderToc(){
     div.addEventListener('touchend',()=>clearTimeout(pressTimer));
     div.addEventListener('touchmove',()=>clearTimeout(pressTimer));
     div.addEventListener('contextmenu',e=>{e.preventDefault();openEpMenu(ep.id);});
-    // PC：マウスの長押しでも編集メニュー（その後のクリックで話が開かないようにする）
-    let epMouseTimer=null, epLongFired=false;
-    div.addEventListener('mousedown',e=>{
-      if(e.button!==0) return;
-      epLongFired=false;
-      epMouseTimer=setTimeout(()=>{ epLongFired=true; epMouseTimer=null; openEpMenu(ep.id); },550);
-    });
-    ['mouseup','mouseleave'].forEach(ev=>div.addEventListener(ev,()=>{ if(epMouseTimer){ clearTimeout(epMouseTimer); epMouseTimer=null; } }));
-    div.addEventListener('click',e=>{ if(epLongFired){ e.stopImmediatePropagation(); e.preventDefault(); epLongFired=false; } },true);
     list.appendChild(div);
   });
 
@@ -4648,11 +4289,7 @@ function openEpisode(id, startPos='first'){
   state.currentEpisodeId=id;
   state.novel.lastReadId=id;
   // lastReadId だけ保存（syncCurrentEpisode は呼ばない）
-  {
-    const li = state.library.findIndex(n=>n.id===state.currentNovelId);
-    if(li>=0) state.library[li].lastReadId = id;
-    libDbPut(state.novel).catch(e=>console.warn('save lastReadId failed:',e));
-  }
+  dbPut(state.novel).catch(e=>console.warn('IndexedDB save failed:',e));
   // タイトル更新
   $.topbar_title.textContent=ep.title;
   // 画面切替
@@ -4742,17 +4379,6 @@ async function exportAsJson(){
       exportedAt: new Date().toISOString(),
       novel: JSON.parse(JSON.stringify(state.novel))
     };
-    // 挿絵も一緒に入れる（本のデータには画像の名前しか入っていないため）
-    const imgNames = new Set();
-    (data.novel.episodes || []).forEach(ep => (ep.pages || []).forEach(pg => (pg.paras || []).forEach(pa => {
-      if(pa.type === 'image' && pa.imgName) imgNames.add(pa.imgName);
-    })));
-    if(imgNames.size){
-      data.images = {};
-      for(const name of imgNames){
-        try{ const d = await imgDbGet(name); if(d) data.images[name] = d; }catch(_){}
-      }
-    }
     const json = JSON.stringify(data, null, 2);
     const safeTitle = (state.novel.title || 'novel').replace(/[\\/:*?"<>|]/g, '_');
     const fileName = safeTitle + '.json';
@@ -4860,14 +4486,6 @@ async function handleJsonImport(event){
       state.library[idx] = imported;
     } else {
       state.library.push(imported);
-    }
-    // 一緒に入っていた挿絵を保存
-    if(data && data.images && typeof data.images === 'object'){
-      for(const [name, dataUrl] of Object.entries(data.images)){
-        if(typeof dataUrl === 'string' && dataUrl.startsWith('data:image/')){
-          try{ await imgDbSave(name, dataUrl); }catch(_){}
-        }
-      }
     }
     await libDbPut(imported);
     try{ showToast('「' + (imported.title || '') + '」をインポートしました'); }catch(_){}
@@ -4989,7 +4607,7 @@ async function handleTxtBulkImport(event){
 
 // ══════ 翻訳スクリプトで保存したHTMLの取り込み ══════
 // 保存HTMLに埋め込まれた段落データ（#kztl-episode）があればそれを使い、なければ本文の段落をそのまま読む
-const KZ_ALLOWED_TAGS = new Set(['SPAN','B','STRONG','I','EM','S','DEL','STRIKE','U','INS','BR','SUB','SUP','SMALL','MARK','RUBY','RT','RP','FONT']);
+const KZ_ALLOWED_TAGS = new Set(['SPAN','B','STRONG','I','EM','S','DEL','STRIKE','U','INS','BR','SUB','SUP','SMALL','MARK','RUBY','RT','RP','FONT','IMG']);
 function kzSanitizeInline(html){
   const tmp = document.createElement('div');
   tmp.innerHTML = html || '';
@@ -5008,6 +4626,11 @@ function kzSanitizeInline(html){
       [...ch.attributes].forEach(at => {
         if(at.name === 'style'){
           if(/url\s*\(|expression\s*\(|javascript:/i.test(at.value)) ch.removeAttribute('style');
+        } else if(ch.tagName === 'IMG' && at.name === 'src'){
+          // 文中の小さな画像（絵文字など）は http(s) のアドレスだけ許可
+          if(!/^https?:\/\//i.test(at.value)) ch.remove();
+        } else if(ch.tagName === 'IMG' && at.name === 'alt'){
+          // 代替テキストはそのまま
         } else if(!(ch.tagName === 'FONT' && at.name === 'color')){
           ch.removeAttribute(at.name);
         }
@@ -5266,12 +4889,7 @@ async function exportAsZip(){
       (pg.paras||[]).forEach(para=>{
         if(para.type==='text'){
           // HTMLタグを除去してテキストだけ取り出す
-          let raw;
-          if(para.html!==undefined){
-            const tmp=document.createElement('div');
-            tmp.innerHTML=stripFuriganaHtml(para.html).replace(/<br\s*\/?>/gi,'\n');
-            raw=tmp.textContent;
-          } else raw=para.text||'';
+          const raw=(para.html!==undefined)?para.html.replace(/<[^>]+>/g,''):(para.text||'');
           lines.push(raw);
         }
       });
@@ -5525,7 +5143,6 @@ function renderAllPages(){
     vp.appendChild(el);
     el.className='page'+(pi===state.curPage?' cur':' hidden');
   });
-  updateSubPageDots(state.curPage, state.subPageIndex, countGroups(state.curPage));
   updatePageIndicator();
   // re-run search
   if(state.ui.search.open){
@@ -5635,11 +5252,8 @@ function buildParaEl(pi,qi,para){
     // imgName があればDBから取得、なければsrcをそのまま使用
     if(para.imgName){
       img.src=''; // プレースホルダー
-      imgDbGet(para.imgName).then(async dataUrl=>{
-        if(dataUrl){ img.src=dataUrl; return; }
-        img.alt='挿絵を読み込み中…';
-        const fromCloud = await gdriveFetchImage(para.imgName);
-        if(fromCloud) img.src=fromCloud;
+      imgDbGet(para.imgName).then(dataUrl=>{
+        if(dataUrl) img.src=dataUrl;
         else img.alt=`[画像なし: ${para.imgName}]`;
       });
     } else {
@@ -5703,7 +5317,6 @@ function buildParaEl(pi,qi,para){
     p.dataset.pi=pi; p.dataset.qi=qi; p.dataset.type='text';
     if (typeof para.html === 'string' && para.html !== '') {
       p.innerHTML = shouldShowFuriganaDisplay() ? buildFuriganaDisplayHtml(para) : para.html;
-      markDarkTextForTheme(p);
     }else if(para.text){
       p.textContent=para.text;
     }else{
@@ -5712,9 +5325,7 @@ function buildParaEl(pi,qi,para){
     }
     p.style.textAlign=para.align||'left';
     p.style.fontSize=(para.size||state.settings.fontSize)+'px';
-    const _c = para.color || state.settings.color;
-    p.style.color = (!_c || isNearBlack(_c)) ? 'var(--ink)' : _c;
-    if(_c && isNearBlack(_c)) p.dataset.origColor = _c;
+    p.style.color=para.color||state.settings.color;
     p.style.fontFamily=para.fontFamily||state.settings.fontFamily;
     return p;
   }
@@ -5976,8 +5587,7 @@ function syncEditorToState(pi){
         const orig = origByQi || origByIdx;
         let nodeSize = parseFloat(node.style.fontSize);
         if (isNaN(nodeSize) || !nodeSize) nodeSize = (orig && orig.size) || state.settings.fontSize;
-        let nodeColor = node.style.color || (orig && orig.color) || state.settings.color;
-        if (/var\(--ink\)/.test(nodeColor)) nodeColor = (node.dataset && node.dataset.origColor) || (orig && orig.color) || '#1a1208';
+        const nodeColor = node.style.color || (orig && orig.color) || state.settings.color;
         const builtPara = {
           type: 'text',
           text: stripFuriganaText(node.innerHTML),
@@ -6253,8 +5863,6 @@ function setupScrollPageTurn(pageEl,pi,groupCount){
   pageEl.addEventListener('touchend',e=>{
     subSwitchLocked=false; // タッチ終了でもリセット
     if(state.ui.transitioning||e.changedTouches.length!==1)return;
-    if(hasTextSelection()) return; // 文字選択を広げている最中はページ送りしない
-    if(state.editMode) return; // 編集中は横のページ移動をしない
     const dx=e.changedTouches[0].clientX-touchStartX;
     const dy=e.changedTouches[0].clientY-touchStartY;
     // 横方向が明らかに優勢なスワイプ
@@ -6270,7 +5878,7 @@ function setupScrollPageTurn(pageEl,pi,groupCount){
   },{passive:true});
 
   pageEl.addEventListener('touchmove',e=>{
-    if(state.ui.transitioning||subSwitchLocked||hasTextSelection())return;
+    if(state.ui.transitioning||subSwitchLocked)return;
     const dy=touchStartY-e.touches[0].clientY;
     const maxScroll=pageEl.scrollHeight-pageEl.clientHeight;
     const atTop=touchStartScrollTop<=0;
@@ -6586,68 +6194,6 @@ function toggleReadingMode() {
   localStorage.setItem('readingMode', state.readingMode ? '1' : '0');
 }
 
-/* ══════ 読書中の文字選択 ══════ */
-// 選択を広げている最中にスワイプでページ送りしないための判定
-function hasTextSelection(){
-  const sel = window.getSelection();
-  return !!(sel && sel.rangeCount && !sel.isCollapsed && sel.toString().trim());
-}
-
-
-/* ══════ PC：閲覧中に画面の左右の端をクリックでページ移動 ══════ */
-function isPcPointer(){
-  return window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-}
-// x が左右どちらの端の領域か（本文の外側の余白＋本文の内側40px、最低でも画面幅の12%）
-function edgeZoneAt(x){
-  const vw = window.innerWidth;
-  const pageEl = document.getElementById('page-' + state.curPage);
-  const inner = pageEl && pageEl.querySelector('.page-inner');
-  let left = vw * 0.12, right = vw * 0.88;
-  if(inner){
-    const r = inner.getBoundingClientRect();
-    left = Math.max(left, r.left + 40);
-    right = Math.min(right, r.right - 40);
-  }
-  if(x <= left) return -1;
-  if(x >= right) return 1;
-  return 0;
-}
-function canEdgeNavigate(){
-  return isPcPointer() && !state.editMode && !state.ui.transitioning && state.currentEpisodeId &&
-    !document.body.classList.contains('toc-mode') && !document.body.classList.contains('library-mode');
-}
-// スマホの横スワイプと同じ：前後のページへ（最後なら次の話へ）
-function edgeNav(dir){
-  goPage(dir, 'h');
-}
-function setupEdgeClick(){
-  const vp = $.viewport;
-  const hintL = document.getElementById('edge-hint-left');
-  const hintR = document.getElementById('edge-hint-right');
-  let downX = 0, downY = 0;
-  vp.addEventListener('mousedown', e => { downX = e.clientX; downY = e.clientY; });
-  vp.addEventListener('click', e => {
-    if(!canEdgeNavigate() || e.button !== 0) return;
-    if(Math.abs(e.clientX - downX) > 6 || Math.abs(e.clientY - downY) > 6) return; // ドラッグ（文字選択）
-    if(hasTextSelection()) return;
-    if(e.target.closest && e.target.closest('button, a, .para-img-wrap')) return;
-    const z = edgeZoneAt(e.clientX);
-    if(z) edgeNav(z);
-  });
-  vp.addEventListener('mousemove', e => {
-    const z = canEdgeNavigate() ? edgeZoneAt(e.clientX) : 0;
-    vp.classList.toggle('edge-hover', z !== 0);
-    if(hintL) hintL.classList.toggle('show', z === -1);
-    if(hintR) hintR.classList.toggle('show', z === 1);
-  });
-  vp.addEventListener('mouseleave', () => {
-    vp.classList.remove('edge-hover');
-    if(hintL) hintL.classList.remove('show');
-    if(hintR) hintR.classList.remove('show');
-  });
-}
-
 function setupDoubleTap(){
   let lastTap=0;
   const vp=$.viewport;
@@ -6660,7 +6206,6 @@ function setupDoubleTap(){
   },{passive:false});
   vp.addEventListener('dblclick',e=>{
     if(state.readingMode)return;
-    if(isPcPointer() && edgeZoneAt(e.clientX)!==0) return; // 端の連打はページ送り
     if(state.editMode)return;
     enterEditMode();
   });
@@ -6669,7 +6214,7 @@ function setupDoubleTap(){
 function nativePlaybackStart(title, text){
   try{
     if(window.Capacitor && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.Playback){
-      window.Capacitor.Plugins.Playback.start({ title: title || 'イカ墨ノベル', text: text || '読み上げ中…' });
+      window.Capacitor.Plugins.Playback.start({ title: title || '小説リーダー', text: text || '読み上げ中…' });
     }
   }catch(e){ console.warn('nativePlaybackStart:', e); }
 }
@@ -6817,8 +6362,7 @@ async function speakWithDeviceTts(text) {
     utter.lang = 'ja-JP';
     utter.rate = rate;
     const voices = speechSynthesis.getVoices();
-    const chosen = state.settings.ttsDeviceVoice && voices.find(v => v.voiceURI === state.settings.ttsDeviceVoice);
-    const jaVoice = chosen || voices.find(v => v.lang === 'ja-JP') || voices.find(v => v.lang && v.lang.startsWith('ja'));
+    const jaVoice = voices.find(v => v.lang === 'ja-JP') || voices.find(v => v.lang && v.lang.startsWith('ja'));
     if (jaVoice) utter.voice = jaVoice;
     state.tts.deviceUtter = utter;
     utter.onend = resolve;
@@ -6827,166 +6371,12 @@ async function speakWithDeviceTts(text) {
   });
 }
 
-/* ══════ 声の選択 ══════ */
-const TTS_SAMPLE_TEXT = 'こんにちは。イカ墨ノベルの読み上げテストです。今日はどんな物語を読みましょうか。';
-const CLOUD_VOICE_CACHE_KEY = 'tts-cloud-voices';
-// 自然さの順（上ほど人間っぽい・高い）
-const CLOUD_VOICE_TYPES = [
-  {key:'Chirp3-HD', label:'Chirp 3 HD（最も自然）'},
-  {key:'Chirp-HD',  label:'Chirp HD'},
-  {key:'Neural2',   label:'Neural2'},
-  {key:'Wavenet',   label:'WaveNet'},
-  {key:'Standard',  label:'Standard（機械的・安い）'},
-];
-function cloudVoiceType(name){
-  const t = CLOUD_VOICE_TYPES.find(t => name.indexOf('-' + t.key + '-') !== -1);
-  return t ? t.key : 'その他';
-}
-function cloudVoiceLabel(v){
-  const short = v.name.replace(/^ja-JP-/, '').replace(/^(Chirp3-HD|Chirp-HD|Neural2|Wavenet|Standard)-/, '');
-  const g = v.ssmlGender === 'FEMALE' ? '女性' : v.ssmlGender === 'MALE' ? '男性' : '';
-  const t = cloudVoiceType(v.name);
-  return (t === 'その他' ? '' : t.replace('Chirp3-HD','Chirp3') + ' ') + short + (g ? '（' + g + '）' : '');
-}
-
-async function loadCloudVoices(force){
-  const sel = document.getElementById('tts-voice-select');
-  const hint = document.getElementById('tts-voice-hint');
-  if(!sel) return;
-  let voices = null;
-  if(!force){
-    try{ voices = JSON.parse(localStorage.getItem(CLOUD_VOICE_CACHE_KEY) || 'null'); }catch(_){}
-  }
-  if(!voices){
-    const key = state.settings.ttsApiKey;
-    if(!key){
-      sel.innerHTML = '<option value="">APIキーを入れると声を選べます</option>';
-      if(hint) hint.textContent = '';
-      return;
-    }
-    sel.innerHTML = '<option value="">読み込み中...</option>';
-    try{
-      const res = await fetch('https://texttospeech.googleapis.com/v1/voices?languageCode=ja-JP&key=' + encodeURIComponent(key));
-      if(!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      voices = (data.voices || []).filter(v => (v.languageCodes || []).includes('ja-JP'))
-        .map(v => ({name: v.name, ssmlGender: v.ssmlGender}));
-      localStorage.setItem(CLOUD_VOICE_CACHE_KEY, JSON.stringify(voices));
-    }catch(e){
-      console.warn('loadCloudVoices:', e);
-      sel.innerHTML = '<option value="">一覧を取得できません（APIキーを確認）</option>';
-      if(hint) hint.textContent = 'Cloud Text-to-Speech API が有効になっているか、APIキーの制限を確認してください。';
-      return;
-    }
-  }
-  const cur = state.settings.ttsVoice || '';
-  sel.innerHTML = '';
-  const groups = {};
-  voices.forEach(v => { (groups[cloudVoiceType(v.name)] = groups[cloudVoiceType(v.name)] || []).push(v); });
-  [...CLOUD_VOICE_TYPES.map(t=>t.key), 'その他'].forEach(k => {
-    if(!groups[k]) return;
-    const og = document.createElement('optgroup');
-    og.label = (CLOUD_VOICE_TYPES.find(t=>t.key===k) || {label:k}).label;
-    groups[k].sort((a,b)=>a.name.localeCompare(b.name)).forEach(v => {
-      const o = document.createElement('option');
-      o.value = v.name; o.textContent = cloudVoiceLabel(v);
-      if(v.name === cur) o.selected = true;
-      og.appendChild(o);
-    });
-    sel.appendChild(og);
-  });
-  if(!cur || !voices.some(v => v.name === cur)){
-    // 未選択なら一番自然な声を初期値に
-    const best = sel.querySelector('option');
-    if(best){ best.selected = true; state.settings.ttsVoice = best.value; debouncedSaveSettings(); }
-  }
-  if(hint) hint.textContent = '上ほど自然な声です。Chirp 3 HD / Neural2 / WaveNet は Standard より料金が高く、無料枠も種類ごとに別です。';
-}
-
-function getDeviceJaVoices(){
-  if(!('speechSynthesis' in window)) return [];
-  return speechSynthesis.getVoices().filter(v => v.lang && v.lang.replace('_','-').toLowerCase().startsWith('ja'));
-}
-function populateDeviceVoices(){
-  const sel = document.getElementById('tts-voice-select');
-  const hint = document.getElementById('tts-voice-hint');
-  if(!sel) return;
-  const voices = getDeviceJaVoices();
-  const cur = state.settings.ttsDeviceVoice || '';
-  sel.innerHTML = '';
-  const def = document.createElement('option');
-  def.value = ''; def.textContent = '端末の標準';
-  sel.appendChild(def);
-  voices.forEach(v => {
-    const o = document.createElement('option');
-    o.value = v.voiceURI; o.textContent = v.name + (v.localService ? '' : '（オンライン）');
-    if(v.voiceURI === cur) o.selected = true;
-    sel.appendChild(o);
-  });
-  if(hint){
-    hint.textContent = gdriveIsNativeTts()
-      ? 'アプリ版は端末の設定（テキスト読み上げの優先エンジン）の声を使います。声を変えたい場合は Android の設定から変更してください。'
-      : (voices.length ? '端末に入っている日本語の声から選べます。' : '日本語の声が見つかりません。');
-  }
-}
-function gdriveIsNativeTts(){
-  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
-}
-if('speechSynthesis' in window){
-  speechSynthesis.addEventListener('voiceschanged', ()=>{
-    if((state.settings.ttsEngine || 'device') === 'device') populateDeviceVoices();
-  });
-}
-
-function onTtsVoiceChange(sel){
-  if((state.settings.ttsEngine || 'device') === 'cloud') state.settings.ttsVoice = sel.value;
-  else state.settings.ttsDeviceVoice = sel.value;
-  _ttsAudioCache.clear();
-  debouncedSaveSettings();
-}
-
-let _ttsPreviewAudio = null;
-async function previewTtsVoice(){
-  const engine = state.settings.ttsEngine || 'device';
-  try{
-    if(_ttsPreviewAudio){ _ttsPreviewAudio.pause(); _ttsPreviewAudio = null; }
-    if('speechSynthesis' in window) speechSynthesis.cancel();
-    if(engine === 'cloud'){
-      showToast('音声を生成中...');
-      const b64 = await synthesizeChirp(TTS_SAMPLE_TEXT);
-      _ttsPreviewAudio = new Audio('data:audio/mp3;base64,' + b64);
-      _ttsPreviewAudio.playbackRate = state.settings.ttsRate || 1;
-      await _ttsPreviewAudio.play();
-    } else {
-      await speakWithDeviceTts(TTS_SAMPLE_TEXT);
-    }
-  }catch(e){
-    showToast('試聴できませんでした：' + e.message);
-  }
-}
-
-// クラウド音声の先読み（段落の切れ目の待ち時間をなくす）
-const _ttsAudioCache = new Map();
-function ttsGetCloudAudio(idx){
-  const item = state.tts.queue[idx];
-  if(!item) return null;
-  const key = idx + '|' + (state.settings.ttsVoice || '') + '|' + item.text;
-  if(!_ttsAudioCache.has(key)){
-    const pr = synthesizeChirp(item.text);
-    pr.catch(()=>_ttsAudioCache.delete(key));
-    _ttsAudioCache.set(key, pr);
-    // 古いものを捨てる
-    if(_ttsAudioCache.size > 6) _ttsAudioCache.delete(_ttsAudioCache.keys().next().value);
-  }
-  return _ttsAudioCache.get(key);
-}
-
 const TTS_CHUNK_MAX_CHARS = 1400; // APIの1リクエストあたりの文字数制限への安全マージン
 
 async function synthesizeChirp(text) {
   const apiKey = state.settings.ttsApiKey;
   if (!apiKey) { showToast('設定画面でAPIキーを入力してください'); throw new Error('no api key'); }
-  const voiceName = state.settings.ttsVoice || 'ja-JP-Neural2-B';
+  const voiceName = state.settings.ttsVoice || 'ja-JP-Standard-A';
   const rate = state.settings.ttsRate || 1;
   const res = await fetch('https://texttospeech.googleapis.com/v1/text:synthesize?key=' + apiKey, {
     method: 'POST',
@@ -7215,17 +6605,11 @@ function updateTtsEngineUI() {
   document.getElementById('tts-eng-cloud').classList.toggle('active', engine === 'cloud');
   const cloudSettings = document.getElementById('tts-cloud-settings');
   if (cloudSettings) cloudSettings.style.display = (engine === 'cloud') ? 'block' : 'none';
-  const reload = document.getElementById('tts-voice-reload');
-  if (reload) reload.style.display = (engine === 'cloud') ? '' : 'none';
-  if (engine === 'cloud') loadCloudVoices(false); else populateDeviceVoices();
 }
 
 function saveTtsApiKey(el) {
-  const v = el.value.trim();
-  const changed = v !== (state.settings.ttsApiKey || '');
-  state.settings.ttsApiKey = v;
+  state.settings.ttsApiKey = el.value.trim();
   debouncedSaveSettings();
-  if(changed && (state.settings.ttsEngine || 'device') === 'cloud') loadCloudVoices(true);
 }
 
 function stopCurrentAudioOnly() {
@@ -7237,7 +6621,6 @@ function stopCurrentAudioOnly() {
 
 function stopTts(){
   nativePlaybackStop();
-  _ttsAudioCache.clear();
   if(state.tts.audio){ state.tts.audio.pause(); state.tts.audio = null; }
   if('speechSynthesis' in window){ speechSynthesis.cancel(); }
   const NativeTts = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech;
@@ -7304,8 +6687,6 @@ function getGroupPlainTexts(pi, g){
     let t = (p.text || (p.html || '').replace(/<[^>]+>/g, '')).trim();
     if (t) {
       t = applyFuriganaForTts(t, p);
-      // 読み飛ばし指定で空になった／記号だけの段落は読まない（空の音声で止まるのを防ぐ）
-      if (!/[\p{L}\p{N}]/u.test(t)) continue;
       texts.push(t);
       qis.push(qi);
     }
@@ -7386,17 +6767,13 @@ async function playNextTtsChunk(){
 
   try{
     if(useCloud){
-      const pending = ttsGetCloudAudio(state.tts.idx);
-      if(state.tts.idx === 0 || !pending) showToast('音声を生成中...');
-      const audioContent = await (pending || synthesizeChirp(text));
-      if(!state.tts.playing) return;
-      ttsGetCloudAudio(state.tts.idx + 1); // 次の段落を先に作っておく
-      if(!audioContent){ ttsSkipBrokenChunk('空の音声'); return; }
+      showToast('音声を生成中...');
+      const audioContent = await synthesizeChirp(text);
       const audio = new Audio('data:audio/mp3;base64,' + audioContent);
       audio.playbackRate = state.settings.ttsRate || 1;
       state.tts.audio = audio;
-      audio.onended = () => { _ttsFailStreak = 0; state.tts.idx++; playNextTtsChunk(); };
-      audio.onerror = () => { ttsSkipBrokenChunk('再生エラー'); };
+      audio.onended = () => { state.tts.idx++; playNextTtsChunk(); };
+      audio.onerror = () => { showToast('再生に失敗しました'); state.tts.playing = false; };
       await audio.play();
     } else {
       await speakWithDeviceTts(text);
@@ -7404,26 +6781,9 @@ async function playNextTtsChunk(){
       playNextTtsChunk();
     }
   }catch(e){
-    if(e && e.message === 'no api key'){ state.tts.playing = false; updateTtsPlayPauseIcon(); return; }
-    ttsSkipBrokenChunk(e && e.message);
-  }
-}
-
-// 1段落だけ読めなかった時は飛ばして次へ。連続3回失敗したら止める
-let _ttsFailStreak = 0;
-function ttsSkipBrokenChunk(reason){
-  if(!state.tts.playing) return;
-  _ttsFailStreak++;
-  console.warn('TTS chunk skipped:', state.tts.idx, reason);
-  if(_ttsFailStreak >= 3){
-    _ttsFailStreak = 0;
-    showToast('読み上げに失敗しました: ' + (reason || '不明なエラー'));
+    showToast('読み上げに失敗しました: ' + e.message);
     state.tts.playing = false;
-    updateTtsPlayPauseIcon();
-    return;
   }
-  state.tts.idx++;
-  setTimeout(playNextTtsChunk, 50);
 }
 
 const TTS_NEXT_EPISODE_DELAY_MS = 3000;
@@ -7467,7 +6827,7 @@ function ttsTestStartFull() {
   updateTtsBarVisibility();
   updateTtsPlayPauseIcon();
   try {
-    navigator.mediaSession.metadata = new MediaMetadata({ title: 'TTSテスト', artist: 'イカ墨ノベル' });
+    navigator.mediaSession.metadata = new MediaMetadata({ title: 'TTSテスト', artist: '小説リーダー' });
     navigator.mediaSession.playbackState = 'playing';
   } catch (e) {}
   playNextTtsChunk();
@@ -7478,7 +6838,7 @@ function ttsTestStart() {
   state.tts.playing = true;
   try {
     navigator.mediaSession.metadata = new MediaMetadata({
-      title: 'TTSテスト', artist: 'イカ墨ノベル', album: 'イカ墨ノベル'
+      title: 'TTSテスト', artist: '小説リーダー', album: '小説リーダー'
     });
     navigator.mediaSession.playbackState = 'playing';
   } catch (e) {}
@@ -7499,12 +6859,10 @@ function ttsTestStart() {
 ══════════════════════════════════════ */
 // ── 編集バー表示・同期 ──
 function showEB(para){
-  if(!state.editMode || isSharedNovelSafe()){ hideEB(); return; } // 閲覧中・共有作品では編集バーを出さない
   syncEB(para);
   $.botbar_edit_row.classList.add('visible');
   state.ui.ebOpen=true;placeEB();
 }
-function isSharedNovelSafe(){ return !!(state.novel && state.novel.shared); }
 function hideEB(){
   $.botbar_edit_row.classList.remove('visible');
   state.ui.ebOpen=false;closeColorPopup();
@@ -7713,7 +7071,7 @@ function adjustAllEpisodesFontSize(delta) {
                 parent.removeChild(child);
               }
             });
-            para.html = stripFuriganaHtml(el.innerHTML);
+            para.html = el.innerHTML;
           }
         } else if (para.html) {
           // 表示していないエピソードは、子孫のfont-size指定だけ除去しておく
@@ -10051,11 +9409,7 @@ function autoAddGroup(pi) {
     return;
   }
   
-  if(state.editMode) syncEditorToState(pi);
-  const insertAt = state.pages[pi].paras.length;
-  _undoStack.push(JSON.stringify(state.pages));
-  if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
-  _redoStack.length = 0;
+  const insertAt = pg.paras.length;
   
   state.pages[pi].paras.splice(insertAt, 0, {type:'group-break'});
   // 新グループの先頭に空段落を追加（<br>を入れてカーソルが立つようにする）
@@ -10377,13 +9731,13 @@ async function pickAndInsertImage(input){
 }
 
 function adjustLineHeight(delta){
-  let val = lookSetting('lineHeight', 2.0) + delta;
+  let val = (state.settings.lineHeight != null ? state.settings.lineHeight : 2.0) + delta;
   val = Math.round(val * 10) / 10; // 浮動小数点の誤差防止
   val = Math.min(3.0, Math.max(1.2, val));
   applyParaLineHeight(val);
 }
 function adjustParaSpacing(delta){
-  let val = lookSetting('paraSpacing', 24) + delta;
+  let val = (state.settings.paraSpacing != null ? state.settings.paraSpacing : 24) + delta;
   val = Math.min(60, Math.max(0, val));
   applyParaSpacing(val);
 }
@@ -10391,25 +9745,27 @@ function adjustParaSpacing(delta){
 /* ══════════════════════════════════════
    フォント・テーマ設定
 ══════════════════════════════════════ */
-function applyParaLineHeight(val, store = true){
+function applyParaLineHeight(val){
   val = parseFloat(val);
   if(isNaN(val)) return;
+  state.settings.lineHeight = val;
   document.documentElement.style.setProperty('--para-line-height', val);
   const lhVal = document.getElementById('global-lineheight-val');
   if(lhVal) lhVal.textContent = val.toFixed(1);
-  if(store) storeLookSetting('lineHeight', val);
+  debouncedSaveSettings();
 }
 
-function applyParaSpacing(val, store = true){
+function applyParaSpacing(val){
   val = parseInt(val);
   if(isNaN(val)) return;
+  state.settings.paraSpacing = val;
   document.documentElement.style.setProperty('--para-spacing', val + 'px');
   const psVal = document.getElementById('global-paraspacing-val');
   if(psVal) psVal.textContent = val + 'px';
-  if(store) storeLookSetting('paraSpacing', val);
+  debouncedSaveSettings();
 }
-function applyGlobalFont(family, idx, store = true){
-  if(store) storeLookSetting('fontFamily', family);
+function applyGlobalFont(family,idx){
+  state.settings.fontFamily = family;
   // 【方法1】CSS変数を更新
   try{ document.documentElement.style.setProperty('--font-body', family); }catch(_){}
   // 【方法2】インラインスタイルより強い CSS を <style> 要素で動的注入
@@ -10425,40 +9781,21 @@ function applyGlobalFont(family, idx, store = true){
   document.querySelectorAll('.font-btn').forEach((b,i)=>{
     b.classList.toggle('active', i===idx);
   });
+  debouncedSaveSettings();
 }
 function buildFontList(){
   const list=$.font_list;
   if(!list)return;
   // 現在のフォント設定にマッチするインデックスを探す（無ければ0=明朝体）
-  const currentFamily = lookSetting('fontFamily', FONTS[0].family);
+  const currentFamily = (state.settings && state.settings.fontFamily) || FONTS[0].family;
   let activeIdx = FONTS.findIndex(f => f.family === currentFamily);
   if(activeIdx < 0) activeIdx = 0;
   FONTS.forEach((f,i)=>{
     const btn=document.createElement('button');
     btn.className='font-btn'+(i===activeIdx?' active':'');
     btn.style.fontFamily=f.family;
-    const nameSpan=document.createElement('span');
-    nameSpan.className='font-btn-name';
-    nameSpan.textContent=f.custom ? f.fontName : f.name;
-    btn.appendChild(nameSpan);
+    btn.textContent=f.name;
     btn.onclick=()=>applyGlobalFont(f.family,i);
-    if(f.custom){
-      const tag=document.createElement('span');
-      tag.className='font-btn-tag';
-      tag.textContent='追加';
-      btn.appendChild(tag);
-      const del=document.createElement('span');
-      del.className='font-del-btn';
-      del.title='このフォントを削除';
-      del.textContent='削除';
-      del.onclick=(e)=>{
-        e.stopPropagation();
-        if(confirm('「' + f.fontName + '」を削除しますか？\n（このフォントを使っていた本は明朝体に戻ります）')){
-          removeCustomFont(f.fontName, f.family);
-        }
-      };
-      btn.appendChild(del);
-    }
     list.appendChild(btn);
   });
 }
@@ -10491,6 +9828,7 @@ function loadFontFile(input){
       await loadSavedFonts();
       // 即座に適用
       applyGlobalFont(family, idx);
+      if($.font_load_name) $.font_load_name.textContent=name;
       try{ showToast('フォントを保存しました'); }catch(_){}
     }catch(err){
       alert('フォントの読み込みに失敗しました');
@@ -10503,17 +9841,16 @@ function loadFontFile(input){
 function applyTheme(idx) {
   const t = THEMES[idx];
   if (!t) return;
-  state.ui.themeIdx = idx;
+  state.settings.themeIdx = idx;
   document.documentElement.style.setProperty('--bg', t.bg);
   document.documentElement.style.setProperty('--ink', t.ink);
-  document.body.classList.toggle('theme-dark', isDarkThemeIdx(idx));
   document.querySelectorAll('.page').forEach(p => p.style.background = t.bg);
   const cont = $.theme_btns;
   if (cont) {
     cont.querySelectorAll('.ob').forEach((b, i) => b.classList.toggle('active', i === idx));
   }
   // 背景画像が設定されていれば、テーマの明暗に応じてオーバーレイ色を自動追従
-  if (state.currentNovelId && state.novel && state.novel.bg && state.novel.bg.fileName) {
+  if (state.novel && state.novel.bg && state.novel.bg.fileName) {
     const wantColor = isDarkThemeIdx(idx) ? 'black' : 'white';
     if ((state.novel.bg.overlayColor || 'white') !== wantColor) {
       setOverlayColor(wantColor);
@@ -10540,15 +9877,7 @@ function buildThemeBtns(){
     const btn=document.createElement('button');btn.className='ob'+(i===0?' active':'');btn.textContent=t.name;
     btn.onclick=()=>{
       applyTheme(i);
-      if(state.currentNovelId && state.novel){
-        state.novel.themeIdx = i;
-        const li = state.library.findIndex(n=>n.id===state.currentNovelId);
-        if(li>=0) state.library[li].themeIdx = i;
-        save();
-      } else {
-        state.settings.themeIdx = i;
-        debouncedSaveSettings();
-      }
+      debouncedSaveSettings();
     };
     cont.appendChild(btn);
   });
@@ -10597,8 +9926,7 @@ function resetBgDisplay(){
   $.topbar.classList.remove('bg-active');
   $.search_overlay.classList.remove('bg-active');
   $.side_panel.classList.remove('bg-active');
-  const _t = THEMES[(state.currentNovelId && state.novel) ? novelThemeIdx(state.novel) : (state.settings.themeIdx||0)] || THEMES[0];
-  document.documentElement.style.setProperty('--bg', _t.bg);
+  document.documentElement.style.setProperty('--bg','#ffffff');
   document.querySelectorAll('.page').forEach(p=>p.style.background='');
 }
 
@@ -10900,8 +10228,6 @@ function showToast(msg) {
     document.body.appendChild(t);
   }
   t.textContent = msg;
-  const _ttsBar = document.getElementById('tts-control-bar');
-  t.style.bottom = (_ttsBar && _ttsBar.classList.contains('show')) ? '100px' : '80px';
   t.style.opacity = '1';
   t.style.transform = 'translateX(-50%) translateY(0)';
   clearTimeout(t._timer);
@@ -10946,11 +10272,8 @@ document.addEventListener('keydown',e=>{
   if((e.ctrlKey||e.metaKey)&&(e.key==='z'||e.key==='Z')){e.preventDefault();edUndo();return;}
   if((e.ctrlKey||e.metaKey)&&(e.key==='y'||e.key==='Y')){e.preventDefault();edRedo();return;}
   if(document.activeElement&&document.activeElement.isContentEditable)return;
-  if(state.editMode || !state.currentEpisodeId) return; // 編集中は横のページ移動をしない
-  if(document.body.classList.contains('toc-mode')||document.body.classList.contains('library-mode')) return;
-  if(/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement||{}).tagName||'')) return;
-  if(e.key==='ArrowRight'||e.key==='ArrowDown') edgeNav(1);
-  if(e.key==='ArrowLeft'||e.key==='ArrowUp')    edgeNav(-1);
+  if(e.key==='ArrowRight'||e.key==='ArrowDown') goPage(1,'h');
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp')    goPage(-1,'h');
 });
 function srchNav(dir){
   if(!state.ui.search.matches.length)return;
@@ -11057,7 +10380,7 @@ function openTitleModal() {
   const targetEpisodeId = state.currentEpisodeId; // ← 開いた時点のエピソードIDを固定
   const targetNovelId = state.currentNovelId;
   $.modal_body.innerHTML =
-    `<input class="mi" id="title-input" value="${escapeHtml(cur)}" style="min-height:40px;resize:none;">`;
+    `<input class="mi" id="title-input" value="${cur}" style="min-height:40px;resize:none;">`;
   showModal('タイトルを編集', () => {
     const v = document.getElementById('title-input').value.trim();
     if (!v) return;
@@ -11256,9 +10579,6 @@ function getCurrentView(){
 }
 
 function hasOpenOverlay(){
-  for(const id of ['resume-popup','sleep-timer-popup','eb-furigana-popup']){
-    const el=document.getElementById(id); if(el && el.classList.contains('show')) return true;
-  }
   if($.modal_ov && $.modal_ov.classList.contains('show')) return true;
   if($.search_overlay && $.search_overlay.classList.contains('open')) return true;
   if($.side_panel && $.side_panel.classList.contains('open')) return true;
@@ -11283,12 +10603,6 @@ function hasOpenOverlay(){
 }
 
 function handleBackNavigation(){
-  const _rp=document.getElementById('resume-popup');
-  if(_rp && _rp.classList.contains('show')){ hideResumePopup(); return true; }
-  const _sp=document.getElementById('sleep-timer-popup');
-  if(_sp && _sp.classList.contains('show')){ closeSleepTimerPopup(); return true; }
-  const _fp=document.getElementById('eb-furigana-popup');
-  if(_fp && _fp.classList.contains('show')){ closeFuriganaQuickPopup(); return true; }
   if($.modal_ov && $.modal_ov.classList.contains('show')){ closeModal(); return true; }
   if($.search_overlay && $.search_overlay.classList.contains('open')){ closeSearch(); return true; }
   if($.side_panel && $.side_panel.classList.contains('open')){ closePanel(); return true; }
@@ -11740,53 +11054,105 @@ init();
   <div class="isp-list" id="indent-skip-list"></div>
 </div>
 <script>
-  /* ══════════════════════════════════════
-     APK版：Googleログインだけネイティブで行い、
-     もらった serverAuthCode を Worker でリフレッシュトークンに交換する。
-     トークンの更新・Drive読み書きは Web版と共通のコードを使う。
-  ══════════════════════════════════════ */
   (function() {
     function initNativeGoogleAuth() {
       if (!window.Capacitor || !window.Capacitor.isNativePlatform()) return;
       const SocialLogin = window.Capacitor.Plugins && window.Capacitor.Plugins.SocialLogin;
       if (!SocialLogin) { console.warn('SocialLogin plugin not found'); return; }
-
+      
       SocialLogin.initialize({
         google: {
-          webClientId: GDRIVE_CLIENT_ID, // Worker と同じ「ウェブ」クライアントID
-          mode: 'offline'               // serverAuthCode をもらうモード
+          webClientId: '1065503937621-mr4legtegr2rjbt5udr1bm3mqfupnigd.apps.googleusercontent.com',
+          mode: 'online'
         }
       });
-
+      
+      window.gdriveInit = async function() {
+        // 起動時の自動呼び出し：サイレント復元のみ。ここでは絶対にログイン画面を出さない
+        try {
+          if (gdriveLoadTokenFromStorage()) {
+            updateGdriveUI(true);
+            return;
+          }
+          if (localStorage.getItem('gdrive-signed-in') === '1') {
+            const res = await SocialLogin.refresh({ provider: 'google', options: {} });
+            if (res && res.result && res.result.accessToken && res.result.accessToken.token) {
+              _gdriveAccessToken = res.result.accessToken.token;
+              let expiresAt = new Date(res.result.accessToken.expires).getTime();
+              if (isNaN(expiresAt)) expiresAt = Date.now() + 55 * 60 * 1000;
+              _gdriveTokenExpiresAt = expiresAt;
+              gdriveSaveTokenToStorage();
+              updateGdriveUI(true);
+              return;
+            }
+          }
+          updateGdriveUI(false);
+        } catch (e) {
+          console.warn('gdriveInit (silent) failed:', e);
+          updateGdriveUI(false);
+        }
+      };
+      
+      // 「Googleでログイン」ボタンを押した時だけ、対話的ログイン画面を出す
       window.gdriveSignIn = async function() {
         try {
           const res = await SocialLogin.login({
             provider: 'google',
-            options: {
-              scopes: ['email', GDRIVE_SCOPE],
-              forceRefreshToken: true // 毎回リフレッシュトークンを確実にもらう
-            }
+            options: { scopes: ['email', 'https://www.googleapis.com/auth/drive.appdata'] }
           });
-          const code = res && res.result && res.result.serverAuthCode;
-          if (!code) throw new Error('serverAuthCode が取得できませんでした');
-          showToast('Google Driveに接続中...');
-          await gdriveExchangeCode(code, ''); // Android は redirect_uri 空
+          if (!res.result || !res.result.accessToken) {
+            alert('accessTokenがnullです: ' + JSON.stringify(res.result));
+            updateGdriveUI(false);
+            return;
+          }
+          _gdriveAccessToken = res.result.accessToken.token;
+          let expiresAt = new Date(res.result.accessToken.expires).getTime();
+          if (isNaN(expiresAt)) {
+            expiresAt = Date.now() + 55 * 60 * 1000;
+          }
+          _gdriveTokenExpiresAt = expiresAt;
+          try { localStorage.setItem('gdrive-signed-in', '1'); } catch (_) {}
+          gdriveSaveTokenToStorage();
           updateGdriveUI(true);
-          showToast('Google Driveに接続しました');
+          try { showToast('Google Driveに接続しました'); } catch (_) {}
         } catch (e) {
-          console.warn('native sign-in:', e);
           alert('Google認証エラー: ' + (e && (e.message || e.errorMessage || JSON.stringify(e))));
-          updateGdriveUI(gdriveIsSignedIn() ? true : false);
+          updateGdriveUI(false);
         }
       };
-
-      const baseSignOut = gdriveSignOut;
-      window.gdriveSignOut = async function() {
-        try { await SocialLogin.logout({ provider: 'google' }); } catch (_) {}
-        await baseSignOut();
+      
+      window.gdriveEnsureToken = async function() {
+        if (_gdriveAccessToken && Date.now() < _gdriveTokenExpiresAt) {
+          return _gdriveAccessToken;
+        }
+        try {
+          const res = await SocialLogin.refresh({ provider: 'google', options: {} });
+          if (res && res.result && res.result.accessToken && res.result.accessToken.token) {
+            _gdriveAccessToken = res.result.accessToken.token;
+            let expiresAt = new Date(res.result.accessToken.expires).getTime();
+            if (isNaN(expiresAt)) expiresAt = Date.now() + 55 * 60 * 1000;
+            _gdriveTokenExpiresAt = expiresAt;
+            gdriveSaveTokenToStorage();
+            updateGdriveUI(true);
+            return _gdriveAccessToken;
+          }
+        } catch (e) {
+          console.warn('silent refresh failed:', e);
+        }
+        await window.gdriveSignIn();
+        return _gdriveAccessToken;
       };
-    }
-
+      
+      window.gdriveSignOut = async function() {
+        await SocialLogin.logout({ provider: 'google' });
+        _gdriveAccessToken = null;
+        _gdriveTokenExpiresAt = 0;
+        try { localStorage.removeItem('gdrive-signed-in'); } catch (_) {}
+        try { localStorage.removeItem('gdrive-token'); } catch (_) {}
+        updateGdriveUI(false);
+      };
+    } // ← initNativeGoogleAuthを閉じる（ここが抜けていました）
+    
     if (document.readyState === 'complete' || document.readyState === 'interactive') {
       initNativeGoogleAuth();
     } else {
