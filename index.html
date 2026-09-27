@@ -2159,6 +2159,11 @@ body.library-mode #tts-control-bar{display:none !important;}
       <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
     </button>
     <input type="file" id="img-picker-input" accept="image/*" style="display:none" onchange="pickAndInsertImage(this)">
+    <!-- 文中の画像（絵文字・アイコン）：カーソル位置に、その段落の文字と同じ大きさで入れる -->
+    <button class="eb-btn" onclick="document.getElementById('inline-img-input').click()" title="文中に画像を入れる（文字と同じ大きさ）">
+      <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="19" x2="8" y2="19"/><line x1="16" y1="19" x2="21" y2="19"/><circle cx="12" cy="14" r="4.5"/><path d="M10 15.2q2 1.8 4 0"/><circle cx="10.5" cy="12.8" r=".6" fill="currentColor"/><circle cx="13.5" cy="12.8" r=".6" fill="currentColor"/><line x1="12" y1="3" x2="12" y2="7"/><polyline points="9.8,5.2 12,7.4 14.2,5.2"/></svg>
+    </button>
+    <input type="file" id="inline-img-input" accept="image/*" style="display:none" onchange="pickInlineImage(this)">
 
     <div style="width:4px;flex-shrink:0;"></div>
   </div>
@@ -4628,7 +4633,7 @@ function kzSanitizeInline(html){
           if(/url\s*\(|expression\s*\(|javascript:/i.test(at.value)) ch.removeAttribute('style');
         } else if(ch.tagName === 'IMG' && at.name === 'src'){
           // 文中の小さな画像（絵文字など）は http(s) のアドレスだけ許可
-          if(!/^https?:\/\//i.test(at.value)) ch.remove();
+          if(!/^(https?:\/\/|data:image\/(png|jpe?g|gif|webp);)/i.test(at.value)) ch.remove();
         } else if(ch.tagName === 'IMG' && at.name === 'alt'){
           // 代替テキストはそのまま
         } else if(!(ch.tagName === 'FONT' && at.name === 'color')){
@@ -9587,6 +9592,76 @@ function deleteImagePara(pi, imgName){
   // IndexedDBの画像本体も削除（同じ画像を他のエピソード・ページで使ってる可能性がないので即削除）
   imgDbDelete(imgName).catch(()=>{});
   showToast('画像を削除しました');
+}
+
+/* ── 文中の画像（絵文字・アイコン）：カーソル位置に、段落の文字と同じ大きさで入れる ── */
+async function pickInlineImage(input){
+  const file = input.files && input.files[0];
+  input.value = '';
+  if(!file) return;
+  if(!state.editMode){ showToast('編集モードで、画像を入れたい位置にカーソルを置いてから使ってください'); return; }
+  // 小さく縮めてから文字列（dataURL）として段落の中に埋め込む。文字の高さで表示するので大きい画像は不要
+  let dataUrl;
+  try{
+    const src = await new Promise((res, rej)=>{
+      const r = new FileReader();
+      r.onload = e => res(e.target.result);
+      r.onerror = () => rej(new Error('読み込み失敗'));
+      r.readAsDataURL(file);
+    });
+    dataUrl = await new Promise((res, rej)=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const H = 96, scale = Math.min(1, H / img.height);
+        const w = Math.max(1, Math.round(img.width * scale)), h = Math.max(1, Math.round(img.height * scale));
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        res(c.toDataURL('image/png'));
+      };
+      img.onerror = ()=> rej(new Error('画像を開けません'));
+      img.src = src;
+    });
+  }catch(e){
+    showToast('画像の読み込みに失敗しました');
+    return;
+  }
+  const el = document.createElement('img');
+  el.className = 'inline-img';
+  el.src = dataUrl;
+  el.alt = '';
+  el.setAttribute('style', 'height:1em;width:auto;vertical-align:-0.15em');
+  // 編集バーを押す直前のカーソル位置に入れる。わからなければ選んでいた段落の最後に入れる
+  let placed = false;
+  const caret = state.ui.savedCaret;
+  const para = state.ui.selPara && state.ui.selPara.el;
+  if(caret && caret.node && caret.node.isConnected){
+    const holder = caret.node.nodeType === 3 ? caret.node.parentElement : caret.node;
+    if(holder && holder.closest && holder.closest('.page-editor')){
+      try{
+        const r = document.createRange();
+        r.setStart(caret.node, Math.min(caret.offset, caret.node.nodeType === 3 ? caret.node.length : caret.node.childNodes.length));
+        r.collapse(true);
+        r.insertNode(el);
+        placed = true;
+      }catch(e){}
+    }
+  }
+  if(!placed && para && para.isConnected){
+    if(para.innerHTML === '<br>') para.innerHTML = '';
+    para.appendChild(el);
+    placed = true;
+  }
+  if(!placed){ showToast('画像を入れる位置がわかりません。段落の中をタップしてから押してください'); return; }
+  // カーソルを画像の直後へ
+  try{
+    const r = document.createRange(); r.setStartAfter(el); r.collapse(true);
+    const s2 = window.getSelection(); s2.removeAllRanges(); s2.addRange(r);
+    state.ui.savedCaret = { node: r.startContainer, offset: r.startOffset };
+  }catch(e){}
+  const pi = state.curPage;
+  syncEditorToState(pi);
+  debouncedSave();
+  showToast('文中に画像を入れました');
 }
 
 /* ── 挿絵挿入（ギャラリーから選んで即挿入） ── */
