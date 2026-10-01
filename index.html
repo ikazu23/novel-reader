@@ -6497,7 +6497,7 @@ function updateNavBtns(){
 function enterEditMode(){
   if(state.editMode)return;
   // 翻訳スクリプトの訳文を表示中に編集すると、訳文で本文が上書き保存される
-  if($.viewport.querySelector('[lang="ja"]') &&
+  if($.viewport.querySelector('[data-kztl-tr],[lang="ja"]') &&
      !confirm('翻訳を表示中です。このまま編集すると、原文が訳文で上書き保存されます。\n（原文のままにするなら、キャンセルして「原」で戻してから編集）\n\n訳文で上書きしますか？')) return;
   // 切替前のスクロール位置を保存：現在画面上部に見えている段落要素を記録
   const pi = state.curPage;
