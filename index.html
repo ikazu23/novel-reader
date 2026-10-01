@@ -2115,7 +2115,7 @@ body.booting{visibility:hidden}
 </div>
 
 <!-- VIEWPORT -->
-<div id="viewport">
+<div id="viewport" data-kztl-body>
   <!-- state.pages injected by JS -->
 </div>
 
@@ -4204,6 +4204,7 @@ function showLibrary(){
   if(state.currentNovelId) save();
   state.currentEpisodeId=null;
   state.currentNovelId=null;
+  setKztlMark(null);
   // ライブラリ画面では背景をリセットし、既定のテーマに戻す
   applyNovelLook();
   resetBgDisplay();
@@ -4447,12 +4448,24 @@ function showToc(){
   clearTimeout(_saveTimer);
   if(state.currentNovelId && state.currentEpisodeId) save();
   state.currentEpisodeId=null;
+  setKztlMark(null);
   document.body.classList.add('toc-mode');
   document.body.classList.remove('library-mode');
   $.toc_screen.classList.add('show');
   document.getElementById('library-screen').classList.remove('show');
   document.getElementById('library-fab').style.display='none';
   renderToc();
+}
+
+// 翻訳ユーザースクリプト用の目印：作品と話を見分けられるようにする（作品メモ・前の話の文脈が本ごとに分かれる）
+function setKztlMark(ep){
+  const d=document.documentElement.dataset;
+  if(ep && state.novel){
+    d.kztlWork=state.novel.id; d.kztlTitle=state.novel.title||'';
+    d.kztlEp=ep.id; d.kztlEpTitle=ep.title||'';
+  }else{
+    delete d.kztlWork; delete d.kztlTitle; delete d.kztlEp; delete d.kztlEpTitle;
+  }
 }
 
 function hideToc(){
@@ -4660,6 +4673,7 @@ function openEpisode(id, startPos='first'){
   }
   // タイトル更新
   $.topbar_title.textContent=ep.title;
+  setKztlMark(ep);
   // 画面切替
   hideToc();
   renderAllPages();
@@ -6482,6 +6496,9 @@ function updateNavBtns(){
 ══════════════════════════════════════ */
 function enterEditMode(){
   if(state.editMode)return;
+  // 翻訳スクリプトの訳文を表示中に編集すると、訳文で本文が上書き保存される
+  if($.viewport.querySelector('[lang="ja"]') &&
+     !confirm('翻訳を表示中です。このまま編集すると、原文が訳文で上書き保存されます。\n（原文のままにするなら、キャンセルして「原」で戻してから編集）\n\n訳文で上書きしますか？')) return;
   // 切替前のスクロール位置を保存：現在画面上部に見えている段落要素を記録
   const pi = state.curPage;
   const pageEl = document.getElementById('page-'+pi);
