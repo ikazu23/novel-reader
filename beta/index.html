@@ -2118,6 +2118,9 @@ body.booting{visibility:hidden}
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 15 12 10 17 15"/><line x1="12" y1="10" x2="12" y2="22"/></svg>
     復元（インポート）
   </button>
+  <div style="height:1px;background:#f0f0f0;"></div>
+  <a href="https://ofuse.me/ikasumi" target="_blank" rel="noopener" onclick="closeBackupMenu()" style="display:block;margin:12px 16px 6px;padding:10px 12px;border-radius:20px;background:#fbeaee;color:#b8325a;font-size:13px;font-weight:700;text-align:center;text-decoration:none;">☕ 作者を応援する（OFUSE）</a>
+  <div style="padding:0 16px 12px;font-size:10px;color:#999;text-align:center;line-height:1.5;">このアプリは無料です。気に入ったら応援してもらえるとうれしいです</div>
 </div>
 <input type="file" id="restore-file-input" accept=".json,application/json" style="display:none" onchange="doRestore(this)">
 <!-- 作品をさがす（一覧） -->
@@ -2279,7 +2282,7 @@ body.booting{visibility:hidden}
 </div>
 
 <!-- VIEWPORT -->
-<div id="viewport">
+<div id="viewport" data-kztl-body>
   <!-- state.pages injected by JS -->
 </div>
 
@@ -4401,6 +4404,7 @@ function showLibrary(){
   if(state.currentNovelId) save();
   state.currentEpisodeId=null;
   state.currentNovelId=null;
+  setKztlMark(null);
   // ライブラリ画面では背景をリセットし、既定のテーマに戻す
   applyNovelLook();
   resetBgDisplay();
@@ -4653,6 +4657,7 @@ function showToc(){
   clearTimeout(_saveTimer);
   if(state.currentNovelId && state.currentEpisodeId) save();
   state.currentEpisodeId=null;
+  setKztlMark(null);
   document.body.classList.add('toc-mode');
   document.body.classList.remove('library-mode');
   $.toc_screen.classList.add('show');
@@ -4660,6 +4665,17 @@ function showToc(){
   document.getElementById('library-fab').style.display='none';
   renderToc();
   checkOpenSharedNovelSoon();
+}
+
+// 翻訳ユーザースクリプト用の目印：作品と話を見分けられるようにする（作品メモ・前の話の文脈が本ごとに分かれる）
+function setKztlMark(ep){
+  const d=document.documentElement.dataset;
+  if(ep && state.novel){
+    d.kztlWork=state.novel.id; d.kztlTitle=state.novel.title||'';
+    d.kztlEp=ep.id; d.kztlEpTitle=ep.title||'';
+  }else{
+    delete d.kztlWork; delete d.kztlTitle; delete d.kztlEp; delete d.kztlEpTitle;
+  }
 }
 
 function hideToc(){
@@ -4881,6 +4897,7 @@ function openEpisode(id, startPos='first'){
   }
   // タイトル更新
   $.topbar_title.textContent=ep.title;
+  setKztlMark(ep);
   // 画面切替
   hideToc();
   renderAllPages();
@@ -6706,6 +6723,9 @@ function updateNavBtns(){
 function enterEditMode(){
   if(state.editMode)return;
   if(isSharedNovel()){ showToast('共有された作品は編集できません'); return; }
+  // 翻訳スクリプトの訳文を表示中に編集すると、訳文で本文が上書き保存される
+  if($.viewport.querySelector('[data-kztl-tr],[lang="ja"]') &&
+     !confirm('翻訳を表示中です。このまま編集すると、原文が訳文で上書き保存されます。\n（原文のままにするなら、キャンセルして「原」で戻してから編集）\n\n訳文で上書きしますか？')) return;
   // 切替前のスクロール位置を保存：現在画面上部に見えている段落要素を記録
   const pi = state.curPage;
   const pageEl = document.getElementById('page-'+pi);
