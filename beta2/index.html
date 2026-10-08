@@ -2133,6 +2133,10 @@ body.theme-dark .page-editor .ko-untr{color:#666;}
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
     クラウドへ同期
   </button>
+  <button id="ko-import-main" onclick="closeBackupMenu();koImportFromMain();" style="display:flex;align-items:center;gap:10px;width:100%;border:none;background:none;padding:10px 16px;font-size:13px;color:#007070;cursor:pointer;text-align:left;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><polyline points="9 9 12 12 15 9"/><line x1="12" y1="5" x2="12" y2="12"/></svg>
+    本番のクラウドから本を取り込む
+  </button>
   <button id="gdrive-menu-restore" onclick="gdriveRestoreFromCloud();closeBackupMenu();" style="display:none;align-items:center;gap:10px;width:100%;border:none;background:none;padding:10px 16px;font-size:13px;color:#3a6d8c;cursor:pointer;text-align:left;">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/><polyline points="9 15 12 12 15 15"/><line x1="12" y1="12" x2="12" y2="21"/></svg>
     クラウドから復元
@@ -8101,6 +8105,44 @@ function koExportTrOnly(){
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
   showToast(missing ? `書き出しました（まだ訳していない${missing}段落は原文のまま）` : '書き出しました');
+}
+
+
+/* ══════ 本番のクラウドから本を取り込む（読むだけ・本番のデータは変えない） ══════ */
+async function koImportFromMain(){
+  if(!gdriveIsSignedIn()){ gdriveSignIn(); return; }
+  if(!confirm('本番（イカ墨ノベル）のクラウドにある本を、このβ2に取り込みますか？\n\n・本番のデータは変わりません（読むだけ）\n・同じ本がある場合は、新しい方にそろえます\n・β2で書いた訳・メモ・単語帳は消えません')) return;
+  try{
+    showToast('本番のクラウドを読み込み中...');
+    await gdriveEnsureToken();
+    const url = 'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name,modifiedTime)&q=' + encodeURIComponent("name='novel-reader-data.json'");
+    const list = await (await gdriveFetch(url)).json();
+    const f = list.files && list.files[0];
+    if(!f){ showToast('本番のクラウドにデータがありません（本番で一度「クラウドへ同期」してください）'); return; }
+    const data = await (await gdriveFetch('https://www.googleapis.com/drive/v3/files/' + f.id + '?alt=media')).json();
+    const remote = (data && data.library) || [];
+    let add = 0, upd = 0, keep = 0;
+    for(const rn of remote){
+      if(!rn || !rn.id) continue;
+      const i = state.library.findIndex(n => n.id === rn.id);
+      if(i < 0){ state.library.push(rn); await libDbPut(rn); add++; continue; }
+      const ln = state.library[i];
+      if((rn.updatedAt || '') > (ln.updatedAt || '')){
+        const merged = Object.assign({}, rn, { koTr: ln.koTr, koNotes: ln.koNotes }); // β2だけのデータは残す
+        await autoBackup(ln, true, true).catch(() => {});
+        state.library[i] = merged; await libDbPut(merged); upd++;
+      }else keep++;
+    }
+    // 「無題の小説」だけの空の本棚なら、取り込んだ後は消す
+    state.library = state.library.filter(n => !(n.title === '無題の小説' && remote.length && (n.episodes || []).length <= 1 && !n.koTr && !remote.some(r => r.id === n.id) && (n.episodes || []).every(e => (e.charCount || 0) < 200)));
+    if(state.currentNovelId && !state.library.some(n => n.id === state.currentNovelId)){ state.currentNovelId = null; state.currentEpisodeId = null; }
+    showLibrary();
+    showToast(`追加${add}冊・更新${upd}冊・そのまま${keep}冊`);
+    scheduleGdriveAutoSync();
+  }catch(e){
+    console.warn('koImportFromMain', e);
+    showToast('取り込めませんでした：' + e.message);
+  }
 }
 
 
