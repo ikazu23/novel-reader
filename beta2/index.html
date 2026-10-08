@@ -1990,6 +1990,16 @@ body.theme-dark .ko-dict-row{background:#2a2a2a;border-color:#444;color:#ddd;}
 body.theme-dark .ko-dict-row.on{background:#1d2b2b;border-color:#008080;}
 body.theme-dark .ko-dict-ja{color:#7fd6d6;}
 
+.page-editor .ko-new{background:rgba(255,190,60,.22);border-radius:3px;}
+body.theme-dark .page-editor .ko-new{background:rgba(255,190,60,.18);}
+.page-editor .ko-tr{font-family:'Noto Sans JP',sans-serif;font-size:0.82em;line-height:1.7;color:#5a7f7f;margin:-12px 0 calc(var(--para-spacing,24px) - 4px);padding-left:10px;border-left:2px solid #bfdede;white-space:pre-wrap;cursor:pointer;user-select:text;}
+.page-editor .ko-tr.write{cursor:auto;}
+.ko-tr-input{width:100%;border:1px dashed #bfdede;border-radius:6px;background:rgba(0,128,128,.03);padding:6px 8px;font:inherit;color:#333;resize:none;overflow:hidden;line-height:1.7;}
+.ko-tr-input:focus{outline:none;border-style:solid;border-color:#008080;background:#fff;}
+body.theme-dark .page-editor .ko-tr{color:#8fbcbc;border-left-color:#2f4a4a;}
+body.theme-dark .ko-tr-input{background:#1d2424;border-color:#2f4a4a;color:#ddd;}
+body.theme-dark .ko-tr-input:focus{background:#222;}
+
 </style>
 </head>
 <body class="booting">
@@ -5680,6 +5690,11 @@ function renderAllPages(){
 }
 
 function createPageEl(pi,pg){
+  const el = createPageElBase(pi,pg);
+  try{ koDecoratePage(el, pi); }catch(e){ console.warn('ko tr', e); }
+  return el;
+}
+function createPageElBase(pi,pg){
   const pageEl=document.createElement('div');
   pageEl.className='page';
   pageEl.id=`page-${pi}`;
@@ -6067,6 +6082,7 @@ function setupEditorEvents(editor,pi,groupIdx=0,qiOffset=0){
 
 // Sync the editor DOM back into state.pages[] state
 function syncEditorToState(pi){
+  if(!state.editMode) return;
   // Collect paras from ALL subpage group editors for this page
   const pageEl=document.getElementById(`page-${pi}`);
   if(!pageEl){return;}
@@ -6779,7 +6795,7 @@ function setupEdgeClick(){
     if(!canEdgeNavigate() || e.button !== 0) return;
     if(Math.abs(e.clientX - downX) > 6 || Math.abs(e.clientY - downY) > 6) return; // ドラッグ（文字選択）
     if(hasTextSelection()) return;
-    if(e.target.closest && e.target.closest('button, a, .para-img-wrap')) return;
+    if(e.target.closest && e.target.closest('button, a, .para-img-wrap, .ko-tr')) return;
     const z = edgeZoneAt(e.clientX);
     if(z) edgeNav(z);
   });
@@ -6822,6 +6838,12 @@ function koSaveWords(){
   catch(e){ showToast('単語を保存できませんでした'); }
   koRecalc();
 }
+const KO_NEW_LS = LS_PREFIX + 'ko-new';
+const KO_TR_LS = LS_PREFIX + 'ko-tr-mode';
+function koNewOn(){ return localStorage.getItem(KO_NEW_LS) === '1'; }
+function koSetNew(on){ try{ localStorage.setItem(KO_NEW_LS, on ? '1' : '0'); }catch(_){} koRerender(); }
+function koTrMode(){ return localStorage.getItem(KO_TR_LS) || 'show'; } // write / show / off
+function koSetTrMode(v){ try{ localStorage.setItem(KO_TR_LS, v); }catch(_){} koRerender(); }
 function koShowMode(){ return localStorage.getItem(KO_SHOW_LS) || 'on'; } // on / hide / off
 function koSetShowMode(v){
   try{ localStorage.setItem(KO_SHOW_LS, v); }catch(_){}
@@ -6861,7 +6883,8 @@ function koDecorateHtml(html, para){
   const mode = koShowMode();
   const plain = koParaPlain(para);
   const note = plain && state.novel && state.novel.koNotes ? state.novel.koNotes[koHash(plain)] : null;
-  const hasWords = mode !== 'off' && _koMaxLen > 0 && KO_HANGUL.test(plain);
+  const markNew = mode !== 'off' && koNewOn();
+  const hasWords = mode !== 'off' && (_koMaxLen > 0 || markNew) && KO_HANGUL.test(plain);
   if(!hasWords && !note) return html;
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
@@ -6878,7 +6901,17 @@ function koDecorateHtml(html, para){
       KO_RUN.lastIndex = 0;
       while((m = KO_RUN.exec(text))){
         const key = koFindKey(m[0]);
-        if(!key) continue;
+        if(!key){
+          if(!markNew) continue;
+          any = true;
+          if(m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+          const sp = document.createElement('span');
+          sp.className = 'ko-new';
+          sp.textContent = m[0];
+          frag.appendChild(sp);
+          last = m.index + m[0].length;
+          continue;
+        }
         any = true;
         if(m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
         const rb = document.createElement('ruby');
@@ -7097,6 +7130,7 @@ function koPersistNovel(){
   state.novel.updatedAt = new Date().toISOString();
   const idx = state.library.findIndex(n => n.id === state.currentNovelId);
   if(idx >= 0) state.library[idx].koNotes = JSON.parse(JSON.stringify(state.novel.koNotes || {}));
+  if(idx >= 0) state.library[idx].koTr = JSON.parse(JSON.stringify(state.novel.koTr || {}));
   if(idx >= 0) state.library[idx].updatedAt = state.novel.updatedAt;
   libDbPut(state.novel).catch(e => console.warn('save koNotes failed:', e));
 }
@@ -7162,7 +7196,7 @@ function setupKoTap(){
 /* ── 「한」メニュー ── */
 function openKoMenu(){
   if(state.editMode){ showToast('編集中は使えません'); return; }
-  const m = koShowMode();
+  const m = koShowMode(), tm = koTrMode(), nw = koNewOn();
   const cnt = Object.keys(koLoad()).length;
   const body = document.getElementById('ko-sheet-body');
   body.innerHTML = `
@@ -7173,7 +7207,19 @@ function openKoMenu(){
       <button class="${m === 'hide' ? 'on' : ''}" onclick="koSetShowMode('hide');openKoMenu()">隠す（タップで確認）</button>
       <button class="${m === 'off' ? 'on' : ''}" onclick="koSetShowMode('off');openKoMenu()">オフ</button>
     </div>
+    <div class="ko-label">自分の訳（段落の下）${(() => { const pr = koTrProgress(); return pr ? `　この話 ${pr.done}/${pr.all}段落` : ''; })()}</div>
+    <div class="ko-seg">
+      <button class="${tm === 'write' ? 'on' : ''}" onclick="koSetTrMode('write');openKoMenu()">書く</button>
+      <button class="${tm === 'show' ? 'on' : ''}" onclick="koSetTrMode('show');openKoMenu()">表示</button>
+      <button class="${tm === 'off' ? 'on' : ''}" onclick="koSetTrMode('off');openKoMenu()">隠す</button>
+    </div>
+    <div class="ko-label">まだ登録していない単語</div>
+    <div class="ko-seg">
+      <button class="${nw ? 'on' : ''}" onclick="koSetNew(true);openKoMenu()">色を付ける</button>
+      <button class="${nw ? '' : 'on'}" onclick="koSetNew(false);openKoMenu()">付けない</button>
+    </div>
     <button class="ko-menu-item" onclick="openKoWordList()">単語帳（${cnt}語）</button>
+    <button class="ko-menu-item" onclick="koExportTr()" ${state.currentEpisodeId ? '' : 'disabled'}>この話の原文と訳を書き出す</button>
     <button class="ko-menu-item" onclick="openKoQuiz()" ${cnt ? '' : 'disabled'}>単語の復習</button>
     <button class="ko-menu-item" onclick="openKoHelp()">使い方</button>
     <div class="ko-actions"><span></span><button class="ko-cancel" onclick="koCloseSheet()">閉じる</button></div>`;
@@ -7188,6 +7234,7 @@ function openKoHelp(){
       <p>「사람<b>들이</b>」のように後ろに助詞などが付いていても、候補から「사람」を選べば、ほかの形（사람은・사람을…）にも付きます。</p>
       <p>動詞は「먹었다 → 먹」のように<b>変わらない部分</b>で登録すると、먹고・먹는 などにも付きます。</p>
       <p><b>✎</b>は文のメモがある印です。文のメモは単語の画面の「文にメモ」から。</p>
+      <p><b>自分の訳</b>は「書く」にすると、韓国語の段落の下に入力欄が出ます。書いた訳は「表示」で原文の下に出て、タップでなおせます。</p>
       <p>意味を「隠す」にすると、点線の単語だけになります。読みながら思い出すテストに。</p>
       <p>辞書の候補は「한국어기초사전」（韓国 国立国語院、CC BY-SA 2.0 KR）の日本語訳です。ウェブ小説の言い回しや固有名詞は載っていないことがあります。</p>
     </div>
@@ -7468,11 +7515,121 @@ function koPickDict(i){
 }
 
 
+/* ══════ 自分の訳（段落の下に書く） ══════ */
+function koTrs(){
+  if(!state.novel) return {};
+  if(!state.novel.koTr || typeof state.novel.koTr !== 'object') state.novel.koTr = {};
+  return state.novel.koTr;
+}
+let _koTrTimer = null;
+function koTrSaveSoon(){
+  clearTimeout(_koTrTimer);
+  _koTrTimer = setTimeout(koPersistNovel, 600);
+}
+function koTrSet(h, text){
+  text = (text || '').replace(/\s+$/, '');
+  if(text) koTrs()[h] = text; else delete koTrs()[h];
+}
+function koAutoGrow(ta){ ta.style.height = 'auto'; ta.style.height = (ta.scrollHeight + 2) + 'px'; }
+// 閲覧中のページに、段落ごとの訳の欄（または書いた訳）を差し込む
+function koDecoratePage(pageEl, pi){
+  if(state.editMode || !pageEl || !state.novel) return;
+  const mode = koTrMode();
+  if(mode === 'off') return;
+  const trs = state.novel.koTr || {};
+  pageEl.querySelectorAll('p[data-qi][data-type="text"]').forEach(p => {
+    const para = state.pages[pi] && state.pages[pi].paras[parseInt(p.dataset.qi, 10)];
+    if(!para) return;
+    const plain = koParaPlain(para);
+    if(!KO_HANGUL.test(plain)) return;
+    const h = koHash(plain);
+    const tr = trs[h] || '';
+    if(mode === 'show' && !tr) return;
+    const box = document.createElement('div');
+    box.className = 'ko-tr' + (mode === 'write' ? ' write' : '');
+    box.contentEditable = 'false';
+    box.dataset.h = h;
+    box.style.textAlign = p.style.textAlign || '';
+    // 訳の欄での入力・タップが本文（編集の仕組み）に伝わらないようにする
+    ['input', 'beforeinput', 'keydown', 'keyup', 'keypress', 'paste', 'cut', 'compositionstart', 'compositionupdate', 'compositionend', 'click', 'dblclick']
+      .forEach(ev => box.addEventListener(ev, e => e.stopPropagation()));
+    if(mode === 'write'){
+      const ta = document.createElement('textarea');
+      ta.className = 'ko-tr-input';
+      ta.rows = 1;
+      ta.placeholder = '訳を書く…';
+      ta.value = tr;
+      ta.addEventListener('input', () => { koAutoGrow(ta); koTrSet(h, ta.value); koTrSaveSoon(); });
+      ta.addEventListener('blur', () => { koTrSet(h, ta.value); koPersistNovel(); });
+      ta.addEventListener('keydown', e => e.stopPropagation());
+      box.appendChild(ta);
+      requestAnimationFrame(() => koAutoGrow(ta));
+    }else{
+      box.textContent = tr;
+      box.title = 'タップでなおす';
+      box.addEventListener('click', () => koOpenTrSheet(h, plain));
+    }
+    p.after(box);
+  });
+}
+function koOpenTrSheet(h, plain){
+  const body = document.getElementById('ko-sheet-body');
+  body.innerHTML = `
+    <div class="ko-label" style="margin-top:0">原文</div>
+    <div class="ko-sentence">${escapeHtml(plain)}</div>
+    <div class="ko-label">自分の訳</div>
+    <textarea id="ko-tr-edit" class="ko-input" rows="4">${escapeHtml(koTrs()[h] || '')}</textarea>
+    <div class="ko-actions">
+      <button class="ko-del" onclick="koTrSet('${h}','');koPersistNovel();koCloseSheet();koRerender();">削除</button>
+      <button class="ko-cancel" onclick="koCloseSheet()">閉じる</button>
+      <button class="ko-save" onclick="koTrSet('${h}',document.getElementById('ko-tr-edit').value);koPersistNovel();koCloseSheet();koRerender();">保存</button>
+    </div>`;
+  document.getElementById('ko-sheet').classList.add('show');
+  document.getElementById('ko-sheet-ov').classList.add('show');
+}
+// この話で訳を書いた段落の数
+function koTrProgress(){
+  if(!state.pages || !state.novel) return null;
+  const trs = state.novel.koTr || {};
+  let all = 0, done = 0;
+  state.pages.forEach(pg => (pg.paras || []).forEach(para => {
+    if(para.type !== 'text') return;
+    const plain = koParaPlain(para);
+    if(!KO_HANGUL.test(plain)) return;
+    all++; if(trs[koHash(plain)]) done++;
+  }));
+  return all ? { all, done } : null;
+}
+// 訳を書いた文をまとめて書き出す（原文と訳を交互に）
+function koExportTr(){
+  const ep = state.novel && state.novel.episodes.find(e => e.id === state.currentEpisodeId);
+  if(!ep) return;
+  const trs = state.novel.koTr || {};
+  const lines = [];
+  state.pages.forEach(pg => (pg.paras || []).forEach(para => {
+    if(para.type !== 'text') return;
+    const plain = koParaPlain(para);
+    if(!plain.trim()) return;
+    lines.push(plain);
+    const t = trs[koHash(plain)];
+    if(t) lines.push('→ ' + t);
+    lines.push('');
+  }));
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (ep.title || '訳') + '_自分の訳.txt';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+
 function setupDoubleTap(){
   let lastTap=0;
   const vp=$.viewport;
   vp.addEventListener('touchend',e=>{
     if(state.readingMode)return;
+    if(e.target.closest && e.target.closest('.ko-tr'))return;
     if(state.editMode)return;
     const now=Date.now();
     if(now-lastTap<300){e.preventDefault();enterEditMode();}
@@ -7480,6 +7637,7 @@ function setupDoubleTap(){
   },{passive:false});
   vp.addEventListener('dblclick',e=>{
     if(state.readingMode)return;
+    if(e.target.closest && e.target.closest('.ko-tr'))return;
     if(isPcPointer() && edgeZoneAt(e.clientX)!==0) return; // 端の連打はページ送り
     if(state.editMode)return;
     enterEditMode();
