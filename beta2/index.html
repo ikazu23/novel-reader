@@ -1977,6 +1977,18 @@ body.theme-dark .ko-links button{background:#1d2b2b;border-color:#2f4a4a;color:#
 body.theme-dark .ko-chip.on,body.theme-dark .ko-seg button.on{background:#008080;color:#fff;}
 body.theme-dark .ko-row-k,body.theme-dark .ko-menu-item,body.theme-dark #ko-list-top .t{color:#eee;}
 body.theme-dark .ko-menu-item{border-top-color:#333;}
+#ko-dict{display:flex;flex-direction:column;gap:6px;}
+.ko-dict-msg{font-size:12px;color:#999;padding:4px 0;}
+.ko-dict-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;text-align:left;border:1px solid #e6e6e6;background:#fafafa;border-radius:8px;padding:8px 10px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;color:#222;}
+.ko-dict-row.on{border-color:#008080;background:#eef8f8;}
+.ko-dict-h{font-size:15px;font-weight:700;}
+.ko-dict-h small{font-size:11px;color:#999;font-weight:400;margin-left:4px;}
+.ko-dict-pos{font-size:10px;color:#fff;background:#8aa;border-radius:4px;padding:1px 5px;}
+.ko-dict-ja{font-size:13px;color:#007070;flex-basis:100%;}
+.ko-dict-sep{color:#ccc;margin:0 3px;}
+body.theme-dark .ko-dict-row{background:#2a2a2a;border-color:#444;color:#ddd;}
+body.theme-dark .ko-dict-row.on{background:#1d2b2b;border-color:#008080;}
+body.theme-dark .ko-dict-ja{color:#7fd6d6;}
 
 </style>
 </head>
@@ -6969,7 +6981,8 @@ function koOpenSheet(hit){
   if(hit.type === 'note'){ koOpenNote(hit); return; }
   const cands = koCandidates(hit.eojeol);
   // 選んでおく候補：登録済み → 助詞・들を外した形 → 助詞を外した形 → そのまま
-  let key = hit.key || cands.find(c => _koWords[c]) || cands[cands.length - 1] || cands[0];
+  const lemmaStems = koLemmaCands(hit.eojeol).filter(c => c.endsWith('다')).map(c => c.slice(0, -1));
+  let key = hit.key || cands.find(c => _koWords[c]) || lemmaStems.find(c => _koWords[c] && hit.eojeol.startsWith(c)) || cands[cands.length - 1] || cands[0];
   if(!cands.includes(key)) cands.unshift(key);
   const ent = _koWords[key];
   body.innerHTML = `
@@ -6979,6 +6992,7 @@ function koOpenSheet(hit){
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 8 8 8 12 4 12 20 8 16 4 16"/><path d="M16 8a5 5 0 0 1 0 8"/></svg>
       </button>
     </div>
+    ${ent ? '' : '<div class="ko-label">辞書</div><div id="ko-dict"></div>'}
     <div class="ko-label">登録する形（タップで選ぶ・直接なおしてもOK）</div>
     <div class="ko-chips">${cands.map(c => `<button class="ko-chip ${c === key ? 'on' : ''}" onclick="koPickKey(this)">${escapeHtml(c)}</button>`).join('')}</div>
     <input id="ko-key" class="ko-input" value="${escapeHtml(key)}" oninput="koOnKeyInput()" autocomplete="off" spellcheck="false">
@@ -6998,7 +7012,7 @@ function koOpenSheet(hit){
     </div>`;
   sh.classList.add('show');
   document.getElementById('ko-sheet-ov').classList.add('show');
-  if(!ent) setTimeout(() => { const m = document.getElementById('ko-mean'); if(m && isPcPointer()) m.focus(); }, 50);
+  if(!ent) koFillDict(hit);
 }
 function koPickKey(btn){
   document.querySelectorAll('#ko-sheet .ko-chip').forEach(b => b.classList.toggle('on', b === btn));
@@ -7175,6 +7189,7 @@ function openKoHelp(){
       <p>動詞は「먹었다 → 먹」のように<b>変わらない部分</b>で登録すると、먹고・먹는 などにも付きます。</p>
       <p><b>✎</b>は文のメモがある印です。文のメモは単語の画面の「文にメモ」から。</p>
       <p>意味を「隠す」にすると、点線の単語だけになります。読みながら思い出すテストに。</p>
+      <p>辞書の候補は「한국어기초사전」（韓国 国立国語院、CC BY-SA 2.0 KR）の日本語訳です。ウェブ小説の言い回しや固有名詞は載っていないことがあります。</p>
     </div>
     <div class="ko-actions"><span></span><button class="ko-cancel" onclick="openKoMenu()">戻る</button></div>`;
 }
@@ -7279,6 +7294,177 @@ function koQuizAnswer(ok){
   if(w[k]){ if(ok){ w[k].ok = (w[k].ok || 0) + 1; q.ok++; } else w[k].ng = (w[k].ng || 0) + 1; koSaveWords(); }
   q.i++;
   koQuizShow(false);
+}
+
+/* ══════ 辞書（한국어기초사전・国立国語院 CC BY-SA 2.0 KR）══════ */
+const KO_DICT_URL = 'krdict-ja.json';
+const KO_DICT_VER = 'v1';
+let _koDict = null, _koDictLoading = null;
+function koDictIdb(){
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(LS_PREFIX + 'krdict', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('d');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function koDictLoad(){
+  if(_koDict) return _koDict;
+  if(_koDictLoading) return _koDictLoading;
+  _koDictLoading = (async () => {
+    let txt = null;
+    try{
+      const db = await koDictIdb();
+      txt = await new Promise(res => { const q = db.transaction('d').objectStore('d').get(KO_DICT_VER); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); });
+    }catch(_){}
+    if(!txt){
+      const r = await fetch(KO_DICT_URL);
+      if(!r.ok) throw new Error('dict ' + r.status);
+      txt = await r.text();
+      try{ const db = await koDictIdb(); db.transaction('d', 'readwrite').objectStore('d').put(txt, KO_DICT_VER); }catch(_){}
+    }
+    _koDict = JSON.parse(txt).d;
+    return _koDict;
+  })();
+  try{ return await _koDictLoading; } finally { _koDictLoading = null; }
+}
+// 「たべる【食べる】。くう【食う・喰う】」→「食べる・食う」
+function koJaShort(s){
+  return String(s || '').split('。').map(p => {
+    p = p.trim();
+    const m = p.match(/【([^】]+)】/);
+    return m ? m[1].split('・')[0] : p;
+  }).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).slice(0, 3).join('・');
+}
+/* ハングルの分解・組み立て */
+function koDec(ch){
+  const c = ch.charCodeAt(0) - 0xAC00;
+  if(c < 0 || c > 11171) return null;
+  return { L: Math.floor(c / 588), V: Math.floor((c % 588) / 28), T: c % 28 };
+}
+function koCmp(L, V, T){ return String.fromCharCode(0xAC00 + L * 588 + V * 28 + T); }
+// 活用した形から、辞書の見出し（〜다）の候補を作る → [{c: 見出し候補, n: 本文で使った文字数}]
+function koLemmaCandsN(w){
+  const out = [], seen = new Set();
+  const add = (x, n) => { if(x && !seen.has(x)){ seen.add(x); out.push({ c: x, n }); } };
+  for(let n = w.length; n >= 1; n--){
+    const p = w.slice(0, n);
+    add(p, n); add(p + '다', n);
+    const base = p.slice(0, -1), d = koDec(p[n - 1]);
+    if(!d) continue;
+    const forms = [p];
+    if([4, 8, 16, 17, 20].includes(d.T)) forms.push(base + koCmp(d.L, d.V, 0)); // 받침を外す（갔→가 한→하 할→하 합→하）
+    if(d.T === 8) forms.push(base + koCmp(d.L, d.V, 7));                         // ㄷ不規則（들→듣）
+    forms.forEach(f => {
+      const fb = f.slice(0, -1), fd = koDec(f[f.length - 1]);
+      add(f + '다', n);
+      if(!fd || fd.T) return;
+      const V2 = { 9: 8, 14: 13, 6: 20, 10: 11, 15: 16 }[fd.V];               // 와→오 워→우 여→이 왜→외 웨→위
+      if(V2 != null) add(fb + koCmp(fd.L, V2, 0) + '다', n);
+      if(fd.L === 18 && fd.V === 1) add(fb + koCmp(18, 0, 0) + '다', n);       // 해→하
+      if(fd.V === 4 || fd.V === 0) add(fb + koCmp(fd.L, 18, 0) + '다', n);     // 써→쓰 예뻐→예쁘
+      add(fb + koCmp(fd.L, fd.V, 19) + '다', n);                               // ㅅ不規則（지어→짓）
+      if(fd.L === 11 && (fd.V === 14 || fd.V === 13) && fb){                   // ㅂ不規則（고마워・고마운→고맙）
+        const pd = koDec(fb[fb.length - 1]);
+        if(pd && !pd.T) add(fb.slice(0, -1) + koCmp(pd.L, pd.V, 17) + '다', n - 1);
+      }
+    });
+  }
+  return out;
+}
+function koLemmaCands(w){ return koLemmaCandsN(w).map(x => x.c); }
+const KO_FUNC_POS = ['助', '語尾', '接'];
+const KO_VERB_REST = ['어','아','여','었','았','였','고','는','은','을','게','지','다','며','면','서','니','기','음','자','도','요','세','시','습','겠','던','든','라','러','려','네','나','냐','죠','군','구','ㄴ','ㄹ','ㅂ'];
+const KO_COPULA = ['이다','이었다','였다','이야','야','이고','인','이라','이라고','이었','였','이지','이죠','이에요','예요','입니다'];
+function koRestFits(rest, verb){
+  if(!rest) return true;
+  if(verb) return KO_VERB_REST.some(e => rest.startsWith(e));
+  const r = rest.startsWith('들') ? rest.slice(1) : rest;
+  return !r || KO_PARTICLES.includes(r) || KO_COPULA.includes(r) || KO_PARTICLES.some(a => r.startsWith(a) && KO_PARTICLES.includes(r.slice(a.length)));
+}
+const KO_LV_ORDER = { 1: 0, 2: 1, 3: 2, 0: 3 };
+// 辞書で引けた候補（本文に合う長いもの順・助詞などは単語そのものの時だけ）
+function koDictLookup(eojeol){
+  if(!_koDict) return [];
+  const res = [];
+  for(const { c, n } of koLemmaCandsN(eojeol)){
+    const ents = _koDict[c];
+    if(!ents) continue;
+    const useful = ents.filter(e => !KO_FUNC_POS.includes(e[0]) || c === eojeol)
+      .slice().sort((a, b) => (KO_LV_ORDER[a[3] || 0]) - (KO_LV_ORDER[b[3] || 0]));
+    if(!useful.length) continue;
+    const verb = c.endsWith('다') && useful.some(e => /^(動|形|補動|補形)$/.test(e[0]));
+    const fit = koRestFits(eojeol.slice(n), verb) ? 1 : 0;
+    res.push({ head: c, ents: useful, n, fit });
+  }
+  res.sort((a, b) => b.n - a.n || b.fit - a.fit);
+  const anyFit = res.some(r => r.fit);
+  let list = anyFit ? res.filter(r => r.fit) : res;
+  const hasLong = list.some(r => r.n >= 2);
+  if(hasLong) list = list.filter(r => r.n >= 2);
+  return list.slice(0, 4);
+}
+// 辞書の見出しから、本文に付ける形（語幹）を決める
+function koKeyFromHead(head, pos, eojeol){
+  if(/^(動|形|補動|補形)$/.test(pos) && head.endsWith('다') && head.length > 1){
+    const stem = head.slice(0, -1);
+    // 不規則で形が変わるとき（짓다→지었다 など）は、この形のまま登録
+    return eojeol.startsWith(stem) ? stem : eojeol;
+  }
+  return eojeol.startsWith(head) ? head : null;
+}
+async function koFillDict(hit){
+  const box = document.getElementById('ko-dict');
+  if(!box) return;
+  if(!_koDict){
+    box.innerHTML = '<div class="ko-dict-msg">辞書を読み込み中…（初回だけ少しかかります）</div>';
+    try{ await koDictLoad(); }
+    catch(e){ box.innerHTML = '<div class="ko-dict-msg">辞書を読み込めませんでした</div>'; return; }
+    if(_koCur !== hit) return;
+  }
+  const found = koDictLookup(hit.eojeol);
+  if(!found.length){ box.innerHTML = '<div class="ko-dict-msg">辞書に見つかりませんでした。下の「辞書で調べる」でNaverを開けます</div>'; return; }
+  window._koDictRows = [];
+  let shown = 0;
+  box.innerHTML = found.map(f => f.ents.slice(0, 3).filter(() => shown++ < 5).map(e => {
+    const i = window._koDictRows.push({ head: f.head, pos: e[0], ja: e[1], hanja: e[2] || '' }) - 1;
+    return `<button class="ko-dict-row" onclick="koPickDict(${i})">
+      <span class="ko-dict-h">${escapeHtml(f.head)}${e[2] ? `<small>${escapeHtml(e[2])}</small>` : ''}</span>
+      ${e[0] ? `<span class="ko-dict-pos">${escapeHtml(e[0])}</span>` : ''}
+      <span class="ko-dict-ja">${e[1].map(s => escapeHtml(koJaShort(s))).filter(Boolean).slice(0, 3).join('<span class="ko-dict-sep">／</span>')}</span>
+    </button>`;
+  }).join('')).join('');
+  // まだ意味が空なら、いちばん上の候補を入れておく
+  const mean = document.getElementById('ko-mean');
+  if(mean && !mean.value && window._koDictRows[0]){
+    const r = window._koDictRows[0];
+    mean.value = koJaShort(r.ja[0]).split('・').slice(0, 2).join('・');
+    const first = box.querySelector('.ko-dict-row'); if(first) first.classList.add('on');
+    const k = koKeyFromHead(r.head, r.pos, hit.eojeol);
+    if(k && !hit.key) koSetKey(k);
+  }
+}
+function koSetKey(k){
+  document.getElementById('ko-key').value = k;
+  if(![...document.querySelectorAll('#ko-sheet .ko-chip')].some(b => b.textContent === k)){
+    const wrap = document.querySelector('#ko-sheet .ko-chips');
+    const b = document.createElement('button');
+    b.className = 'ko-chip'; b.textContent = k; b.onclick = () => koPickKey(b);
+    wrap.appendChild(b);
+  }
+  document.querySelectorAll('#ko-sheet .ko-chip').forEach(b => b.classList.toggle('on', b.textContent === k));
+  document.getElementById('ko-del-btn').style.visibility = _koWords[k] ? '' : 'hidden';
+}
+function koPickDict(i){
+  const r = window._koDictRows[i];
+  if(!r) return;
+  document.querySelectorAll('#ko-dict .ko-dict-row').forEach((b, j) => b.classList.toggle('on', j === i));
+  const mean = document.getElementById('ko-mean');
+  mean.value = koJaShort(r.ja[0]).split('・').slice(0, 2).join('・');
+  const memo = document.getElementById('ko-memo');
+  if(memo && !memo.value) memo.value = r.head + (r.hanja ? `（${r.hanja}）` : '') + (r.pos ? ` ${r.pos}` : '');
+  const k = _koCur && koKeyFromHead(r.head, r.pos, _koCur.eojeol);
+  if(k) koSetKey(k);
 }
 
 
