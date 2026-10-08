@@ -2074,6 +2074,10 @@ body.theme-dark .ko-review-big{background:#1d2b2b;color:#7fd6d6;}
 body.theme-dark .ko-set{border-top-color:#333;}
 body.theme-dark .ko-set-l{color:#ddd;}
 
+.page-editor .ko-untr{color:#b5b5b5;}
+body.theme-dark .page-editor .ko-untr{color:#666;}
+.ko-set .ko-seg button{padding:6px 7px;}
+
 </style>
 </head>
 <body class="booting">
@@ -7028,6 +7032,15 @@ function koDecorateHtml(html, para){
 }
 // 閲覧中の段落の表示（ふりがな → 韓国語メモ）
 function buildReadDisplayHtml(para){
+  // 自分の訳で読む：訳がある段落は訳だけ、まだの段落は原文をうすく
+  if(koTrMode() === 'only' && state.novel){
+    const plain = koParaPlain(para);
+    if(KO_HANGUL.test(plain)){
+      const tr = (state.novel.koTr || {})[koHash(plain)];
+      if(tr) return '<span class="ko-tr-only">' + escapeHtml(tr).replace(/\n/g, '<br>') + '</span>';
+      return '<span class="ko-untr">' + escapeHtml(plain) + '</span>';
+    }
+  }
   const base = shouldShowFuriganaDisplay() ? buildFuriganaDisplayHtml(para) : (para.html || '');
   try{ return koDecorateHtml(base, para); }catch(e){ console.warn('ko decorate', e); return base; }
 }
@@ -7299,10 +7312,12 @@ function openKoMenu(){
       <span class="t">今日の復習</span>
       <span class="n">${rc.total ? `${rc.total}枚` : (cnt ? 'おわり' : '単語を登録すると始まります')}</span>
     </button>
+    <button class="ko-menu-item" onclick="koToggleTrOnly()">${koTrMode() === 'only' ? '原文で読む' : '自分の訳で読む'}<span class="ko-mi-sub">${(() => { const pr = koTrProgress(); return pr ? `この話 ${pr.done}/${pr.all}段落` : ''; })()}</span></button>
     <button class="ko-menu-item" onclick="openKoWordList()">単語帳<span class="ko-mi-sub">${cnt}語</span></button>
     <button class="ko-menu-item" onclick="openKoStats()">学習の記録</button>
     <button class="ko-menu-item" onclick="openKoSettings()">表示の設定</button>
     <button class="ko-menu-item" onclick="koExportTr()" ${state.currentEpisodeId ? '' : 'disabled'}>この話の原文と訳を書き出す</button>
+    <button class="ko-menu-item" onclick="koExportTrOnly()" ${state.currentEpisodeId ? '' : 'disabled'}>この話の訳だけを書き出す</button>
     <button class="ko-menu-item" onclick="openKoHelp()">使い方</button>
     <div class="ko-actions"><span></span><button class="ko-cancel" onclick="koCloseSheet()">閉じる</button></div>`;
   document.getElementById('ko-sheet').classList.add('show');
@@ -7317,6 +7332,7 @@ function openKoHelp(){
       <p>動詞は「먹었다 → 먹」のように<b>変わらない部分</b>で登録すると、먹고・먹는 などにも付きます。</p>
       <p><b>✎</b>は文のメモがある印です。文のメモは単語の画面の「文にメモ」から。</p>
       <p><b>自分の訳</b>は「書く」にすると、韓国語の段落の下に入力欄が出ます。書いた訳は「表示」で原文の下に出て、タップでなおせます。</p>
+      <p><b>自分の訳で読む</b>にすると、訳した段落は訳だけで表示されます（段落の位置は原文と同じ）。まだ訳していない段落はうすい原文で出ます。</p>
       <p>意味を「隠す」にすると、点線の単語だけになります。読みながら思い出すテストに。</p>
       <p><b>復習</b>はAnkiと同じ考え方です。答えたあと「もう一回／難しい／普通／簡単」を選ぶと、覚えている単語ほど次に出るまでの間隔が伸びます（1日→3日→1週間→…）。毎日「今日の復習」をやるだけでOK。「한」ボタンの数字が今日の残りです。</p>
       <p>次の復習が3週間以上先になった単語は「覚えた」になり、本文では意味が出なくなります（設定で変えられます）。</p>
@@ -7728,7 +7744,7 @@ function koAutoGrow(ta){ ta.style.height = 'auto'; ta.style.height = (ta.scrollH
 function koDecoratePage(pageEl, pi){
   if(state.editMode || !pageEl || !state.novel) return;
   const mode = koTrMode();
-  if(mode === 'off') return;
+  if(mode === 'off' || mode === 'only') return;
   const trs = state.novel.koTr || {};
   pageEl.querySelectorAll('p[data-qi][data-type="text"]').forEach(p => {
     const para = state.pages[pi] && state.pages[pi].paras[parseInt(p.dataset.qi, 10)];
@@ -8037,7 +8053,7 @@ function openKoSettings(){
     </div>
     <div class="ko-set">
       <div class="ko-set-l">自分の訳<small>${pr ? `この話 ${pr.done}/${pr.all}段落` : '段落の下に書く訳'}</small></div>
-      ${seg([['write', '書く'], ['show', '表示'], ['off', '隠す']], tm, 'koSetTrMode')}
+      ${seg([['write', '書く'], ['show', '表示'], ['off', '隠す'], ['only', '訳で読む']], tm, 'koSetTrMode')}
     </div>
     <div class="ko-set">
       <div class="ko-set-l">未登録の単語<small>うすい黄色で目立たせる</small></div>
@@ -8056,6 +8072,36 @@ function openKoSettings(){
   document.getElementById('ko-sheet-ov').classList.add('show');
 }
 function koSetNewPerDayUI(n){ koSetNewPerDay(n); koUpdateBadge(); }
+
+let _koTrPrev = 'show';
+function koToggleTrOnly(){
+  if(koTrMode() === 'only'){ koSetTrMode(_koTrPrev === 'only' ? 'show' : _koTrPrev); showToast('原文で表示しています'); }
+  else{ _koTrPrev = koTrMode(); koSetTrMode('only'); showToast('自分の訳で表示しています（まだ訳していない段落はうすい原文）'); }
+  koCloseSheet();
+}
+// 訳だけを書き出す：段落の位置は原文と同じ。訳していない段落は原文のまま、空行は空行のまま
+function koExportTrOnly(){
+  const ep = state.novel && state.novel.episodes.find(e => e.id === state.currentEpisodeId);
+  if(!ep) return;
+  const trs = state.novel.koTr || {};
+  const out = [];
+  let missing = 0;
+  state.pages.forEach(pg => (pg.paras || []).forEach(para => {
+    if(para.type !== 'text') return;
+    const plain = koParaPlain(para);
+    if(!plain.trim()){ out.push(''); return; }
+    if(!KO_HANGUL.test(plain)){ out.push(plain); return; }
+    const t = trs[koHash(plain)];
+    if(t) out.push(t); else { out.push(plain); missing++; }
+  }));
+  const blob = new Blob([out.join('\n')], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (ep.title || '訳') + '_訳.txt';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  showToast(missing ? `書き出しました（まだ訳していない${missing}段落は原文のまま）` : '書き出しました');
+}
 
 
 function setupDoubleTap(){
