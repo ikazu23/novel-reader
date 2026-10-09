@@ -307,7 +307,14 @@ mark.sh.current{background:#ff8f00;color:#fff;}
   position:relative;
 }
 /* 編集モード中のみ：段落を視覚的に区切る薄い枠 */
+/* 段落の中の薄い色は、後ろの層（::before）で出す。背景色にするとiPhoneが文字に焼き付けるため */
+#viewport.edit-mode .page-editor p::before{
+  content:'';position:absolute;inset:0;border-radius:3px;
+  background:rgba(0, 0, 0, 0.03);pointer-events:none;z-index:-1;
+}
+body.theme-dark #viewport.edit-mode .page-editor p::before{background:rgba(255,255,255,0.04);}
 #viewport.edit-mode .page-editor p {
+  isolation:isolate;
   background:transparent;
   border:1px solid rgba(0, 0, 0, 0.18);
   border-radius:3px;
