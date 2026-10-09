@@ -306,8 +306,15 @@ mark.sh.current{background:#ff8f00;color:#fff;}
   position:relative;
 }
 /* 編集モード中のみ：段落を視覚的に区切る薄い枠 */
+/* 段落の中の薄い色は、後ろの層（::before）で出す。背景色にするとiPhoneが文字に焼き付けるため */
+#viewport.edit-mode .page-editor p::before{
+  content:'';position:absolute;inset:0;border-radius:3px;
+  background:rgba(0, 0, 0, 0.03);pointer-events:none;z-index:-1;
+}
+body.theme-dark #viewport.edit-mode .page-editor p::before{background:rgba(255,255,255,0.04);}
 #viewport.edit-mode .page-editor p {
-  background:rgba(0, 0, 0, 0.03);
+  isolation:isolate;
+  background:transparent;
   border:1px solid rgba(0, 0, 0, 0.18);
   border-radius:3px;
   padding:6px 10px;
@@ -1879,7 +1886,7 @@ body.theme-dark .stepper-val{color:#ccc;}
 body.theme-dark #tts-control-bar{background:rgba(40,40,44,0.95);}
 body.theme-dark .tts-cbtn{color:#ddd;}
 body.theme-dark #viewport.edit-mode .page-editor p{
-  background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.18);
+  background:transparent;border-color:rgba(255,255,255,0.18);
 }
 body.theme-dark .page-editor p.tts-reading{background:rgba(0,200,200,0.14);}
 body.theme-dark .pnl{color:#666;}
@@ -4612,6 +4619,13 @@ async function openNovel(novelId){
   // 新しい小説をロード
   state.currentNovelId=novelId;
   state.novel = JSON.parse(JSON.stringify(novel));
+  try{
+    if(cleanBakedNovel(state.novel)){
+      const _i = state.library.findIndex(n=>n.id===novelId);
+      if(_i>=0) state.library[_i] = JSON.parse(JSON.stringify(state.novel));
+      libDbPut(state.novel).catch(()=>{});
+    }
+  }catch(e){ console.warn('cleanBakedNovel', e); }
   state.currentEpisodeId=null;
   hideLibrary();
   showToc();
@@ -6027,7 +6041,11 @@ function setupEditorEvents(editor,pi,groupIdx=0,qiOffset=0){
     syncEditorToState(pi);
     debouncedSave();
   });
+  editor.addEventListener('compositionstart', ()=>{ editor._composing = true; });
   editor.addEventListener('compositionend', ()=>{
+    editor._composing = false;
+    editor._compEndAt = Date.now();
+    setTimeout(()=>{ if(!editor._composing) normalizeLooseNodes(editor, pi); }, 0);
     if(!_snapPending){
       _snapPending = true;
       _undoStack.push(JSON.stringify(state.pages));
@@ -6102,6 +6120,8 @@ function setupEditorEvents(editor,pi,groupIdx=0,qiOffset=0){
       }
     }
     // Enter → 段落分割 or 段落内改行（モードによる）、Shift+Enter → 逆の動作
+    // iPhoneは変換を確定したEnterが、変換が終わった直後のEnterとして届くことがある → 段落を割らない
+    if(e.key==='Enter'&&(e.isComposing||e.keyCode===229||editor._composing||Date.now()-(editor._compEndAt||0)<150)) return;
     if(e.key==='Enter'&&!e.isComposing){
       // 画像名（例: illust1.png）が単独行に書かれていたら画像に変換
       const paraEl=getParaElUnderCaret();
@@ -6173,6 +6193,84 @@ function setupEditorEvents(editor,pi,groupIdx=0,qiOffset=0){
 }
 
 // Sync the editor DOM back into state.pages[] state
+/* ── iPhone対策 ──
+   変換のときに段落（p）が作り直されて、文字が段落の外に出たり、
+   見た目の書式（背景・フォントなど）が文字に焼き付いたりする */
+const BAKED_STYLE_PROPS = ['background','background-color','background-image','font-family','line-height','letter-spacing','white-space','word-break','word-wrap','overflow-wrap','font-variant','font-variant-ligatures','font-variant-caps','font-feature-settings','text-indent','text-transform','orphans','widows','word-spacing','caret-color','display','border','border-radius','padding','margin','box-shadow','outline'];
+function cleanBakedStyleHtml(html){
+  if(!html || !/style=|<span|<font/i.test(html)) return html;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  tmp.querySelectorAll('[style]').forEach(el=>{
+    BAKED_STYLE_PROPS.forEach(pr=>el.style.removeProperty(pr));
+    Array.from(el.style).forEach(pr=>{ if(/^-webkit-/.test(pr)) el.style.removeProperty(pr); });
+    if(!el.getAttribute('style') || !el.getAttribute('style').trim()) el.removeAttribute('style');
+  });
+  // 何も書式が残っていない span は外す（中身だけ残す）
+  tmp.querySelectorAll('span').forEach(sp=>{
+    if(sp.attributes.length === 0){
+      while(sp.firstChild) sp.parentNode.insertBefore(sp.firstChild, sp);
+      sp.remove();
+    }
+  });
+  return tmp.innerHTML;
+}
+function cleanBakedNovel(novel){
+  let changed = false;
+  (novel && novel.episodes || []).forEach(ep=>(ep.pages||[]).forEach(pg=>(pg.paras||[]).forEach(pa=>{
+    if(pa.type !== 'text' || !pa.html || !/background|font-family|line-height|letter-spacing|white-space|-webkit-/i.test(pa.html)) return;
+    const c = cleanBakedStyleHtml(pa.html);
+    if(c !== pa.html){ pa.html = c; changed = true; }
+  })));
+  return changed;
+}
+// 段落の外にはみ出した文字・span を、カーソル位置を保ったまま段落の中に入れ直す
+function normalizeLooseNodes(editor, pi){
+  if(!state.editMode || !editor) return;
+  const loose = Array.from(editor.childNodes).filter(n=>{
+    if(n.nodeType===3) return n.textContent.length > 0;
+    if(n.nodeType!==1) return false;
+    if(n.tagName==='P' || n.tagName==='DIV' || (n.dataset && n.dataset.type==='image')) return false;
+    if(n.tagName==='BR') return false;
+    return true;
+  });
+  if(!loose.length) return;
+  const sel = window.getSelection();
+  const sv = sel && sel.rangeCount ? { node: sel.anchorNode, off: sel.anchorOffset } : null;
+  // 続いている塊ごとに1つの段落へ
+  let group = [];
+  const flush = ()=>{
+    if(!group.length) return;
+    const p = document.createElement('p');
+    p.dataset.pi = pi; p.dataset.type = 'text';
+    p.style.textAlign = 'left';
+    p.style.fontSize = (state.settings.fontSize || 15) + 'px';
+    group[0].parentNode.insertBefore(p, group[0]);
+    group.forEach(n=>p.appendChild(n));
+    // 焼き付いた書式もここで外す
+    p.querySelectorAll('[style]').forEach(el=>{
+      BAKED_STYLE_PROPS.forEach(pr=>el.style.removeProperty(pr));
+      if(!el.getAttribute('style') || !el.getAttribute('style').trim()) el.removeAttribute('style');
+    });
+    group = [];
+  };
+  Array.from(editor.childNodes).forEach(n=>{
+    if(loose.includes(n)) group.push(n);
+    else if(n.nodeType===1 && n.tagName==='BR' && group.length) group.push(n);
+    else flush();
+  });
+  flush();
+  // 段落の中の span に焼き付いた背景も外す
+  editor.querySelectorAll('p [style*="background"]').forEach(el=>{
+    el.style.removeProperty('background'); el.style.removeProperty('background-color');
+    if(!el.getAttribute('style').trim()) el.removeAttribute('style');
+  });
+  if(sv && sv.node && sv.node.isConnected){
+    try{ sel.collapse(sv.node, Math.min(sv.off, sv.node.nodeType===3 ? sv.node.length : sv.node.childNodes.length)); }catch(_){}
+  }
+  try{ syncEditorToState(pi); }catch(_){}
+}
+
 function syncEditorToState(pi){
   // Collect paras from ALL subpage group editors for this page
   const pageEl=document.getElementById(`page-${pi}`);
@@ -6189,14 +6287,24 @@ function syncEditorToState(pi){
     const editor=document.getElementById(editorId)||grp.querySelector('.page-editor');
     if(!editor)return;
     let qi=0;
-    editor.childNodes.forEach(node=>{
-      if(node.nodeType===3){
-        if(node.textContent.trim()){
-          newParas.push({type:'text',text:node.textContent,html:node.textContent,
-            align:'left',size:state.settings.fontSize,color:state.settings.lastColor});
-        }
-        return;
-      }
+    // 段落（P/DIV）の外にはみ出した文字・span など（iPhoneの変換や改行で起きる）を
+    // 1つの段落にまとめて拾う。拾わないと保存されずに消えてしまう
+    const _items = [];
+    let _loose = [];
+    const _flushLoose = ()=>{
+      if(!_loose.length) return;
+      const tmpP = document.createElement('p');
+      _loose.forEach(n=>{ tmpP.appendChild(n.cloneNode(true)); });
+      _loose = [];
+      if((tmpP.textContent||'').trim() || tmpP.querySelector('img')) _items.push(tmpP);
+    };
+    Array.from(editor.childNodes).forEach(node=>{
+      const isBlock = node.nodeType===1 && (node.tagName==='P' || node.tagName==='DIV' || (node.dataset && node.dataset.type==='image'));
+      if(isBlock){ _flushLoose(); _items.push(node); }
+      else if(node.nodeType===3 || node.nodeType===1) _loose.push(node);
+    });
+    _flushLoose();
+    _items.forEach(node=>{
       if(node.dataset&&node.dataset.type==='image'){
         // 画像段落は globalQi ベースのインデックスではなく、imgName で元データを探す
         // (テキストノードの空白などで globalQi がずれる可能性があるため)
@@ -6232,7 +6340,7 @@ function syncEditorToState(pi){
         const builtPara = {
           type: 'text',
           text: stripFuriganaText(node.innerHTML),
-          html: stripFuriganaHtml(node.innerHTML),
+          html: cleanBakedStyleHtml(stripFuriganaHtml(node.innerHTML)),
           align: (node.style.textAlign || orig?.align || 'left'),
           size: nodeSize,
           color: nodeColor,
