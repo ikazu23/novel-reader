@@ -1994,15 +1994,17 @@ body.theme-dark .ko-dict-row{background:#2a2a2a;border-color:#444;color:#ddd;}
 body.theme-dark .ko-dict-row.on{background:#1d2b2b;border-color:#008080;}
 body.theme-dark .ko-dict-ja{color:#7fd6d6;}
 
-.page-editor .ko-new{background:rgba(255,190,60,.22);border-radius:3px;}
+.page-editor .ko-new{background:rgba(255,190,60,.15);border-radius:2px;}
 body.theme-dark .page-editor .ko-new{background:rgba(255,190,60,.18);}
-.page-editor .ko-tr{font-family:'Noto Sans JP',sans-serif;font-size:0.82em;line-height:1.7;color:#5a7f7f;margin:-12px 0 calc(var(--para-spacing,24px) - 4px);padding-left:10px;border-left:2px solid #bfdede;white-space:pre-wrap;cursor:pointer;user-select:text;}
+.page-editor .ko-tr{font-family:'Noto Sans JP',sans-serif;font-size:0.8em;line-height:1.6;color:#5a7f7f;margin:calc(2px - var(--para-spacing,24px)) 0 max(10px, var(--para-spacing,24px));padding:0 0 0 8px;border-left:2px solid #cfe4e4;white-space:pre-wrap;cursor:pointer;user-select:text;}
 .page-editor .ko-tr.write{cursor:auto;}
-.ko-tr-input{width:100%;border:1px dashed #bfdede;border-radius:6px;background:rgba(0,128,128,.03);padding:6px 8px;font:inherit;color:#333;resize:none;overflow:hidden;line-height:1.7;}
-.ko-tr-input:focus{outline:none;border-style:solid;border-color:#008080;background:#fff;}
+.ko-tr-input{display:block;width:100%;border:none;border-bottom:1px dashed #cfe4e4;border-radius:0;background:transparent;padding:1px 2px 2px;margin:0;font:inherit;color:#333;resize:none;overflow:hidden;line-height:1.6;min-height:0;}
+.ko-tr-input::placeholder{color:#c5d6d6;}
+.ko-tr-input:focus{outline:none;border-bottom:1px solid #008080;background:rgba(0,128,128,.04);}
 body.theme-dark .page-editor .ko-tr{color:#8fbcbc;border-left-color:#2f4a4a;}
-body.theme-dark .ko-tr-input{background:#1d2424;border-color:#2f4a4a;color:#ddd;}
-body.theme-dark .ko-tr-input:focus{background:#222;}
+body.theme-dark .ko-tr-input{background:transparent;border-bottom-color:#2f4a4a;color:#ddd;}
+body.theme-dark .ko-tr-input::placeholder{color:#3d5555;}
+body.theme-dark .ko-tr-input:focus{background:rgba(0,128,128,.08);}
 
 body.ko-hide .page-editor .kw.learned{text-decoration:none;}
 .ko-learned-badge{display:inline-block;font-size:10px;font-weight:700;color:#fff;background:#c9a227;border-radius:8px;padding:1px 7px;margin-left:8px;vertical-align:middle;}
