@@ -2135,6 +2135,22 @@ body.theme-dark .ko-freq-cov-t{color:#bbb;}
 body.theme-dark #lib-ko-review{background:#1d2b2b;color:#7fd6d6;}
 .ko-panel-hint{font-family:'Noto Sans JP',sans-serif;font-size:10px;color:#999;margin-top:6px;line-height:1.5;}
 
+.ko-headw{font-size:17px;font-weight:700;}
+.ko-detail{margin-top:10px;border:1px solid #eee;border-radius:8px;padding:6px 10px;}
+.ko-detail summary{font-size:12px;color:#888;cursor:pointer;}
+.ko-detail summary b{color:#444;}
+#ko-forms{display:flex;flex-wrap:wrap;gap:6px;}
+.ko-form{display:inline-flex;align-items:center;gap:4px;background:#f2fafa;border:1px solid #cfe6e6;border-radius:12px;padding:2px 4px 2px 10px;font-size:13px;}
+.ko-form button{border:none;background:none;color:#aaa;cursor:pointer;font-size:11px;}
+.ko-showchk{display:flex;align-items:center;gap:6px;margin-top:12px;font-size:13px;color:#333;cursor:pointer;}
+.ko-showchk input{width:16px;height:16px;accent-color:#008080;}
+.ko-showchk small{font-size:10px;color:#999;}
+.ko-row-off{font-size:9px;color:#888;border:1px solid #ccc;border-radius:6px;padding:0 4px;}
+body.theme-dark .ko-detail{border-color:#333;}
+body.theme-dark .ko-detail summary b{color:#ccc;}
+body.theme-dark .ko-form{background:#1d2b2b;border-color:#2f4a4a;}
+body.theme-dark .ko-showchk{color:#ccc;}
+
 </style>
 </head>
 <body class="booting">
@@ -6986,11 +7002,24 @@ function koLoad(){
   koRecalc();
   return _koWords;
 }
-let _koPhrases = null;
+let _koPhrases = null, _koIndex = null;
 function koRecalc(){
-  _koMaxLen = Object.keys(_koWords || {}).filter(k => !/\s/.test(k)).reduce((m, k) => Math.max(m, k.length), 0);
+  // 本文で探す形 → 単語（本体のキー）。別の形（ks）も同じ単語につなぐ
+  _koIndex = {};
+  Object.entries(_koWords || {}).forEach(([k, e]) => {
+    if(!_koIndex[k]) _koIndex[k] = k;
+    (e && Array.isArray(e.ks) ? e.ks : []).forEach(a => { if(a && !_koWords[a]) _koIndex[a] = k; });
+  });
+  _koMaxLen = Object.keys(_koIndex).filter(k => !/\s/.test(k)).reduce((m, k) => Math.max(m, k.length), 0);
   _koPhrases = null;
 }
+function koResolve(form){ koLoad(); if(!_koIndex) koRecalc(); return (form && _koIndex[form]) || null; }
+// 単語帳・復習に出す形（辞書の見出し）
+function koHead(k, e){ e = e || (_koWords || {})[k]; return (e && e.h) || k; }
+const KO_SHOW_NEW_LS = LS_PREFIX + 'ko-show-new';
+function koShowNewDefault(){ return localStorage.getItem(KO_SHOW_NEW_LS) !== '0'; }
+function koSetShowNewDefault(on){ try{ localStorage.setItem(KO_SHOW_NEW_LS, on ? '1' : '0'); }catch(_){} }
+function koShowsInText(e){ return !!e && e.show !== false; }
 // 2語以上のフレーズ（間の空白は何個でも・最後の語は後ろに活用が付いてもOK）
 function koPhraseList(){
   if(_koPhrases) return _koPhrases;
@@ -7049,10 +7078,21 @@ function koNotes(){
   return state.novel.koNotes;
 }
 function koFindKey(run){
-  const w = koLoad();
+  koLoad();
+  if(!_koIndex) koRecalc();
   for(let L = Math.min(run.length, _koMaxLen); L >= 1; L--){
-    const k = run.slice(0, L);
-    if(w[k]) return k;
+    const k = _koIndex[run.slice(0, L)];
+    if(k) return k;
+  }
+  return null;
+}
+// 本文で見つけた形の長さ（別の形で見つかったときのため）
+function koFindForm(run){
+  koLoad();
+  if(!_koIndex) koRecalc();
+  for(let L = Math.min(run.length, _koMaxLen); L >= 1; L--){
+    const f = run.slice(0, L);
+    if(_koIndex[f]) return { key: _koIndex[f], form: f };
   }
   return null;
 }
@@ -7090,7 +7130,7 @@ function koDecorateHtml(html, para){
       const text = node.textContent;
       if(!KO_HANGUL.test(text) || !/\s/.test(text)) return;
       const found = [];
-      phrases.forEach(pp => { pp.re.lastIndex = 0; let m; while((m = pp.re.exec(text))){ found.push({ i: m.index + m[1].length, len: m[2].length, key: pp.key }); pp.re.lastIndex = m.index + m[1].length + 1; } });
+      phrases.forEach(pp => { if(!koShowsInText(words[pp.key])) return; pp.re.lastIndex = 0; let m; while((m = pp.re.exec(text))){ found.push({ i: m.index + m[1].length, len: m[2].length, key: pp.key }); pp.re.lastIndex = m.index + m[1].length + 1; } });
       if(!found.length) return;
       found.sort((a, b) => a.i - b.i || b.len - a.len);
       const frag = document.createDocumentFragment();
@@ -7117,7 +7157,9 @@ function koDecorateHtml(html, para){
       let last = 0, any = false, m;
       KO_RUN.lastIndex = 0;
       while((m = KO_RUN.exec(text))){
-        const key = koFindKey(m[0]);
+        const fd = koFindForm(m[0]);
+        const key = fd && koShowsInText(words[fd.key]) ? fd.key : null;
+        if(fd && !key) continue; // 単語帳だけに入れた単語：本文には何も付けない
         if(!key){
           if(!markNew) continue;
           any = true;
@@ -7132,8 +7174,8 @@ function koDecorateHtml(html, para){
         any = true;
         if(m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
         // 意味は文字の上に浮かせて出す（ルビだと単語の間が空いてしまうので）
-        frag.appendChild(mkSpan(key, key));
-        last = m.index + key.length;
+        frag.appendChild(mkSpan(key, fd.form));
+        last = m.index + fd.form.length;
       }
       if(!any) return;
       if(last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
@@ -7200,7 +7242,7 @@ function koHitAt(e){
     const same = [...paraEl.querySelectorAll('.kw')].filter(x => x.dataset.kw === rb.dataset.kw);
     const place = koHash(sentence) + '|' + rb.dataset.kw + '|' + (same.indexOf(rb) + 1);
     const after = rb.nextSibling && rb.nextSibling.nodeType === 3 ? (rb.nextSibling.textContent.match(/^[가-힣ㄱ-ㆎ]*/) || [''])[0] : '';
-    return { type: 'word', key: rb.dataset.kw, eojeol: rb.dataset.kw + after, sentence, pi, qi, place };
+    return { type: 'word', key: rb.dataset.kw, eojeol: rb.textContent + after, sentence, pi, qi, place };
   }
   const c = koCaretAt(e.clientX, e.clientY);
   if(!c || !c.node || c.node.nodeType !== 3 || !paraEl.contains(c.node)) return null;
@@ -7213,7 +7255,7 @@ function koHitAt(e){
   // 単語の前半がメモ済み（ルビの中）で、後ろの助詞だけをタップしたとき
   if(s === 0 && c.node.previousSibling && c.node.previousSibling.nodeType === 1 && c.node.previousSibling.matches('.kw')){
     const k = c.node.previousSibling.dataset.kw;
-    return { type: 'word', key: k, eojeol: k + eojeol, sentence, pi, qi };
+    return { type: 'word', key: k, eojeol: c.node.previousSibling.textContent + eojeol, sentence, pi, qi };
   }
   if(!eojeol) return null;
   return { type: 'word', key: null, eojeol, sentence, pi, qi };
@@ -7245,26 +7287,37 @@ function koOpenSheet(hit){
   const body = document.getElementById('ko-sheet-body');
   if(hit.type === 'note'){ koOpenNote(hit); return; }
   const cands = koCandidates(hit.eojeol);
-  // 選んでおく候補：登録済み → 助詞・들を外した形 → 助詞を外した形 → そのまま
+  // 選んでおく候補：登録済み（別の形も） → 助詞・들を外した形 → 助詞を外した形 → そのまま
   const lemmaStems = koLemmaCands(hit.eojeol).filter(c => c.endsWith('다')).map(c => c.slice(0, -1));
-  let key = hit.key || cands.find(c => _koWords[c]) || lemmaStems.find(c => _koWords[c] && hit.eojeol.startsWith(c)) || cands[cands.length - 1] || cands[0];
+  const fd = koFindForm(hit.eojeol);
+  let key = hit.key || (fd && fd.key) || cands.map(koResolve).find(Boolean) || lemmaStems.map(c => hit.eojeol.startsWith(c) && koResolve(c)).find(Boolean) || cands[cands.length - 1] || cands[0];
   if(!cands.includes(key)) cands.unshift(key);
   const ent = _koWords[key];
+  _koHeadAuto = !ent || !ent.h;
   body.innerHTML = `
     <div class="ko-head">
       <div class="ko-eojeol">${escapeHtml(hit.eojeol)}</div>
-      <button class="ko-icon-btn" onclick="koSpeak(document.getElementById('ko-key').value)" title="発音を聞く">
+      <button class="ko-icon-btn" onclick="koSpeak(document.getElementById('ko-headw').value || document.getElementById('ko-key').value)" title="発音を聞く">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 8 8 8 12 4 12 20 8 16 4 16"/><path d="M16 8a5 5 0 0 1 0 8"/></svg>
       </button>
     </div>
     <div id="ko-dict-wrap">${ent ? '<button class="ko-dict-open" onclick="koShowDictFor()">辞書から意味を足す</button>' : '<div class="ko-label">辞書</div><div id="ko-dict"></div><div id="ko-ex"></div>'}</div>
-    <div class="ko-label">登録する形（タップで選ぶ・直接なおしてもOK）</div>
-    <div class="ko-chips">${cands.map(c => `<button class="ko-chip ${c === key ? 'on' : ''}" onclick="koPickKey(this)">${escapeHtml(c)}</button>`).join('')}</div>
-    <input id="ko-key" class="ko-input" value="${escapeHtml(key)}" oninput="koOnKeyInput()" autocomplete="off" spellcheck="false">
+    <div class="ko-label">単語帳に入る形（辞書の形）</div>
+    <input id="ko-headw" class="ko-input ko-headw" value="${escapeHtml(ent ? koHead(key, ent) : koGuessHead(key, hit.eojeol))}" oninput="_koHeadAuto=false" autocomplete="off" spellcheck="false">
     <div class="ko-join" id="ko-join"></div>
+    <details class="ko-detail" ${ent && ent.ks && ent.ks.length ? 'open' : ''}>
+      <summary>本文で探す形：<b id="ko-key-sum">${escapeHtml(key)}</b>${ent && ent.ks && ent.ks.length ? `・${escapeHtml(ent.ks.join('・'))}` : ''}</summary>
+      <div class="ko-dict-msg" style="margin-top:6px">本文の中で、この形で始まる語に意味を付けます。ふつうは変えなくてOK</div>
+      <div class="ko-chips">${cands.map(c => `<button class="ko-chip ${c === key ? 'on' : ''}" onclick="koPickKey(this)">${escapeHtml(c)}</button>`).join('')}</div>
+      <input id="ko-key" class="ko-input" value="${escapeHtml(key)}" oninput="koOnKeyInput()" autocomplete="off" spellcheck="false">
+      <div class="ko-label">ほかの形（不規則に変わる語など。例：짓다 → 지・짓）</div>
+      <div id="ko-forms"></div>
+      <div class="ko-addm"><input id="ko-form-in" class="ko-input" placeholder="形を足す" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();koAddForm();}"><button onclick="koAddForm()">追加</button></div>
+    </details>
     <div class="ko-label">意味${hit.place ? '（●＝この場所の意味）' : ''}</div>
     <div id="ko-means"></div>
     <div class="ko-addm"><input id="ko-mean" class="ko-input" placeholder="${ent ? '別の意味を足す' : '例：人'}" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();koAddMeaning();}"><button onclick="koAddMeaning()">追加</button></div>
+    <label class="ko-showchk"><input type="checkbox" id="ko-show" ${(ent ? koShowsInText(ent) : koShowNewDefault()) ? 'checked' : ''}> 本文に意味を出す<small>（オフだと単語帳と復習だけ）</small></label>
     <div class="ko-label">メモ（使い方・活用など、なくてもOK）</div>
     <textarea id="ko-memo" class="ko-input" rows="2" placeholder="例：〜들 で「〜たち」">${escapeHtml(ent ? (ent.n || '') : '')}</textarea>
     <div class="ko-links">
@@ -7281,6 +7334,8 @@ function koOpenSheet(hit){
   sh.classList.add('show');
   document.getElementById('ko-sheet-ov').classList.add('show');
   koEditLoad(key, hit);
+  _koForms = ent && Array.isArray(ent.ks) ? ent.ks.slice() : [];
+  koRenderForms();
   koJoinInit(hit, key);
   if(!ent && !/\s/.test(key)) koFillDict(hit);
 }
@@ -7313,6 +7368,11 @@ function koJoin(dir){
   const k = parts.slice(0, -1).concat([stem]).join(' ');
   koSetKey(k);
   document.querySelector('#ko-sheet .ko-eojeol').textContent = parts.join(' ');
+  // 見出し：最後の語を辞書の形に（끄덕였다 → 끄덕이다）
+  let lastHead = lastW;
+  if(_koDict){ const f = koDictLookup(lastW); if(f.length && /다$/.test(f[0].head)) lastHead = f[0].head; }
+  koSetHead(parts.slice(0, -1).concat([lastHead]).join(' '));
+  _koHeadAuto = false;
   _koEdit = { ms: koMs(_koWords[k]), sel: 0 }; koRenderMeans();
   const dw = document.getElementById('ko-dict-wrap');
   if(dw) dw.innerHTML = '<div class="ko-dict-msg">フレーズは辞書に載っていないことが多いので、意味を入れてください（「文を翻訳」も参考に）</div>';
@@ -7351,6 +7411,9 @@ function koAddMeaning(text, ctx){
   const inp = document.getElementById('ko-mean');
   const m = (text != null ? text : (inp ? inp.value : '')).trim();
   if(!m) return;
+  // 新しい単語で、自動で入れた辞書の意味しかないときに自分で入れたら、入れ替える
+  if(text == null && _koEdit._auto && _koEdit.ms.length === 1 && !_koWords[((document.getElementById('ko-key') || {}).value || '').trim()]) _koEdit.ms = [];
+  if(text == null) _koEdit._auto = false;
   let i = _koEdit.ms.findIndex(x => x.m === m);
   if(i < 0){ _koEdit.ms.push({ m, c: ctx || (_koCur && _koCur.sentence ? _koCur.sentence.slice(0, 140) : '') }); i = _koEdit.ms.length - 1; }
   _koEdit.sel = i;
@@ -7379,14 +7442,19 @@ function koPickKey(btn){
   document.querySelectorAll('#ko-sheet .ko-chip').forEach(b => b.classList.toggle('on', b === btn));
   document.getElementById('ko-key').value = btn.textContent;
   koOnKeyInput();
+  if(_koHeadAuto && !_koWords[btn.textContent]) koSetHead(koGuessHead(btn.textContent, _koCur && _koCur.eojeol));
 }
 function koOnKeyInput(){
   const k = document.getElementById('ko-key').value.trim();
   const ent = _koWords[k];
   document.querySelectorAll('#ko-sheet .ko-chip').forEach(b => b.classList.toggle('on', b.textContent === k));
+  const sum = document.getElementById('ko-key-sum'); if(sum) sum.textContent = k;
   if(ent){
     _koEdit = { ms: koMs(ent), sel: 0 }; koRenderMeans();
     document.getElementById('ko-memo').value = ent.n || '';
+    koSetHead(koHead(k, ent));
+    _koForms = Array.isArray(ent.ks) ? ent.ks.slice() : []; koRenderForms();
+    const sc = document.getElementById('ko-show'); if(sc) sc.checked = koShowsInText(ent);
   }
   document.getElementById('ko-del-btn').style.visibility = ent ? '' : 'hidden';
 }
@@ -7404,7 +7472,22 @@ function koSaveWord(){
   let ms = _koEdit.ms.slice();
   // 新しく登録するときは、選んだ意味を「いつもの意味」にする
   if(isNew || !hit.place){ if(_koEdit.sel > 0){ const [x] = ms.splice(_koEdit.sel, 1); ms.unshift(x); } }
-  _koWords[k] = Object.assign({}, old, { m: ms[0].m, ms, n, at: old.at || new Date().toISOString(), ok: old.ok || 0, ng: old.ng || 0, u: new Date().toISOString() });
+  const h = ((document.getElementById('ko-headw') || {}).value || '').trim() || k;
+  const show = !!(document.getElementById('ko-show') || { checked: true }).checked;
+  const ks = _koForms.filter(f => f && f !== k);
+  _koWords[k] = Object.assign({}, old, { h, ks, show, m: ms[0].m, ms, n, at: old.at || new Date().toISOString(), ok: old.ok || 0, ng: old.ng || 0, u: new Date().toISOString() });
+  // 同じ見出しの単語がほかにあれば1つにまとめる（例：지었다 と 짓 → 짓다）
+  Object.keys(_koWords).forEach(k2 => {
+    if(k2 === k || koHead(k2) !== h) return;
+    const a = _koWords[k], b = _koWords[k2];
+    a.ks = Array.from(new Set([...(a.ks || []), k2, ...(b.ks || [])])).filter(x => x !== k);
+    koMs(b).forEach(x => { if(!a.ms.some(y => y.m === x.m)) a.ms.push(x); });
+    if((b.reps || 0) > (a.reps || 0)) ['ivl', 'ease', 'reps', 'lapses', 'due'].forEach(f => { if(b[f] != null) a[f] = b[f]; });
+    if(b.at && b.at < a.at) a.at = b.at;
+    if(!a.n && b.n) a.n = b.n;
+    delete _koWords[k2];
+    koMarkDeleted(k2);
+  });
   // この場所だけ別の意味
   if(!isNew && hit.place && hit.key === k && state.novel){
     const sv = state.novel.koSense = state.novel.koSense || {};
@@ -7424,12 +7507,12 @@ function koSaveWord(){
   koCloseSheet();
   koRerender();
   if(_koFromFreq){ _koFromFreq = false; setTimeout(openKoFreq, 50); }
-  showToast(isNew && k.length === 1 ? `「${k}」を保存（1文字なので、ほかの単語にも付くことがあります）` : `「${k}」を保存しました`);
+  showToast(isNew && k.length === 1 && show ? `「${h}」を保存（1文字なので、ほかの単語にも付くことがあります）` : `「${h}」を${show ? '保存しました' : '単語帳に保存しました（本文には出しません）'}`);
 }
 function koDeleteWord(){
   const k = document.getElementById('ko-key').value.trim();
   if(!_koWords[k]) return;
-  if(!confirm(`「${k}」を単語帳から消しますか？`)) return;
+  if(!confirm(`「${koHead(k)}」を単語帳から消しますか？`)) return;
   delete _koWords[k];
   koMarkDeleted(k);
   koSaveWords();
@@ -7577,7 +7660,8 @@ function openKoHelp(){
     <div class="ko-help">
       <p><b>単語をタップ</b>すると、意味をメモできます。保存した単語は、<b>どの本でも</b>上に小さく意味が出ます。</p>
       <p>「사람<b>들이</b>」のように後ろに助詞などが付いていても、候補から「사람」を選べば、ほかの形（사람은・사람을…）にも付きます。</p>
-      <p>動詞は「먹었다 → 먹」のように<b>変わらない部分</b>で登録すると、먹고・먹는 などにも付きます。</p>
+      <p>単語帳には<b>辞書の形</b>（먹다・고맙다）で入ります。本文では、変わらない部分（먹・고맙）で探して意味を付けるので、먹고・먹었다 などにも付きます。探す形は「本文で探す形」を開くと変えられます。</p>
+      <p>「本文に意味を出す」をオフにすると、本文には何も出さず、<b>単語帳と復習だけ</b>に入ります。</p>
       <p>意味は<b>いくつでも</b>登録できます。登録済みの単語をタップして、●でその場所の意味を選ぶと、<b>その場所だけ</b>別の意味で表示されます（ほかの場所は「いつも」の意味のまま）。</p>
       <p><b>フレーズ</b>：単語の画面の「＋次の〜とつなげる」で、2語以上をひとまとまりで登録できます（例：고개를 끄덕 → うなずく）。</p>
       <p><b>よく出る未登録の単語</b>：今の話で、まだ登録していない単語を多い順に出します。上から登録すると早く読めるようになります。</p>
@@ -7596,6 +7680,7 @@ function openKoHelp(){
 /* ── 単語帳 ── */
 function openKoWordList(q){
   koCloseSheet();
+  koMigrateHeads().then(ch => { if(ch) renderKoWordList(); }).catch(() => {});
   koSyncWords().then(ch => { if(ch) renderKoWordList(); }).catch(() => {});
   const ov = document.getElementById('ko-list');
   ov.classList.add('show');
@@ -7608,13 +7693,13 @@ function renderKoWordList(){
   const w = koLoad();
   const q = (document.getElementById('ko-list-q').value || '').trim();
   let keys = Object.keys(w).sort((a, b) => (w[b].at || '').localeCompare(w[a].at || ''));
-  if(q) keys = keys.filter(k => k.includes(q) || koMs(w[k]).some(x => x.m.includes(q)) || (w[k].n || '').includes(q));
+  if(q) keys = keys.filter(k => k.includes(q) || koHead(k, w[k]).includes(q) || koMs(w[k]).some(x => x.m.includes(q)) || (w[k].n || '').includes(q));
   document.getElementById('ko-list-count').textContent = `${Object.keys(w).length}語`;
   const box = document.getElementById('ko-list-items');
   if(!keys.length){ box.innerHTML = `<div class="ko-empty">${Object.keys(w).length ? '見つかりません' : 'まだ単語がありません。<br>読書中に韓国語の単語をタップしてみてください'}</div>`; return; }
   box.innerHTML = keys.map(k => `
     <div class="ko-row" onclick="koEditFromList('${encodeURIComponent(k)}')">
-      <div class="ko-row-main"><span class="ko-row-k">${escapeHtml(k)}</span><span class="ko-row-m">${escapeHtml(koMs(w[k]).map(x => x.m).join('・'))}</span>${koIsLearned(w[k]) ? '<span class="ko-learned-badge">覚えた</span>' : ''}<span class="ko-row-due">${koIsNewCard(w[k]) ? '新' : (w[k].due <= koDay() ? '今日' : w[k].due.slice(5).replace('-', '/'))}</span></div>
+      <div class="ko-row-main"><span class="ko-row-k">${escapeHtml(koHead(k, w[k]))}</span>${koShowsInText(w[k]) ? '' : '<span class="ko-row-off" title="本文には出さない">帳</span>'}<span class="ko-row-m">${escapeHtml(koMs(w[k]).map(x => x.m).join('・'))}</span>${koIsLearned(w[k]) ? '<span class="ko-learned-badge">覚えた</span>' : ''}<span class="ko-row-due">${koIsNewCard(w[k]) ? '新' : (w[k].due <= koDay() ? '今日' : w[k].due.slice(5).replace('-', '/'))}</span></div>
       ${w[k].n ? `<div class="ko-row-n">${escapeHtml(w[k].n)}</div>` : ''}
     </div>`).join('');
 }
@@ -7707,6 +7792,11 @@ function koSetCardDir(v){ try{ localStorage.setItem(KO_DIR_LS, v); }catch(_){} }
 let _koQuiz = null;
 function openKoQuiz(opts){
   opts = opts || {};
+  if(!opts._m && Object.values(koLoad()).some(e => !e.h)){
+    const o = Object.assign({}, opts, { _m: 1 });
+    koMigrateHeads().catch(() => {}).then(() => openKoQuiz(o));
+    return;
+  }
   const w = koLoad();
   if(!Object.keys(w).length){ showToast('まだ単語がありません'); return; }
   let keys;
@@ -7761,15 +7851,15 @@ function koQuizShow(reveal){
     <div class="ko-quiz-top"><span>${tag}</span><span>のこり ${left}</span></div>
     ${dir === 'ja'
       ? `<div class="ko-quiz-k ja">${koMs(e).map(x => escapeHtml(x.m)).join('<span class="ko-dict-sep">／</span>')}</div>
-         <div class="ko-quiz-m">${reveal ? `<div class="ko-quiz-ans" onclick="koSpeak('${k.replace(/'/g, '')}')">${escapeHtml(k)}</div>` + koQuizBack(k, e, true) : '<span class="ko-quiz-hint">韓国語で言うと？</span>'}</div>`
-      : `<div class="ko-quiz-k" onclick="koSpeak('${k.replace(/'/g, '')}')">${escapeHtml(k)}</div>
+         <div class="ko-quiz-m">${reveal ? `<div class="ko-quiz-ans" onclick="koSpeak('${koHead(k, e).replace(/'/g, '')}')">${escapeHtml(koHead(k, e))}</div>` + koQuizBack(k, e, true) : '<span class="ko-quiz-hint">韓国語で言うと？</span>'}</div>`
+      : `<div class="ko-quiz-k" onclick="koSpeak('${koHead(k, e).replace(/'/g, '')}')">${escapeHtml(koHead(k, e))}</div>
          <div class="ko-quiz-m">${reveal ? koQuizBack(k, e) : ''}</div>`}
     ${reveal
       ? `<div class="ko-grades">${btns}</div>`
       : `<div class="ko-actions"><button class="ko-cancel" onclick="koCloseSheet();koUpdateBadge()">やめる</button><button class="ko-save" onclick="koQuizShow(true)">答えを見る</button></div>`}`;
   document.getElementById('ko-sheet').classList.add('show');
   document.getElementById('ko-sheet-ov').classList.add('show');
-  if(dir === 'ko' ? !reveal : reveal) koSpeak(k, true);
+  if(dir === 'ko' ? !reveal : reveal) koSpeak(koHead(k, e), true);
 }
 function koQuizAnswer(grade){
   const q = _koQuiz, w = koLoad(), k = q.keys[q.i];
@@ -7937,6 +8027,7 @@ async function koFillDict(hit, addMode){
     if(_koCur !== hit) return;
   }
   const found = koDictLookup(hit.eojeol);
+  if(!found.length && _koHeadAuto && !addMode){ const kk = (document.getElementById('ko-key') || {}).value; if(kk) koSetHead(koGuessHead(kk, hit.eojeol)); }
   if(!found.length){ box.innerHTML = '<div class="ko-dict-msg">辞書に見つかりませんでした。下の「辞書で調べる」でNaverを開けます</div>'; return; }
   window._koDictRows = [];
   let shown = 0;
@@ -7957,10 +8048,12 @@ async function koFillDict(hit, addMode){
     koShowExamples(r);
     const k = koKeyFromHead(r.head, r.pos, hit.eojeol);
     if(k && !hit.key) koSetKey(k);
+    if(_koHeadAuto) koSetHead(r.head);
   }
 }
 function koSetKey(k){
   document.getElementById('ko-key').value = k;
+  const sum = document.getElementById('ko-key-sum'); if(sum) sum.textContent = k;
   if(![...document.querySelectorAll('#ko-sheet .ko-chip')].some(b => b.textContent === k)){
     const wrap = document.querySelector('#ko-sheet .ko-chips');
     const b = document.createElement('button');
@@ -7983,6 +8076,13 @@ function koPickDict(i){
   if(memo && !memo.value) memo.value = r.head + (r.hanja ? `（${r.hanja}）` : '') + (r.pos ? ` ${r.pos}` : '');
   const k = _koCur && koKeyFromHead(r.head, r.pos, _koCur.eojeol);
   if(k) koSetKey(k);
+  koSetHead(r.head);
+  _koHeadAuto = false;
+  // 不規則（짓다→지었다）なら、辞書の形の語幹も「ほかの形」に
+  if(/다$/.test(r.head) && /^(動|形|補動|補形)$/.test(r.pos)){
+    const stem = r.head.slice(0, -1), key = document.getElementById('ko-key').value.trim();
+    if(stem !== key && !_koForms.includes(stem) && !stem.startsWith(key)) { _koForms.push(stem); koRenderForms(); }
+  }
   koShowExamples(r);
 }
 
@@ -8321,6 +8421,10 @@ function openKoSettings(){
       ${seg([['write', '書く'], ['show', '表示'], ['off', '隠す'], ['only', '訳で読む']], tm, 'koSetTrMode')}
     </div>
     <div class="ko-set">
+      <div class="ko-set-l">新しく登録した単語<small>本文に意味を出すか（単語ごとにも変えられます）</small></div>
+      ${seg([[true, '出す'], [false, '単語帳だけ']], koShowNewDefault(), 'koSetShowNewDefault')}
+    </div>
+    <div class="ko-set">
       <div class="ko-set-l">未登録の単語<small>うすい黄色で目立たせる</small></div>
       ${seg([[true, '色付き'], [false, 'なし']], nw, 'koSetNew')}
     </div>
@@ -8566,6 +8670,63 @@ function koUpdateLibReview(){
 }
 function openKoFromLibrary(){
   openKoMenu();
+}
+
+/* ── 単語帳に入る形（見出し）と、本文で探すほかの形 ── */
+let _koHeadAuto = true, _koForms = [];
+// 辞書がまだ無いときの見出しの推測：動詞・形容詞っぽければ「語幹＋다」
+function koGuessHead(key, eojeol){
+  if(!key || /\s/.test(key)) return key;
+  if(_koDict){
+    const found = koDictLookup(eojeol || key);
+    if(found.length) return found[0].head;
+    if(_koDict[key]) return key;
+    if(_koDict[key + '다']) return key + '다';
+  }
+  const rest = (eojeol || '').slice(key.length);
+  if(rest && KO_VERB_REST.some(e => rest.startsWith(e)) && !KO_PARTICLES.includes(rest)) return key + '다';
+  return key;
+}
+function koSetHead(h){
+  const el = document.getElementById('ko-headw');
+  if(el && h){ el.value = h; }
+}
+function koRenderForms(){
+  const box = document.getElementById('ko-forms');
+  if(!box) return;
+  box.innerHTML = _koForms.length ? _koForms.map((f, i) => `<span class="ko-form">${escapeHtml(f)}<button onclick="_koForms.splice(${i},1);koRenderForms()">✕</button></span>`).join('') : '<span class="ko-dict-msg">なし</span>';
+}
+function koAddForm(){
+  const inp = document.getElementById('ko-form-in');
+  const f = (inp.value || '').trim();
+  if(!f || !KO_HANGUL.test(f)) return;
+  if(f !== document.getElementById('ko-key').value.trim() && !_koForms.includes(f)) _koForms.push(f);
+  inp.value = '';
+  koRenderForms();
+}
+// 見出しがまだ無い単語に、辞書で見出しを付ける（前のバージョンで登録した単語）
+async function koMigrateHeads(){
+  const w = koLoad();
+  const need = Object.keys(w).filter(k => !w[k].h);
+  if(!need.length) return false;
+  try{ await koDictLoad(); }catch(_){ return false; }
+  need.forEach(k => {
+    const e = w[k];
+    let h = null;
+    const mm = (e.n || '').match(/^([가-힣]+다)\s/); // 辞書から選んだときのメモ「짓다 動」
+    if(/\s/.test(k)) h = k;
+    else if(mm && (mm[1].startsWith(k) || _koDict[mm[1]])) h = mm[1];
+    else if(_koDict[k] && _koDict[k + '다']){
+      // 名詞と動詞の両方ある語：意味が動詞っぽい（〜る・〜い・〜だ）なら動詞
+      h = /[るいだ]$/.test((e.m || '').split(/[・、／]/)[0]) ? k + '다' : k;
+    }
+    else if(_koDict[k]) h = k;
+    else if(_koDict[k + '다']) h = k + '다';
+    else h = k;
+    e.h = h; // 同じ計算をほかの端末でもするので、更新時刻は変えない
+  });
+  koSaveWords(true);
+  return true;
 }
 
 
