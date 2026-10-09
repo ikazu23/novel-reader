@@ -6105,7 +6105,10 @@ function setupEditorEvents(editor,pi,groupIdx=0,qiOffset=0){
     syncEditorToState(pi);
     debouncedSave();
   });
+  editor.addEventListener('compositionstart', ()=>{ editor._composing = true; });
   editor.addEventListener('compositionend', ()=>{
+    editor._composing = false;
+    editor._compEndAt = Date.now();
     if(!_snapPending){
       _snapPending = true;
       _undoStack.push(JSON.stringify(state.pages));
@@ -6180,6 +6183,8 @@ function setupEditorEvents(editor,pi,groupIdx=0,qiOffset=0){
       }
     }
     // Enter → 段落分割 or 段落内改行（モードによる）、Shift+Enter → 逆の動作
+    // iPhoneは変換を確定したEnterが、変換が終わった直後のEnterとして届くことがある → 段落を割らない
+    if(e.key==='Enter'&&(e.isComposing||e.keyCode===229||editor._composing||Date.now()-(editor._compEndAt||0)<150)) return;
     if(e.key==='Enter'&&!e.isComposing){
       // 画像名（例: illust1.png）が単独行に書かれていたら画像に変換
       const paraEl=getParaElUnderCaret();
@@ -6268,14 +6273,24 @@ function syncEditorToState(pi){
     const editor=document.getElementById(editorId)||grp.querySelector('.page-editor');
     if(!editor)return;
     let qi=0;
-    editor.childNodes.forEach(node=>{
-      if(node.nodeType===3){
-        if(node.textContent.trim()){
-          newParas.push({type:'text',text:node.textContent,html:node.textContent,
-            align:'left',size:state.settings.fontSize,color:state.settings.lastColor});
-        }
-        return;
-      }
+    // 段落（P/DIV）の外にはみ出した文字・span など（iPhoneの変換や改行で起きる）を
+    // 1つの段落にまとめて拾う。拾わないと保存されずに消えてしまう
+    const _items = [];
+    let _loose = [];
+    const _flushLoose = ()=>{
+      if(!_loose.length) return;
+      const tmpP = document.createElement('p');
+      _loose.forEach(n=>{ tmpP.appendChild(n.cloneNode(true)); });
+      _loose = [];
+      if((tmpP.textContent||'').trim() || tmpP.querySelector('img')) _items.push(tmpP);
+    };
+    Array.from(editor.childNodes).forEach(node=>{
+      const isBlock = node.nodeType===1 && (node.tagName==='P' || node.tagName==='DIV' || (node.dataset && node.dataset.type==='image'));
+      if(isBlock){ _flushLoose(); _items.push(node); }
+      else if(node.nodeType===3 || node.nodeType===1) _loose.push(node);
+    });
+    _flushLoose();
+    _items.forEach(node=>{
       if(node.dataset&&node.dataset.type==='image'){
         // 画像段落は globalQi ベースのインデックスではなく、imgName で元データを探す
         // (テキストノードの空白などで globalQi がずれる可能性があるため)
