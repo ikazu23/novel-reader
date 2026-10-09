@@ -310,8 +310,15 @@ mark.sh.current{background:#ff8f00;color:#fff;}
   position:relative;
 }
 /* 編集モード中のみ：段落を視覚的に区切る薄い枠 */
+/* 段落の中の薄い色は、後ろの層（::before）で出す。背景色にするとiPhoneが文字に焼き付けるため */
+#viewport.edit-mode .page-editor p::before{
+  content:'';position:absolute;inset:0;border-radius:3px;
+  background:rgba(0, 0, 0, 0.03);pointer-events:none;z-index:-1;
+}
+body.theme-dark #viewport.edit-mode .page-editor p::before{background:rgba(255,255,255,0.04);}
 #viewport.edit-mode .page-editor p {
-  background:rgba(0, 0, 0, 0.03);
+  isolation:isolate;
+  background:transparent;
   border:1px solid rgba(0, 0, 0, 0.18);
   border-radius:3px;
   padding:6px 10px;
@@ -1883,7 +1890,7 @@ body.theme-dark .stepper-val{color:#ccc;}
 body.theme-dark #tts-control-bar{background:rgba(40,40,44,0.95);}
 body.theme-dark .tts-cbtn{color:#ddd;}
 body.theme-dark #viewport.edit-mode .page-editor p{
-  background:rgba(255,255,255,0.04);border-color:rgba(255,255,255,0.18);
+  background:transparent;border-color:rgba(255,255,255,0.18);
 }
 body.theme-dark .page-editor p.tts-reading{background:rgba(0,200,200,0.14);}
 body.theme-dark .pnl{color:#666;}
@@ -1903,6 +1910,257 @@ body.theme-dark .page-editor [data-dkfix]{color:var(--ink) !important;}
 body.theme-dark .edge-hint{color:rgba(255,255,255,0.4);}
 body.toc-mode .edge-hint,body.library-mode .edge-hint{display:none;}
 body.booting{visibility:hidden}
+/* ══════ 韓国語メモ（beta2） ══════ */
+#topbar-ko{background:none;border:none;width:36px;height:36px;border-radius:6px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Noto Sans JP',sans-serif;font-size:15px;font-weight:700;color:#008080;}
+#topbar-ko:hover{background:#f0f0f0;}
+.page-editor .kw{position:relative;cursor:pointer;}
+.page-editor .kw::before{content:attr(data-m);position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:0;
+  font-family:'Noto Sans JP',sans-serif;font-size:max(9px,0.5em);font-weight:500;line-height:1.2;letter-spacing:0;color:#0a8a8a;
+  white-space:nowrap;max-width:9em;overflow:hidden;text-overflow:ellipsis;pointer-events:none;text-indent:0;}
+body.ko-hide .page-editor .kw::before,.page-editor .kw.learned::before{display:none;}
+body.ko-hide .page-editor .kw{text-decoration:underline dotted #0a8a8a;text-underline-offset:4px;}
+body.theme-dark .page-editor .kw::before{color:#6fd0d0;}
+.page-editor .ko-note-mark{display:inline-block;margin-left:4px;font-size:0.75em;color:#c0476b;cursor:pointer;user-select:none;-webkit-user-select:none;}
+
+#ko-sheet-ov{position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:780;display:none;}
+#ko-sheet-ov.show{display:block;}
+#ko-sheet{
+  position:fixed;left:0;right:0;bottom:0;z-index:790;max-width:560px;margin:0 auto;
+  background:#fff;color:#222;border-radius:16px 16px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.18);
+  padding:16px 18px calc(16px + env(safe-area-inset-bottom));max-height:80dvh;overflow-y:auto;
+  font-family:'Noto Sans JP',sans-serif;transform:translateY(105%);transition:transform .2s ease;
+}
+#ko-sheet.show{transform:translateY(0);}
+.ko-head{display:flex;align-items:center;gap:8px;}
+.ko-eojeol{flex:1;font-size:22px;font-weight:700;word-break:break-all;}
+.ko-icon-btn{border:1px solid #ddd;background:#fff;border-radius:50%;width:38px;height:38px;display:flex;align-items:center;justify-content:center;color:#008080;cursor:pointer;flex-shrink:0;}
+.ko-title{font-size:16px;font-weight:700;margin-bottom:6px;}
+.ko-label{font-size:11px;color:#888;margin:12px 0 5px;}
+.ko-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;}
+.ko-chip{border:1px solid #ddd;background:#fff;border-radius:14px;padding:4px 12px;font-size:14px;color:#444;cursor:pointer;}
+.ko-chip.on{background:#008080;border-color:#008080;color:#fff;}
+.ko-input{width:100%;border:1px solid #ddd;border-radius:8px;padding:9px 10px;font-size:15px;font-family:'Noto Sans JP',sans-serif;background:#fff;color:#222;resize:vertical;}
+.ko-input:focus{outline:none;border-color:#008080;}
+.ko-links{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;}
+.ko-links button{flex:1;min-width:90px;border:1px solid #cfe6e6;background:#f2fafa;color:#007070;border-radius:8px;padding:8px 6px;font-size:12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+.ko-actions{display:flex;align-items:center;gap:8px;margin-top:16px;}
+.ko-actions > :first-child{margin-right:auto;}
+.ko-actions button{border:none;border-radius:20px;padding:9px 18px;font-size:14px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+.ko-save{background:#008080;color:#fff;}
+.ko-cancel{background:#f0f0f0;color:#444;}
+.ko-del{background:none;color:#c33;padding-left:0 !important;}
+.ko-sentence{font-size:15px;line-height:1.8;background:#f7f7f7;border-radius:8px;padding:10px 12px;}
+.ko-seg{display:flex;gap:4px;background:#f3f3f3;border-radius:9px;padding:3px;flex-shrink:0;}
+.ko-seg button{flex:1;border:none;background:none;border-radius:7px;padding:6px 8px;font-size:12px;color:#666;cursor:pointer;font-family:'Noto Sans JP',sans-serif;white-space:nowrap;}
+.ko-seg button.on{background:#fff;color:#007070;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.12);}
+.ko-menu-item{display:block;width:100%;text-align:left;border:none;border-top:1px solid #f0f0f0;background:none;padding:14px 4px;font-size:14px;color:#222;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+.ko-menu-item:disabled{color:#bbb;}
+.ko-help p{font-size:13px;line-height:1.8;color:#444;margin:0 0 8px;}
+.ko-quiz-k{font-size:34px;font-weight:700;text-align:center;margin:18px 0 8px;cursor:pointer;}
+.ko-quiz-m{font-size:18px;text-align:center;min-height:56px;color:#007070;}
+.ko-quiz-n{font-size:12px;color:#888;margin-top:4px;}
+.ko-quiz-res{font-size:18px;text-align:center;margin:20px 0;}
+
+#ko-list{position:fixed;inset:0;z-index:770;background:#f7f7f7;display:none;flex-direction:column;font-family:'Noto Sans JP',sans-serif;}
+#ko-list.show{display:flex;}
+#ko-list-top{display:flex;align-items:center;gap:6px;height:var(--top-h);padding:0 6px;background:#fff;border-bottom:1px solid #eee;flex-shrink:0;}
+#ko-list-top .t{flex:1;text-align:center;font-size:15px;color:#222;}
+#ko-list-top button{border:none;background:none;width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:#555;cursor:pointer;}
+#ko-list-bar{display:flex;gap:8px;align-items:center;padding:10px 14px;background:#fff;border-bottom:1px solid #eee;flex-shrink:0;}
+#ko-list-q{flex:1;}
+#ko-list-count{font-size:12px;color:#888;white-space:nowrap;}
+#ko-list-tools{display:flex;gap:8px;padding:10px 14px;flex-shrink:0;}
+#ko-list-tools button{flex:1;border:1px solid #ddd;background:#fff;border-radius:8px;padding:8px;font-size:12px;color:#444;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+#ko-list-items{flex:1;overflow-y:auto;padding:0 14px 40px;}
+.ko-row{background:#fff;border-radius:10px;padding:11px 14px;margin-bottom:8px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.ko-row-main{display:flex;align-items:baseline;gap:12px;}
+.ko-row-k{font-size:17px;font-weight:700;color:#222;}
+.ko-row-m{font-size:14px;color:#007070;}
+.ko-row-n{font-size:12px;color:#888;margin-top:3px;}
+.ko-empty{text-align:center;color:#999;font-size:13px;line-height:1.8;padding:40px 0;}
+
+body.theme-dark #ko-sheet,body.theme-dark .ko-icon-btn,body.theme-dark .ko-chip,body.theme-dark .ko-input,
+body.theme-dark #ko-list-top,body.theme-dark #ko-list-bar,body.theme-dark .ko-row,body.theme-dark #ko-list-tools button{background:#222;color:#ddd;border-color:#444;}
+body.theme-dark #ko-list{background:#161616;}
+body.theme-dark .ko-sentence{background:#2a2a2a;}
+body.theme-dark .ko-cancel{background:#333;color:#ddd;}
+body.theme-dark .ko-links button{background:#1d2b2b;border-color:#2f4a4a;color:#7fd6d6;}
+body.theme-dark .ko-chip.on{background:#008080;color:#fff;}
+body.theme-dark .ko-seg{background:#2c2c2c;}
+body.theme-dark .ko-seg button{background:none;color:#999;border:none;}
+body.theme-dark .ko-seg button.on{background:#444;color:#8fe0e0;box-shadow:none;}
+body.theme-dark .ko-row-k,body.theme-dark .ko-menu-item,body.theme-dark #ko-list-top .t{color:#eee;}
+body.theme-dark .ko-menu-item{border-top-color:#333;}
+#ko-dict{display:flex;flex-direction:column;gap:6px;}
+.ko-dict-msg{font-size:12px;color:#999;padding:4px 0;}
+.ko-dict-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;text-align:left;border:1px solid #e6e6e6;background:#fafafa;border-radius:8px;padding:8px 10px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;color:#222;}
+.ko-dict-row.on{border-color:#008080;background:#eef8f8;}
+.ko-dict-h{font-size:15px;font-weight:700;}
+.ko-dict-h small{font-size:11px;color:#999;font-weight:400;margin-left:4px;}
+.ko-dict-pos{font-size:10px;color:#fff;background:#8aa;border-radius:4px;padding:1px 5px;}
+.ko-dict-ja{font-size:13px;color:#007070;flex-basis:100%;}
+.ko-dict-sep{color:#ccc;margin:0 3px;}
+body.theme-dark .ko-dict-row{background:#2a2a2a;border-color:#444;color:#ddd;}
+body.theme-dark .ko-dict-row.on{background:#1d2b2b;border-color:#008080;}
+body.theme-dark .ko-dict-ja{color:#7fd6d6;}
+
+.page-editor .ko-new{background:rgba(255,190,60,.15);border-radius:2px;}
+body.theme-dark .page-editor .ko-new{background:rgba(255,190,60,.18);}
+.page-editor .ko-tr{font-family:'Noto Sans JP',sans-serif;font-size:0.8em;line-height:1.6;color:#5a7f7f;margin:calc(2px - var(--para-spacing,24px)) 0 max(10px, var(--para-spacing,24px));padding:0 0 0 8px;border-left:2px solid #cfe4e4;white-space:pre-wrap;cursor:pointer;user-select:text;}
+.page-editor .ko-tr.write{cursor:auto;}
+.ko-tr-input{display:block;width:100%;border:none;border-bottom:1px dashed #cfe4e4;border-radius:0;background:transparent;padding:1px 2px 2px;margin:0;font:inherit;color:#333;resize:none;overflow:hidden;line-height:1.6;min-height:0;}
+.ko-tr-input::placeholder{color:#c5d6d6;}
+.ko-tr-input:focus{outline:none;border-bottom:1px solid #008080;background:rgba(0,128,128,.04);}
+body.theme-dark .page-editor .ko-tr{color:#8fbcbc;border-left-color:#2f4a4a;}
+body.theme-dark .ko-tr-input{background:transparent;border-bottom-color:#2f4a4a;color:#ddd;}
+body.theme-dark .ko-tr-input::placeholder{color:#3d5555;}
+body.theme-dark .ko-tr-input:focus{background:rgba(0,128,128,.08);}
+
+body.ko-hide .page-editor .kw.learned{text-decoration:none;}
+.ko-learned-badge{display:inline-block;font-size:10px;font-weight:700;color:#fff;background:#c9a227;border-radius:8px;padding:1px 7px;margin-left:8px;vertical-align:middle;}
+.ko-learned-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px;font-size:11px;color:#888;margin-top:12px;}
+.ko-learned-row .ko-learned-badge{margin-left:0;}
+.ko-learned-row button{margin-left:auto;border:1px solid #ddd;background:#fff;border-radius:12px;padding:3px 10px;font-size:11px;color:#555;cursor:pointer;}
+#ko-ex{margin-top:2px;}
+.ko-ex-row{display:block;width:100%;text-align:left;border:none;background:none;padding:5px 2px;font-size:13px;line-height:1.6;color:#444;cursor:pointer;font-family:'Noto Sans JP',sans-serif;border-bottom:1px dashed #eee;}
+.ko-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0 6px;}
+.ko-tile{background:#f5f9f9;border-radius:10px;padding:10px 4px;text-align:center;}
+.ko-tile-v{font-size:22px;font-weight:700;color:#222;line-height:1.2;}
+.ko-tile-v small{font-size:11px;font-weight:400;margin-left:1px;}
+.ko-tile-l{font-size:10px;color:#777;margin-top:2px;}
+.ko-chart{margin-top:16px;}
+.ko-chart-h{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:#444;margin-bottom:6px;}
+.ko-chart-sum{font-size:11px;color:#888;}
+.ko-chart-plot{position:relative;display:flex;align-items:flex-end;gap:2px;height:72px;border-bottom:1px solid #e3e3e3;}
+.ko-chart-col{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;cursor:pointer;position:relative;}
+.ko-chart-bar{width:70%;max-width:16px;background:#0a8a8a;border-radius:4px 4px 0 0;}
+.ko-chart-col:hover .ko-chart-bar,.ko-chart-col.sel .ko-chart-bar{background:#056a6a;}
+.ko-chart-val{position:absolute;top:-2px;font-size:10px;color:#333;opacity:0;pointer-events:none;}
+.ko-chart-col:hover .ko-chart-val,.ko-chart-col.sel .ko-chart-val{opacity:1;}
+.ko-chart-x{display:flex;gap:2px;margin-top:3px;}
+.ko-chart-x span{flex:1;text-align:center;font-size:9px;color:#999;white-space:nowrap;}
+body.theme-dark .ko-ex-row{color:#ccc;border-bottom-color:#333;}
+body.theme-dark .ko-tile{background:#1d2424;}
+body.theme-dark .ko-tile-v{color:#eee;}
+body.theme-dark .ko-chart-h,body.theme-dark .ko-chart-val{color:#ccc;}
+body.theme-dark .ko-chart-plot{border-bottom-color:#333;}
+body.theme-dark .ko-chart-bar{background:#3fb3b3;}
+body.theme-dark .ko-chart-col:hover .ko-chart-bar,body.theme-dark .ko-chart-col.sel .ko-chart-bar{background:#6fd0d0;}
+body.theme-dark .ko-learned-row button{background:#222;color:#ccc;border-color:#444;}
+
+#topbar-ko{position:relative;}
+.ko-badge{position:absolute;top:2px;right:0;min-width:15px;height:15px;padding:0 3px;border-radius:8px;background:#e0701b;color:#fff;font-size:9px;font-weight:700;line-height:15px;text-align:center;font-family:'Noto Sans JP',sans-serif;}
+.ko-review-btn{display:flex !important;justify-content:space-between;align-items:center;font-weight:700;color:#007070 !important;}
+.ko-review-btn span{font-size:12px;font-weight:400;color:#888;}
+.ko-quiz-top{display:flex;justify-content:space-between;font-size:11px;color:#999;}
+.ko-tag{background:#eef6f6;color:#007070;border-radius:8px;padding:1px 8px;}
+.ko-tag.new{background:#fff1e0;color:#c0661b;}
+.ko-quiz-sub{font-size:12px;color:#888;text-align:center;margin-top:-10px;}
+.ko-grades{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:16px;}
+.ko-grade{border:none;border-radius:10px;padding:9px 2px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-size:13px;display:flex;flex-direction:column;align-items:center;gap:1px;}
+.ko-grade small{font-size:10px;opacity:.75;}
+.ko-grade.g1{background:#fdecec;color:#b33;}
+.ko-grade.g2{background:#fff4e5;color:#b0661b;}
+.ko-grade.g3{background:#e6f4f4;color:#007070;}
+.ko-grade.g4{background:#e9f0fb;color:#3a5fa0;}
+.ko-row-due{margin-left:auto;font-size:10px;color:#aaa;white-space:nowrap;}
+body.theme-dark .ko-grade.g1{background:#3a2424;color:#f0a0a0;}
+body.theme-dark .ko-grade.g2{background:#3a3020;color:#f0c080;}
+body.theme-dark .ko-grade.g3{background:#1d3030;color:#7fd6d6;}
+body.theme-dark .ko-grade.g4{background:#1f2a3a;color:#a0c0f0;}
+body.theme-dark .ko-tag{background:#1d3030;color:#7fd6d6;}
+body.theme-dark .ko-tag.new{background:#3a3020;color:#f0c080;}
+
+.ko-review-big{display:flex;align-items:center;justify-content:space-between;width:100%;border:none;border-radius:12px;background:#e8f4f4;color:#006666;padding:13px 16px;margin:6px 0 6px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;text-align:left;}
+.ko-review-big .t{font-size:15px;font-weight:700;}
+.ko-review-big .n{font-size:13px;font-weight:700;background:#008080;color:#fff;border-radius:12px;padding:2px 10px;}
+.ko-review-big:disabled{background:#f3f3f3;color:#aaa;cursor:default;}
+.ko-review-big:disabled .n{background:none;color:#aaa;font-weight:400;padding:0;}
+
+.ko-menu-item{display:flex !important;justify-content:space-between;align-items:center;}
+.ko-mi-sub{font-size:12px;color:#999;}
+.ko-set{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 0;border-top:1px solid #f0f0f0;}
+.ko-set-l{font-size:14px;color:#222;display:flex;flex-direction:column;min-width:0;}
+.ko-set-l small{font-size:10px;color:#999;margin-top:1px;}
+body.theme-dark .ko-review-big{background:#1d2b2b;color:#7fd6d6;}
+body.theme-dark .ko-set{border-top-color:#333;}
+body.theme-dark .ko-set-l{color:#ddd;}
+
+.page-editor .ko-untr{color:#b5b5b5;}
+body.theme-dark .page-editor .ko-untr{color:#666;}
+.ko-set .ko-seg button{padding:6px 7px;}
+
+#ko-means{display:flex;flex-direction:column;gap:5px;}
+.ko-mrow{display:flex;align-items:center;gap:6px;border:1px solid #e6e6e6;border-radius:8px;padding:2px 4px 2px 2px;}
+.ko-mrow.on{border-color:#008080;background:#f2fafa;}
+.ko-mpick{flex:1;display:flex;align-items:center;gap:8px;border:none;background:none;padding:7px 6px;cursor:pointer;text-align:left;font-family:'Noto Sans JP',sans-serif;min-width:0;}
+.ko-radio{width:14px;height:14px;border-radius:50%;border:2px solid #bbb;flex-shrink:0;box-sizing:border-box;}
+.ko-mrow.on .ko-radio{border-color:#008080;background:radial-gradient(#008080 45%,transparent 50%);}
+.ko-mtext{font-size:14px;color:#222;overflow:hidden;text-overflow:ellipsis;}
+.ko-mdef{font-size:10px;color:#007070;background:#e0f0f0;border-radius:8px;padding:1px 7px;white-space:nowrap;}
+.ko-mbtn{border:none;background:none;font-size:10px;color:#888;cursor:pointer;padding:4px;white-space:nowrap;font-family:'Noto Sans JP',sans-serif;}
+.ko-mx{font-size:12px;color:#bbb;}
+.ko-addm{display:flex;gap:6px;margin-top:6px;}
+.ko-addm .ko-input{flex:1;}
+.ko-addm button{border:1px solid #cfe6e6;background:#f2fafa;color:#007070;border-radius:8px;padding:0 14px;font-size:13px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+.ko-dict-open{border:none;background:none;color:#007070;font-size:12px;padding:8px 0 0;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+.page-editor .kw.alt::before{color:#c0661b;}
+.ko-quiz-ms{font-size:18px;}
+.ko-quiz-ctx{font-size:13px;color:#555;line-height:1.7;margin-top:10px;background:#f7f7f7;border-radius:8px;padding:8px 10px;text-align:left;cursor:pointer;}
+.ko-quiz-ctx b{color:#007070;}
+body.theme-dark .ko-mrow{border-color:#444;}
+body.theme-dark .ko-mrow.on{background:#1d2b2b;border-color:#008080;}
+body.theme-dark .ko-mtext{color:#ddd;}
+body.theme-dark .ko-mdef{background:#1d3030;color:#7fd6d6;}
+body.theme-dark .ko-addm button{background:#1d2b2b;border-color:#2f4a4a;color:#7fd6d6;}
+body.theme-dark .page-editor .kw.alt::before{color:#f0b070;}
+body.theme-dark .ko-quiz-ctx{background:#2a2a2a;color:#ccc;}
+body.theme-dark .ko-quiz-ctx b{color:#7fd6d6;}
+
+.page-editor .kw.phrase{text-decoration:underline solid rgba(0,128,128,.35);text-underline-offset:5px;}
+.ko-join{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px;}
+.ko-join button{border:1px dashed #9cc;background:#fff;color:#007070;border-radius:14px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+.ko-join-note{font-size:11px;color:#c0661b;}
+.ko-quiz-k.ja{font-size:22px;line-height:1.5;}
+.ko-quiz-ans{font-size:30px;font-weight:700;color:#222;cursor:pointer;margin-bottom:4px;}
+.ko-quiz-hint{font-size:13px;color:#bbb;}
+.ko-freq-cov{margin:6px 0 2px;}
+.ko-freq-bar{height:8px;border-radius:4px;background:#eee;overflow:hidden;}
+.ko-freq-bar div{height:100%;background:#0a8a8a;border-radius:4px;}
+.ko-freq-cov-t{font-size:12px;color:#555;margin-top:5px;}
+.ko-freq-cov-t b{color:#007070;font-size:15px;}
+.ko-freq-row{display:flex;align-items:baseline;gap:10px;width:100%;text-align:left;border:none;border-bottom:1px solid #f0f0f0;background:none;padding:10px 2px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+.ko-freq-w{font-size:16px;font-weight:700;color:#222;min-width:4em;}
+.ko-freq-f{flex:1;font-size:11px;color:#999;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ko-freq-n{font-size:12px;color:#007070;white-space:nowrap;}
+body.theme-dark .ko-join button{background:#222;border-color:#3a5a5a;color:#7fd6d6;}
+body.theme-dark .ko-quiz-ans,body.theme-dark .ko-freq-w{color:#eee;}
+body.theme-dark .ko-freq-bar{background:#333;}
+body.theme-dark .ko-freq-row{border-bottom-color:#333;}
+body.theme-dark .ko-freq-cov-t{color:#bbb;}
+
+#lib-ko-review{width:auto;min-width:36px;height:30px;flex-shrink:0;display:flex;align-items:center;gap:4px;border:none;border-radius:15px;background:#e8f4f4;color:#007070;padding:0 10px 0 8px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;}
+#lib-ko-review .n{font-size:11px;background:#e0701b;color:#fff;border-radius:9px;padding:0 6px;line-height:17px;min-width:17px;text-align:center;}
+#lib-ko-review.done .n{background:#0a8a8a;}
+body.theme-dark #lib-ko-review{background:#1d2b2b;color:#7fd6d6;}
+.ko-panel-hint{font-family:'Noto Sans JP',sans-serif;font-size:10px;color:#999;margin-top:6px;line-height:1.5;}
+
+.ko-headw{font-size:17px;font-weight:700;}
+.ko-detail{margin-top:10px;border:1px solid #eee;border-radius:8px;padding:6px 10px;}
+.ko-detail summary{font-size:12px;color:#888;cursor:pointer;}
+.ko-detail summary b{color:#444;}
+#ko-forms{display:flex;flex-wrap:wrap;gap:6px;}
+.ko-form{display:inline-flex;align-items:center;gap:4px;background:#f2fafa;border:1px solid #cfe6e6;border-radius:12px;padding:2px 4px 2px 10px;font-size:13px;}
+.ko-form button{border:none;background:none;color:#aaa;cursor:pointer;font-size:11px;}
+.ko-showchk{display:flex;align-items:center;gap:6px;margin-top:12px;font-size:13px;color:#333;cursor:pointer;}
+.ko-showchk input{width:16px;height:16px;accent-color:#008080;}
+.ko-showchk small{font-size:10px;color:#999;}
+.ko-row-off{font-size:9px;color:#888;border:1px solid #ccc;border-radius:6px;padding:0 4px;}
+body.theme-dark .ko-detail{border-color:#333;}
+body.theme-dark .ko-detail summary b{color:#ccc;}
+body.theme-dark .ko-form{background:#1d2b2b;border-color:#2f4a4a;}
+body.theme-dark .ko-showchk{color:#ccc;}
+
 </style>
 </head>
 <body class="booting">
@@ -1934,7 +2192,7 @@ body.booting{visibility:hidden}
     </button>
   </div>
   <div id="library-topbar">
-    <div style="width:36px;flex-shrink:0;"></div>
+    <button id="lib-ko-review" onclick="openKoFromLibrary()" title="今日の復習" style="display:none">한<span class="n">0</span></button>
     <span id="library-topbar-title" contenteditable="true" spellcheck="false"
       onblur="saveLibraryName(this)"
       onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
@@ -1990,6 +2248,28 @@ body.booting{visibility:hidden}
 <button id="library-fab" onclick="createNewNovel()">
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 </button>
+
+<!-- 韓国語メモ（beta2） -->
+<div id="ko-sheet-ov" onclick="koCloseSheet()"></div>
+<div id="ko-sheet"><div id="ko-sheet-body"></div></div>
+<div id="ko-list">
+  <div id="ko-list-top">
+    <button onclick="closeKoWordList()" title="戻る"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <span class="t">単語帳</span>
+    <button onclick="openKoQuiz()" title="復習"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="14" height="14" rx="2"/><path d="M7 3h12a2 2 0 0 1 2 2v12"/></svg></button>
+  </div>
+  <div id="ko-list-bar">
+    <input id="ko-list-q" class="ko-input" placeholder="さがす（韓国語・意味）" oninput="renderKoWordList()" autocomplete="off">
+    <span id="ko-list-count"></span>
+  </div>
+  <div id="ko-list-tools">
+    <button onclick="openKoQuiz()">復習する</button>
+    <button onclick="koExportWords()">書き出す</button>
+    <button onclick="document.getElementById('ko-import-input').click()">読み込む</button>
+    <input type="file" id="ko-import-input" accept=".json,application/json" style="display:none" onchange="koImportWords(this)">
+  </div>
+  <div id="ko-list-items"></div>
+</div>
 
 <!-- RESUME POPUP -->
 <div id="resume-popup">
@@ -2089,6 +2369,7 @@ body.booting{visibility:hidden}
   <button id="topbar-reading-mode" onclick="toggleReadingMode()" title="読書モード">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
   </button>
+  <button id="topbar-ko" onclick="openKoMenu()" title="韓国語メモ">한</button>
   <button id="topbar-tts" onclick="toggleTtsPlayback()" title="読み上げ">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <polygon points="4 8 8 8 12 4 12 20 8 16 4 16" />
@@ -2350,6 +2631,15 @@ body.booting{visibility:hidden}
     </button>
   </div>
   <div id="panel-body">
+  <div class="ps" id="ko-panel-row" style="display:none">
+    <div class="pl">韓国語メモ（この本）</div>
+    <div class="pr">
+      <button class="ob" data-v="auto" onclick="koSetNovelMode('auto')">自動</button>
+      <button class="ob" data-v="on" onclick="koSetNovelMode('on')">使う</button>
+      <button class="ob" data-v="off" onclick="koSetNovelMode('off')">使わない</button>
+    </div>
+    <div class="ko-panel-hint"></div>
+  </div>
   <div class="ps">
     <div class="stepper-line">
       <div class="pl">行間</div>
@@ -2748,6 +3038,7 @@ const state = {
 
 /* ── Novel / TOC state ── */
 const STORAGE_KEY='novel-reader-data-v1';
+const LS_PREFIX = '';
 const SETTINGS_KEY='novel-reader-settings-v1';
 
 const PARAS_PER_SUBPAGE = 1000; // 1グループあたりの段落数
@@ -2767,6 +3058,9 @@ async function init(){
   setupColorBtnLongPress();
   setupDoubleTap();
   setupEdgeClick();
+  setupKoTap();
+  koApplyBodyClass();
+  setupKoSync();
   setupMediaSession();
   setupNativeTtsQueueListeners();
   state.readingMode = localStorage.getItem('readingMode') === '1';
@@ -3568,6 +3862,7 @@ async function gdriveSyncNow(){
     }
     showToast('同期中...');
     await gdriveUploadData();
+    try{ await koSyncWords(); }catch(e){ console.warn('ko sync', e); }
     showToast('クラウドに同期しました');
   }catch(e){
     console.warn('gdriveSyncNow:', e);
@@ -3596,6 +3891,7 @@ async function gdriveRestoreFromCloud(){
     state.currentNovelId = null;
     state.currentEpisodeId = null;
     showLibrary();
+    try{ await koSyncWords(); }catch(e){ console.warn('ko sync', e); }
     showToast('クラウドから復元しました');
   }catch(e){
     console.warn('gdriveRestoreFromCloud:', e);
@@ -4223,6 +4519,7 @@ function showLibrary(){
   $.toc_screen.classList.remove('show');
   document.getElementById('library-fab').style.display='flex';
   renderLibrary();
+  koApplyVisibility();
 }
 
 function hideLibrary(){
@@ -4409,12 +4706,20 @@ async function openNovel(novelId){
   // 新しい小説をロード
   state.currentNovelId=novelId;
   state.novel = JSON.parse(JSON.stringify(novel));
+  try{
+    if(cleanBakedNovel(state.novel)){
+      const _i = state.library.findIndex(n=>n.id===novelId);
+      if(_i>=0) state.library[_i] = JSON.parse(JSON.stringify(state.novel));
+      libDbPut(state.novel).catch(()=>{});
+    }
+  }catch(e){ console.warn('cleanBakedNovel', e); }
   state.currentEpisodeId=null;
   hideLibrary();
   showToc();
   applyNovelLook();
   // この本の背景画像を復元
   loadNovelBgImage(novelId);
+  koApplyVisibility();
 }
 
 async function createNewNovel(){
@@ -4679,6 +4984,7 @@ function openEpisode(id, startPos='first'){
   // タイトル更新
   $.topbar_title.textContent=ep.title;
   setKztlMark(ep);
+  koApplyVisibility();
   // 画面切替
   hideToc();
   renderAllPages();
@@ -5566,6 +5872,11 @@ function renderAllPages(){
 }
 
 function createPageEl(pi,pg){
+  const el = createPageElBase(pi,pg);
+  try{ koDecoratePage(el, pi); }catch(e){ console.warn('ko tr', e); }
+  return el;
+}
+function createPageElBase(pi,pg){
   const pageEl=document.createElement('div');
   pageEl.className='page';
   pageEl.id=`page-${pi}`;
@@ -5731,10 +6042,11 @@ function buildParaEl(pi,qi,para){
     const p=document.createElement('p');
     p.dataset.pi=pi; p.dataset.qi=qi; p.dataset.type='text';
     if (typeof para.html === 'string' && para.html !== '') {
-      p.innerHTML = shouldShowFuriganaDisplay() ? buildFuriganaDisplayHtml(para) : para.html;
+      p.innerHTML = !state.editMode ? buildReadDisplayHtml(para) : para.html;
       markDarkTextForTheme(p);
     }else if(para.text){
-      p.textContent=para.text;
+      if(!state.editMode) p.innerHTML = buildReadDisplayHtml(Object.assign({}, para, { html: escapeHtml(para.text) }));
+      else p.textContent=para.text;
     }else{
       // 空段落でもカーソルが立つように <br> を入れる
       p.innerHTML='<br>';
@@ -5805,7 +6117,11 @@ function setupEditorEvents(editor,pi,groupIdx=0,qiOffset=0){
     syncEditorToState(pi);
     debouncedSave();
   });
+  editor.addEventListener('compositionstart', ()=>{ editor._composing = true; });
   editor.addEventListener('compositionend', ()=>{
+    editor._composing = false;
+    editor._compEndAt = Date.now();
+    setTimeout(()=>{ if(!editor._composing) normalizeLooseNodes(editor, pi); }, 0);
     if(!_snapPending){
       _snapPending = true;
       _undoStack.push(JSON.stringify(state.pages));
@@ -5880,6 +6196,8 @@ function setupEditorEvents(editor,pi,groupIdx=0,qiOffset=0){
       }
     }
     // Enter → 段落分割 or 段落内改行（モードによる）、Shift+Enter → 逆の動作
+    // iPhoneは変換を確定したEnterが、変換が終わった直後のEnterとして届くことがある → 段落を割らない
+    if(e.key==='Enter'&&(e.isComposing||e.keyCode===229||editor._composing||Date.now()-(editor._compEndAt||0)<150)) return;
     if(e.key==='Enter'&&!e.isComposing){
       // 画像名（例: illust1.png）が単独行に書かれていたら画像に変換
       const paraEl=getParaElUnderCaret();
@@ -5951,7 +6269,86 @@ function setupEditorEvents(editor,pi,groupIdx=0,qiOffset=0){
 }
 
 // Sync the editor DOM back into state.pages[] state
+/* ── iPhone対策 ──
+   変換のときに段落（p）が作り直されて、文字が段落の外に出たり、
+   見た目の書式（背景・フォントなど）が文字に焼き付いたりする */
+const BAKED_STYLE_PROPS = ['background','background-color','background-image','font-family','line-height','letter-spacing','white-space','word-break','word-wrap','overflow-wrap','font-variant','font-variant-ligatures','font-variant-caps','font-feature-settings','text-indent','text-transform','orphans','widows','word-spacing','caret-color','display','border','border-radius','padding','margin','box-shadow','outline'];
+function cleanBakedStyleHtml(html){
+  if(!html || !/style=|<span|<font/i.test(html)) return html;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  tmp.querySelectorAll('[style]').forEach(el=>{
+    BAKED_STYLE_PROPS.forEach(pr=>el.style.removeProperty(pr));
+    Array.from(el.style).forEach(pr=>{ if(/^-webkit-/.test(pr)) el.style.removeProperty(pr); });
+    if(!el.getAttribute('style') || !el.getAttribute('style').trim()) el.removeAttribute('style');
+  });
+  // 何も書式が残っていない span は外す（中身だけ残す）
+  tmp.querySelectorAll('span').forEach(sp=>{
+    if(sp.attributes.length === 0){
+      while(sp.firstChild) sp.parentNode.insertBefore(sp.firstChild, sp);
+      sp.remove();
+    }
+  });
+  return tmp.innerHTML;
+}
+function cleanBakedNovel(novel){
+  let changed = false;
+  (novel && novel.episodes || []).forEach(ep=>(ep.pages||[]).forEach(pg=>(pg.paras||[]).forEach(pa=>{
+    if(pa.type !== 'text' || !pa.html || !/background|font-family|line-height|letter-spacing|white-space|-webkit-/i.test(pa.html)) return;
+    const c = cleanBakedStyleHtml(pa.html);
+    if(c !== pa.html){ pa.html = c; changed = true; }
+  })));
+  return changed;
+}
+// 段落の外にはみ出した文字・span を、カーソル位置を保ったまま段落の中に入れ直す
+function normalizeLooseNodes(editor, pi){
+  if(!state.editMode || !editor) return;
+  const loose = Array.from(editor.childNodes).filter(n=>{
+    if(n.nodeType===3) return n.textContent.length > 0;
+    if(n.nodeType!==1) return false;
+    if(n.tagName==='P' || n.tagName==='DIV' || (n.dataset && n.dataset.type==='image')) return false;
+    if(n.tagName==='BR') return false;
+    return true;
+  });
+  if(!loose.length) return;
+  const sel = window.getSelection();
+  const sv = sel && sel.rangeCount ? { node: sel.anchorNode, off: sel.anchorOffset } : null;
+  // 続いている塊ごとに1つの段落へ
+  let group = [];
+  const flush = ()=>{
+    if(!group.length) return;
+    const p = document.createElement('p');
+    p.dataset.pi = pi; p.dataset.type = 'text';
+    p.style.textAlign = 'left';
+    p.style.fontSize = (state.settings.fontSize || 15) + 'px';
+    group[0].parentNode.insertBefore(p, group[0]);
+    group.forEach(n=>p.appendChild(n));
+    // 焼き付いた書式もここで外す
+    p.querySelectorAll('[style]').forEach(el=>{
+      BAKED_STYLE_PROPS.forEach(pr=>el.style.removeProperty(pr));
+      if(!el.getAttribute('style') || !el.getAttribute('style').trim()) el.removeAttribute('style');
+    });
+    group = [];
+  };
+  Array.from(editor.childNodes).forEach(n=>{
+    if(loose.includes(n)) group.push(n);
+    else if(n.nodeType===1 && n.tagName==='BR' && group.length) group.push(n);
+    else flush();
+  });
+  flush();
+  // 段落の中の span に焼き付いた背景も外す
+  editor.querySelectorAll('p [style*="background"]').forEach(el=>{
+    el.style.removeProperty('background'); el.style.removeProperty('background-color');
+    if(!el.getAttribute('style').trim()) el.removeAttribute('style');
+  });
+  if(sv && sv.node && sv.node.isConnected){
+    try{ sel.collapse(sv.node, Math.min(sv.off, sv.node.nodeType===3 ? sv.node.length : sv.node.childNodes.length)); }catch(_){}
+  }
+  try{ syncEditorToState(pi); }catch(_){}
+}
+
 function syncEditorToState(pi){
+  if(!state.editMode) return;
   // Collect paras from ALL subpage group editors for this page
   const pageEl=document.getElementById(`page-${pi}`);
   if(!pageEl){return;}
@@ -5967,14 +6364,24 @@ function syncEditorToState(pi){
     const editor=document.getElementById(editorId)||grp.querySelector('.page-editor');
     if(!editor)return;
     let qi=0;
-    editor.childNodes.forEach(node=>{
-      if(node.nodeType===3){
-        if(node.textContent.trim()){
-          newParas.push({type:'text',text:node.textContent,html:node.textContent,
-            align:'left',size:state.settings.fontSize,color:state.settings.lastColor});
-        }
-        return;
-      }
+    // 段落（P/DIV）の外にはみ出した文字・span など（iPhoneの変換や改行で起きる）を
+    // 1つの段落にまとめて拾う。拾わないと保存されずに消えてしまう
+    const _items = [];
+    let _loose = [];
+    const _flushLoose = ()=>{
+      if(!_loose.length) return;
+      const tmpP = document.createElement('p');
+      _loose.forEach(n=>{ tmpP.appendChild(n.cloneNode(true)); });
+      _loose = [];
+      if((tmpP.textContent||'').trim() || tmpP.querySelector('img')) _items.push(tmpP);
+    };
+    Array.from(editor.childNodes).forEach(node=>{
+      const isBlock = node.nodeType===1 && (node.tagName==='P' || node.tagName==='DIV' || (node.dataset && node.dataset.type==='image'));
+      if(isBlock){ _flushLoose(); _items.push(node); }
+      else if(node.nodeType===3 || node.nodeType===1) _loose.push(node);
+    });
+    _flushLoose();
+    _items.forEach(node=>{
       if(node.dataset&&node.dataset.type==='image'){
         // 画像段落は globalQi ベースのインデックスではなく、imgName で元データを探す
         // (テキストノードの空白などで globalQi がずれる可能性があるため)
@@ -6010,7 +6417,7 @@ function syncEditorToState(pi){
         const builtPara = {
           type: 'text',
           text: stripFuriganaText(node.innerHTML),
-          html: stripFuriganaHtml(node.innerHTML),
+          html: cleanBakedStyleHtml(stripFuriganaHtml(node.innerHTML)),
           align: (node.style.textAlign || orig?.align || 'left'),
           size: nodeSize,
           color: nodeColor,
@@ -6501,6 +6908,7 @@ function updateNavBtns(){
 ══════════════════════════════════════ */
 function enterEditMode(){
   if(state.editMode)return;
+  koCloseSheet();
   // 翻訳スクリプトの訳文を表示中に編集すると、訳文で本文が上書き保存される
   if($.viewport.querySelector('[data-kztl-tr],[lang="ja"]') &&
      !confirm('翻訳を表示中です。このまま編集すると、原文が訳文で上書き保存されます。\n（原文のままにするなら、キャンセルして「原」で戻してから編集）\n\n訳文で上書きしますか？')) return;
@@ -6663,7 +7071,7 @@ function setupEdgeClick(){
     if(!canEdgeNavigate() || e.button !== 0) return;
     if(Math.abs(e.clientX - downX) > 6 || Math.abs(e.clientY - downY) > 6) return; // ドラッグ（文字選択）
     if(hasTextSelection()) return;
-    if(e.target.closest && e.target.closest('button, a, .para-img-wrap')) return;
+    if(e.target.closest && e.target.closest('button, a, .para-img-wrap, .ko-tr')) return;
     const z = edgeZoneAt(e.clientX);
     if(z) edgeNav(z);
   });
@@ -6680,11 +7088,1833 @@ function setupEdgeClick(){
   });
 }
 
+/* ══════════════════════════════════════════════════════════
+   韓国語メモ（beta2）
+   ・読書中に韓国語の単語をタップ → 意味をメモ
+   ・メモした単語は、どの本でも上に小さく意味が出る（隠すこともできる）
+   ・段落ごとに「文のメモ」も残せる
+   ・単語帳で一覧・復習・書き出し
+══════════════════════════════════════════════════════════ */
+const KO_WORDS_LS = LS_PREFIX + 'ko-words';
+const KO_SHOW_LS = LS_PREFIX + 'ko-show';
+const KO_HANGUL = /[가-힣ㄱ-ㆎ]/;
+const KO_RUN = /[가-힣ㄱ-ㆎ]+/g;
+let _koWords = null;      // { key: { m: 意味, n: メモ, at: 追加日, ok: 覚えた回数, ng: まだ回数 } }
+let _koMaxLen = 0;
+
+function koLoad(){
+  if(_koWords) return _koWords;
+  try{ _koWords = JSON.parse(localStorage.getItem(KO_WORDS_LS) || '{}') || {}; }catch(_){ _koWords = {}; }
+  koRecalc();
+  return _koWords;
+}
+let _koPhrases = null, _koIndex = null;
+function koRecalc(){
+  // 本文で探す形 → 単語（本体のキー）。別の形（ks）も同じ単語につなぐ
+  _koIndex = {};
+  Object.entries(_koWords || {}).forEach(([k, e]) => {
+    if(!_koIndex[k]) _koIndex[k] = k;
+    (e && Array.isArray(e.ks) ? e.ks : []).forEach(a => { if(a && !_koWords[a]) _koIndex[a] = k; });
+  });
+  _koMaxLen = Object.keys(_koIndex).filter(k => !/\s/.test(k)).reduce((m, k) => Math.max(m, k.length), 0);
+  _koPhrases = null;
+}
+function koResolve(form){ koLoad(); if(!_koIndex) koRecalc(); return (form && _koIndex[form]) || null; }
+// 単語帳・復習に出す形（辞書の見出し）
+function koHead(k, e){ e = e || (_koWords || {})[k]; return (e && e.h) || k; }
+const KO_SHOW_NEW_LS = LS_PREFIX + 'ko-show-new';
+function koShowNewDefault(){ return localStorage.getItem(KO_SHOW_NEW_LS) !== '0'; }
+function koSetShowNewDefault(on){ try{ localStorage.setItem(KO_SHOW_NEW_LS, on ? '1' : '0'); }catch(_){} }
+function koShowsInText(e){ return !!e && e.show !== false; }
+// 2語以上のフレーズ（間の空白は何個でも・最後の語は後ろに活用が付いてもOK）
+function koPhraseList(){
+  if(_koPhrases) return _koPhrases;
+  const esc = t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  _koPhrases = Object.keys(koLoad()).filter(k => /\s/.test(k.trim())).sort((a, b) => b.length - a.length)
+    .map(k => ({ key: k, re: new RegExp('(^|[^\uAC00-\uD7A3])(' + k.trim().split(/\s+/).map(esc).join('\\s+') + ')', 'g') }));
+  return _koPhrases;
+}
+function koSaveWords(noSync){
+  try{ localStorage.setItem(KO_WORDS_LS, JSON.stringify(_koWords || {})); }
+  catch(e){ showToast('単語を保存できませんでした'); }
+  koRecalc();
+  try{ koUpdateBadge(); }catch(_){}
+  if(!noSync) koSyncSoon();
+}
+// 消した単語の記録（ほかの端末の単語帳から復活しないように）
+const KO_DEL_LS = LS_PREFIX + 'ko-words-del';
+function koDelMap(){ try{ return JSON.parse(localStorage.getItem(KO_DEL_LS) || '{}') || {}; }catch(_){ return {}; } }
+function koSetDelMap(m){ try{ localStorage.setItem(KO_DEL_LS, JSON.stringify(m)); }catch(_){} }
+function koMarkDeleted(k){ const m = koDelMap(); m[k] = new Date().toISOString(); koSetDelMap(m); }
+function koUndelete(k){ const m = koDelMap(); if(m[k]){ delete m[k]; koSetDelMap(m); } }
+function koIsLearned(e){ return !!e && (e.ivl || 0) >= 21; } // 次の復習が3週間以上先＝覚えた
+const KO_LEARNED_LS = LS_PREFIX + 'ko-hide-learned';
+function koHideLearned(){ return localStorage.getItem(KO_LEARNED_LS) !== '0'; }
+function koSetHideLearned(on){ try{ localStorage.setItem(KO_LEARNED_LS, on ? '1' : '0'); }catch(_){} koRerender(); }
+const KO_NEW_LS = LS_PREFIX + 'ko-new';
+const KO_TR_LS = LS_PREFIX + 'ko-tr-mode';
+function koNewOn(){ return localStorage.getItem(KO_NEW_LS) === '1'; }
+function koSetNew(on){ try{ localStorage.setItem(KO_NEW_LS, on ? '1' : '0'); }catch(_){} koRerender(); }
+function koTrMode(){ return localStorage.getItem(KO_TR_LS) || 'show'; } // write / show / off
+function koSetTrMode(v){ try{ localStorage.setItem(KO_TR_LS, v); }catch(_){} koRerender(); }
+function koShowMode(){ return localStorage.getItem(KO_SHOW_LS) || 'on'; } // on / hide / off
+function koSetShowMode(v){
+  try{ localStorage.setItem(KO_SHOW_LS, v); }catch(_){}
+  koApplyBodyClass();
+  koRerender();
+}
+function koApplyBodyClass(){
+  document.body.classList.toggle('ko-hide', koShowMode() === 'hide');
+}
+function koRerender(){
+  if(state.editMode || !state.pages) return;
+  state.pages.forEach((_, pi) => refreshPage(pi));
+}
+
+/* ── 本文の表示：覚えた単語に意味をのせる・文のメモの印 ── */
+function koParaPlain(para){ return stripFuriganaText(para.html || '') || para.text || ''; }
+function koHash(s){
+  s = String(s || '').replace(/\s+/g, ' ').trim();
+  let h = 5381; for(let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+  return h.toString(36) + '_' + s.length;
+}
+function koNotes(){
+  if(!state.novel) return {};
+  if(!state.novel.koNotes || typeof state.novel.koNotes !== 'object') state.novel.koNotes = {};
+  return state.novel.koNotes;
+}
+function koFindKey(run){
+  koLoad();
+  if(!_koIndex) koRecalc();
+  for(let L = Math.min(run.length, _koMaxLen); L >= 1; L--){
+    const k = _koIndex[run.slice(0, L)];
+    if(k) return k;
+  }
+  return null;
+}
+// 本文で見つけた形の長さ（別の形で見つかったときのため）
+function koFindForm(run){
+  koLoad();
+  if(!_koIndex) koRecalc();
+  for(let L = Math.min(run.length, _koMaxLen); L >= 1; L--){
+    const f = run.slice(0, L);
+    if(_koIndex[f]) return { key: _koIndex[f], form: f };
+  }
+  return null;
+}
+function koDecorateHtml(html, para){
+  if(!koEnabled()) return html;
+  const words = koLoad();
+  const mode = koShowMode();
+  const plain = koParaPlain(para);
+  const note = plain && state.novel && state.novel.koNotes ? state.novel.koNotes[koHash(plain)] : null;
+  const markNew = mode !== 'off' && koNewOn();
+  const hasWords = mode !== 'off' && (_koMaxLen > 0 || markNew || koPhraseList().length) && KO_HANGUL.test(plain);
+  if(!hasWords && !note) return html;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  const ph = koHash(plain), senses = (state.novel && state.novel.koSense) || {}, occ = {};
+  const mkSpan = (key, text) => {
+    const rb = document.createElement('span');
+    rb.className = 'kw' + (/\s/.test(key) ? ' phrase' : '') + (koHideLearned() && koIsLearned(words[key]) ? ' learned' : '');
+    rb.dataset.kw = key;
+    const ni = occ[key] = (occ[key] || 0) + 1;
+    const alt = senses[ph + '|' + key + '|' + ni];
+    rb.dataset.m = alt || words[key].m || '…';
+    if(alt) rb.classList.add('alt');
+    rb.textContent = text;
+    return rb;
+  };
+  // フレーズを先に（その中の単語には個別の意味を付けない）
+  const phrases = mode !== 'off' ? koPhraseList() : [];
+  if(hasWords && phrases.length){
+    const w0 = document.createTreeWalker(tmp, NodeFilter.SHOW_TEXT, {
+      acceptNode: n => n.parentElement && n.parentElement.closest('ruby,rt,.kw') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
+    });
+    const ns = []; let x; while((x = w0.nextNode())) ns.push(x);
+    ns.forEach(node => {
+      const text = node.textContent;
+      if(!KO_HANGUL.test(text) || !/\s/.test(text)) return;
+      const found = [];
+      phrases.forEach(pp => { if(!koShowsInText(words[pp.key])) return; pp.re.lastIndex = 0; let m; while((m = pp.re.exec(text))){ found.push({ i: m.index + m[1].length, len: m[2].length, key: pp.key }); pp.re.lastIndex = m.index + m[1].length + 1; } });
+      if(!found.length) return;
+      found.sort((a, b) => a.i - b.i || b.len - a.len);
+      const frag = document.createDocumentFragment();
+      let last = 0;
+      found.forEach(f => {
+        if(f.i < last) return;
+        if(f.i > last) frag.appendChild(document.createTextNode(text.slice(last, f.i)));
+        frag.appendChild(mkSpan(f.key, text.substr(f.i, f.len)));
+        last = f.i + f.len;
+      });
+      if(last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+      node.parentNode.replaceChild(frag, node);
+    });
+  }
+  if(hasWords){
+    const walker = document.createTreeWalker(tmp, NodeFilter.SHOW_TEXT, {
+      acceptNode: n => n.parentElement && n.parentElement.closest('ruby,rt,.kw,.ko-new') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT
+    });
+    const nodes = []; let n; while((n = walker.nextNode())) nodes.push(n);
+    nodes.forEach(node => {
+      const text = node.textContent;
+      if(!KO_HANGUL.test(text)) return;
+      const frag = document.createDocumentFragment();
+      let last = 0, any = false, m;
+      KO_RUN.lastIndex = 0;
+      while((m = KO_RUN.exec(text))){
+        const fd = koFindForm(m[0]);
+        const key = fd && koShowsInText(words[fd.key]) ? fd.key : null;
+        if(fd && !key) continue; // 単語帳だけに入れた単語：本文には何も付けない
+        if(!key){
+          if(!markNew) continue;
+          any = true;
+          if(m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+          const sp = document.createElement('span');
+          sp.className = 'ko-new';
+          sp.textContent = m[0];
+          frag.appendChild(sp);
+          last = m.index + m[0].length;
+          continue;
+        }
+        any = true;
+        if(m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+        // 意味は文字の上に浮かせて出す（ルビだと単語の間が空いてしまうので）
+        frag.appendChild(mkSpan(key, fd.form));
+        last = m.index + fd.form.length;
+      }
+      if(!any) return;
+      if(last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+      node.parentNode.replaceChild(frag, node);
+    });
+  }
+  if(note){
+    const mk = document.createElement('span');
+    mk.className = 'ko-note-mark';
+    mk.dataset.h = koHash(plain);
+    mk.textContent = '✎';
+    tmp.appendChild(mk);
+  }
+  return tmp.innerHTML;
+}
+// 閲覧中の段落の表示（ふりがな → 韓国語メモ）
+function buildReadDisplayHtml(para){
+  // 自分の訳で読む：訳がある段落は訳だけ、まだの段落は原文をうすく
+  if(koTrMode() === 'only' && state.novel && koEnabled()){
+    const plain = koParaPlain(para);
+    if(KO_HANGUL.test(plain)){
+      const tr = (state.novel.koTr || {})[koHash(plain)];
+      if(tr) return '<span class="ko-tr-only">' + escapeHtml(tr).replace(/\n/g, '<br>') + '</span>';
+      return '<span class="ko-untr">' + escapeHtml(plain) + '</span>';
+    }
+  }
+  const base = shouldShowFuriganaDisplay() ? buildFuriganaDisplayHtml(para) : (para.html || '');
+  try{ return koDecorateHtml(base, para); }catch(e){ console.warn('ko decorate', e); return base; }
+}
+
+/* ── タップした場所の単語を拾う ── */
+function koCaretAt(x, y){
+  if(document.caretRangeFromPoint){
+    const r = document.caretRangeFromPoint(x, y);
+    return r ? { node: r.startContainer, offset: r.startOffset } : null;
+  }
+  if(document.caretPositionFromPoint){
+    const p = document.caretPositionFromPoint(x, y);
+    return p ? { node: p.offsetNode, offset: p.offset } : null;
+  }
+  return null;
+}
+// 文の中で、その語の前後の語（フレーズにつなげる用）
+function koNeighbors(sentence, eojeol){
+  const toks = String(sentence || '').split(/\s+/).filter(Boolean);
+  const clean = t => (t.match(/[\uAC00-\uD7A3\u3131-\u318E]+/) || [''])[0];
+  const i = toks.findIndex(t => clean(t).startsWith(eojeol.split(/\s+/)[0]));
+  // 文の終わり（. ! ? 」など）をまたいではつなげない
+  const end = toks.map(t => /[.!?…。」』"'”’)\]]$/.test(t));
+  return { toks: toks.map(clean), end, i };
+}
+function koHitAt(e){
+  const t = e.target;
+  const paraEl = t.closest && t.closest('p[data-qi]');
+  if(!paraEl) return null;
+  const pi = parseInt(paraEl.dataset.pi, 10), qi = parseInt(paraEl.dataset.qi, 10);
+  const para = state.pages[pi] && state.pages[pi].paras[qi];
+  if(!para) return null;
+  const sentence = koParaPlain(para);
+  const mark = t.closest('.ko-note-mark');
+  if(mark) return { type: 'note', sentence, pi, qi };
+  const rb = t.closest('.kw');
+  if(rb){
+    const same = [...paraEl.querySelectorAll('.kw')].filter(x => x.dataset.kw === rb.dataset.kw);
+    const place = koHash(sentence) + '|' + rb.dataset.kw + '|' + (same.indexOf(rb) + 1);
+    const after = rb.nextSibling && rb.nextSibling.nodeType === 3 ? (rb.nextSibling.textContent.match(/^[가-힣ㄱ-ㆎ]*/) || [''])[0] : '';
+    return { type: 'word', key: rb.dataset.kw, eojeol: rb.textContent + after, sentence, pi, qi, place };
+  }
+  const c = koCaretAt(e.clientX, e.clientY);
+  if(!c || !c.node || c.node.nodeType !== 3 || !paraEl.contains(c.node)) return null;
+  const text = c.node.textContent;
+  let s = c.offset, en = c.offset;
+  if(!(KO_HANGUL.test(text.charAt(s)) || KO_HANGUL.test(text.charAt(s - 1)))) return null;
+  while(s > 0 && KO_HANGUL.test(text.charAt(s - 1))) s--;
+  while(en < text.length && KO_HANGUL.test(text.charAt(en))) en++;
+  let eojeol = text.slice(s, en);
+  // 単語の前半がメモ済み（ルビの中）で、後ろの助詞だけをタップしたとき
+  if(s === 0 && c.node.previousSibling && c.node.previousSibling.nodeType === 1 && c.node.previousSibling.matches('.kw')){
+    const k = c.node.previousSibling.dataset.kw;
+    return { type: 'word', key: k, eojeol: c.node.previousSibling.textContent + eojeol, sentence, pi, qi };
+  }
+  if(!eojeol) return null;
+  return { type: 'word', key: null, eojeol, sentence, pi, qi };
+}
+
+/* ── 語幹の候補（助詞・語尾をざっくり外す） ── */
+const KO_PARTICLES = ['에서부터','에게서','한테서','으로서','으로써','으로는','에서는','에게는','이라고','라고','이라는','라는','에서','에게','한테','께서','까지','부터','처럼','보다','마저','조차','밖에','이나','이랑','하고','으로','은','는','이','가','을','를','에','의','도','만','과','와','로','랑','나','야','께','요'];
+const KO_ENDINGS = ['했습니다','합니다','했었다','했었어','했다','했어','했지','하는','하고','해서','하며','하게','하면','한다','하다','할','한','해','습니다','ㅂ니다','었다','았다','였다','었어','았어','였어','는다','ㄴ다','고','는','은','다','지만','면서','어서','아서','여서','게','지','며','면','어','아','요'];
+function koCandidates(eojeol){
+  const out = [];
+  const add = w => { if(w && w.length >= 1 && !out.includes(w)) out.push(w); };
+  add(eojeol);
+  const strip = (w, list) => { for(const p of list){ if(w.length > p.length && w.endsWith(p)) return w.slice(0, -p.length); } return null; };
+  const p1 = strip(eojeol, KO_PARTICLES);
+  if(p1){ add(p1); if(p1.endsWith('들') && p1.length > 1) add(p1.slice(0, -1)); }
+  if(eojeol.endsWith('들') && eojeol.length > 1) add(eojeol.slice(0, -1));
+  const v = strip(eojeol, KO_ENDINGS);
+  if(v) add(v);
+  return out;
+}
+
+/* ── 単語メモの画面（下から出るシート） ── */
+let _koCur = null;
+function koOpenSheet(hit){
+  koLoad();
+  _koCur = hit;
+  _koFromFreq = !!hit.fromFreq;
+  const sh = document.getElementById('ko-sheet');
+  const body = document.getElementById('ko-sheet-body');
+  if(hit.type === 'note'){ koOpenNote(hit); return; }
+  const cands = koCandidates(hit.eojeol);
+  // 選んでおく候補：登録済み（別の形も） → 助詞・들を外した形 → 助詞を外した形 → そのまま
+  const lemmaStems = koLemmaCands(hit.eojeol).filter(c => c.endsWith('다')).map(c => c.slice(0, -1));
+  const fd = koFindForm(hit.eojeol);
+  let key = hit.key || (fd && fd.key) || cands.map(koResolve).find(Boolean) || lemmaStems.map(c => hit.eojeol.startsWith(c) && koResolve(c)).find(Boolean) || cands[cands.length - 1] || cands[0];
+  if(!cands.includes(key)) cands.unshift(key);
+  const ent = _koWords[key];
+  _koHeadAuto = !ent || !ent.h;
+  body.innerHTML = `
+    <div class="ko-head">
+      <div class="ko-eojeol">${escapeHtml(hit.eojeol)}</div>
+      <button class="ko-icon-btn" onclick="koSpeak(document.getElementById('ko-headw').value || document.getElementById('ko-key').value)" title="発音を聞く">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="4 8 8 8 12 4 12 20 8 16 4 16"/><path d="M16 8a5 5 0 0 1 0 8"/></svg>
+      </button>
+    </div>
+    <div id="ko-dict-wrap">${ent ? '<button class="ko-dict-open" onclick="koShowDictFor()">辞書から意味を足す</button>' : '<div class="ko-label">辞書</div><div id="ko-dict"></div><div id="ko-ex"></div>'}</div>
+    <div class="ko-label">単語帳に入る形（辞書の形）</div>
+    <input id="ko-headw" class="ko-input ko-headw" value="${escapeHtml(ent ? koHead(key, ent) : koGuessHead(key, hit.eojeol))}" oninput="_koHeadAuto=false" autocomplete="off" spellcheck="false">
+    <div class="ko-join" id="ko-join"></div>
+    <details class="ko-detail" ${ent && ent.ks && ent.ks.length ? 'open' : ''}>
+      <summary>本文で探す形：<b id="ko-key-sum">${escapeHtml(key)}</b>${ent && ent.ks && ent.ks.length ? `・${escapeHtml(ent.ks.join('・'))}` : ''}</summary>
+      <div class="ko-dict-msg" style="margin-top:6px">本文の中で、この形で始まる語に意味を付けます。ふつうは変えなくてOK</div>
+      <div class="ko-chips">${cands.map(c => `<button class="ko-chip ${c === key ? 'on' : ''}" onclick="koPickKey(this)">${escapeHtml(c)}</button>`).join('')}</div>
+      <input id="ko-key" class="ko-input" value="${escapeHtml(key)}" oninput="koOnKeyInput()" autocomplete="off" spellcheck="false">
+      <div class="ko-label">ほかの形（不規則に変わる語など。例：짓다 → 지・짓）</div>
+      <div id="ko-forms"></div>
+      <div class="ko-addm"><input id="ko-form-in" class="ko-input" placeholder="形を足す" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();koAddForm();}"><button onclick="koAddForm()">追加</button></div>
+    </details>
+    <div class="ko-label">意味${hit.place ? '（●＝この場所の意味）' : ''}</div>
+    <div id="ko-means"></div>
+    <div class="ko-addm"><input id="ko-mean" class="ko-input" placeholder="${ent ? '別の意味を足す' : '例：人'}" autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();koAddMeaning();}"><button onclick="koAddMeaning()">追加</button></div>
+    <label class="ko-showchk"><input type="checkbox" id="ko-show" ${(ent ? koShowsInText(ent) : koShowNewDefault()) ? 'checked' : ''}> 本文に意味を出す<small>（オフだと単語帳と復習だけ）</small></label>
+    <div class="ko-label">メモ（使い方・活用など、なくてもOK）</div>
+    <textarea id="ko-memo" class="ko-input" rows="2" placeholder="例：〜들 で「〜たち」">${escapeHtml(ent ? (ent.n || '') : '')}</textarea>
+    <div class="ko-links">
+      <button onclick="koOpenDict()">辞書で調べる</button>
+      <button onclick="koOpenPapago()">文を翻訳</button>
+      <button onclick="koOpenNote(_koCur)">${koNotes()[koHash(hit.sentence)] ? '文のメモを見る' : '文にメモ'}</button>
+    </div>
+    ${koIsLearned(ent) ? `<div class="ko-learned-row"><span class="ko-learned-badge">覚えた</span>次の復習が3週間以上先なので、本文では意味を出していません<button onclick="koUnlearn()">まだ覚えてない</button></div>` : ''}
+    <div class="ko-actions">
+      <button class="ko-del" id="ko-del-btn" onclick="koDeleteWord()" style="${ent ? '' : 'visibility:hidden'}">削除</button>
+      <button class="ko-cancel" onclick="koCloseSheet()">閉じる</button>
+      <button class="ko-save" onclick="koSaveWord()">保存</button>
+    </div>`;
+  sh.classList.add('show');
+  document.getElementById('ko-sheet-ov').classList.add('show');
+  koEditLoad(key, hit);
+  _koForms = ent && Array.isArray(ent.ks) ? ent.ks.slice() : [];
+  koRenderForms();
+  koJoinInit(hit, key);
+  if(!ent && !/\s/.test(key)) koFillDict(hit);
+}
+/* フレーズにつなげる：前後の語を足していく */
+let _koJoin = null;
+function koJoinInit(hit, key){
+  const nb = koNeighbors(hit.sentence, hit.eojeol);
+  const n = /\s/.test(key) ? key.trim().split(/\s+/).length : 1;
+  _koJoin = nb.i >= 0 ? { toks: nb.toks, end: nb.end, i0: nb.i, i1: nb.i + n - 1 } : null;
+  koJoinRender();
+}
+function koJoinRender(){
+  const box = document.getElementById('ko-join');
+  if(!box) return;
+  const j = _koJoin;
+  if(!j){ box.innerHTML = ''; return; }
+  const prev = j.i0 > 0 && !j.end[j.i0 - 1] ? j.toks[j.i0 - 1] : '';
+  const next = !j.end[j.i1] ? j.toks[j.i1 + 1] : '';
+  const n = j.i1 - j.i0 + 1;
+  box.innerHTML = (prev && n < 5 ? `<button onclick="koJoin(-1)">＋ 前の「${escapeHtml(prev)}」とつなげる</button>` : '')
+    + (next && n < 5 ? `<button onclick="koJoin(1)">＋ 次の「${escapeHtml(next)}」とつなげる</button>` : '')
+    + (n > 1 ? `<span class="ko-join-note">フレーズとして登録します</span>` : '');
+}
+function koJoin(dir){
+  const j = _koJoin;
+  if(dir < 0) j.i0--; else j.i1++;
+  const parts = j.toks.slice(j.i0, j.i1 + 1);
+  const lastW = parts[parts.length - 1];
+  const stem = koCandidates(lastW).slice(-1)[0] || lastW;
+  const k = parts.slice(0, -1).concat([stem]).join(' ');
+  koSetKey(k);
+  document.querySelector('#ko-sheet .ko-eojeol').textContent = parts.join(' ');
+  // 見出し：最後の語を辞書の形に（끄덕였다 → 끄덕이다）
+  let lastHead = lastW;
+  if(_koDict){ const f = koDictLookup(lastW); if(f.length && /다$/.test(f[0].head)) lastHead = f[0].head; }
+  koSetHead(parts.slice(0, -1).concat([lastHead]).join(' '));
+  _koHeadAuto = false;
+  _koEdit = { ms: koMs(_koWords[k]), sel: 0 }; koRenderMeans();
+  const dw = document.getElementById('ko-dict-wrap');
+  if(dw) dw.innerHTML = '<div class="ko-dict-msg">フレーズは辞書に載っていないことが多いので、意味を入れてください（「文を翻訳」も参考に）</div>';
+  koJoinRender();
+}
+/* 意味のリスト（いつもの意味＝先頭）と、この場所で使う意味 */
+let _koEdit = { ms: [], sel: 0 };
+function koMs(e){
+  if(!e) return [];
+  if(Array.isArray(e.ms) && e.ms.length) return e.ms.map(x => Object.assign({}, x));
+  return e.m ? [{ m: e.m }] : [];
+}
+function koEditLoad(key, hit){
+  const ent = _koWords[key];
+  _koEdit = { ms: koMs(ent), sel: 0 };
+  if(hit && hit.place && ent){
+    const alt = ((state.novel && state.novel.koSense) || {})[hit.place];
+    const i = alt ? _koEdit.ms.findIndex(x => x.m === alt) : -1;
+    if(i >= 0) _koEdit.sel = i;
+  }
+  koRenderMeans();
+}
+function koRenderMeans(){
+  const box = document.getElementById('ko-means');
+  if(!box) return;
+  const ms = _koEdit.ms;
+  if(!ms.length){ box.innerHTML = '<div class="ko-dict-msg">まだ意味がありません。下に入れるか、辞書から選んでください</div>'; return; }
+  box.innerHTML = ms.map((x, i) => `
+    <div class="ko-mrow ${i === _koEdit.sel ? 'on' : ''}">
+      <button class="ko-mpick" onclick="_koEdit.sel=${i};koRenderMeans()"><span class="ko-radio"></span><span class="ko-mtext">${escapeHtml(x.m)}</span></button>
+      ${i === 0 ? '<span class="ko-mdef">いつも</span>' : `<button class="ko-mbtn" onclick="koMakeDefault(${i})">いつもにする</button>`}
+      <button class="ko-mbtn ko-mx" onclick="koRemoveMeaning(${i})" title="この意味を消す">✕</button>
+    </div>`).join('');
+}
+function koAddMeaning(text, ctx){
+  const inp = document.getElementById('ko-mean');
+  const m = (text != null ? text : (inp ? inp.value : '')).trim();
+  if(!m) return;
+  // 新しい単語で、自動で入れた辞書の意味しかないときに自分で入れたら、入れ替える
+  if(text == null && _koEdit._auto && _koEdit.ms.length === 1 && !_koWords[((document.getElementById('ko-key') || {}).value || '').trim()]) _koEdit.ms = [];
+  if(text == null) _koEdit._auto = false;
+  let i = _koEdit.ms.findIndex(x => x.m === m);
+  if(i < 0){ _koEdit.ms.push({ m, c: ctx || (_koCur && _koCur.sentence ? _koCur.sentence.slice(0, 140) : '') }); i = _koEdit.ms.length - 1; }
+  _koEdit.sel = i;
+  if(inp && text == null) inp.value = '';
+  koRenderMeans();
+}
+function koMakeDefault(i){
+  const [x] = _koEdit.ms.splice(i, 1);
+  _koEdit.ms.unshift(x);
+  _koEdit.sel = _koEdit.sel === i ? 0 : (_koEdit.sel < i ? _koEdit.sel + 1 : _koEdit.sel);
+  koRenderMeans();
+}
+function koRemoveMeaning(i){
+  _koEdit.ms.splice(i, 1);
+  if(_koEdit.sel >= _koEdit.ms.length) _koEdit.sel = 0;
+  else if(_koEdit.sel > i) _koEdit.sel--;
+  else if(_koEdit.sel === i) _koEdit.sel = 0;
+  koRenderMeans();
+}
+function koShowDictFor(){
+  const w = document.getElementById('ko-dict-wrap');
+  w.innerHTML = '<div class="ko-label">辞書（タップで意味に追加）</div><div id="ko-dict"></div><div id="ko-ex"></div>';
+  koFillDict(_koCur, true);
+}
+function koPickKey(btn){
+  document.querySelectorAll('#ko-sheet .ko-chip').forEach(b => b.classList.toggle('on', b === btn));
+  document.getElementById('ko-key').value = btn.textContent;
+  koOnKeyInput();
+  if(_koHeadAuto && !_koWords[btn.textContent]) koSetHead(koGuessHead(btn.textContent, _koCur && _koCur.eojeol));
+}
+function koOnKeyInput(){
+  const k = document.getElementById('ko-key').value.trim();
+  const ent = _koWords[k];
+  document.querySelectorAll('#ko-sheet .ko-chip').forEach(b => b.classList.toggle('on', b.textContent === k));
+  const sum = document.getElementById('ko-key-sum'); if(sum) sum.textContent = k;
+  if(ent){
+    _koEdit = { ms: koMs(ent), sel: 0 }; koRenderMeans();
+    document.getElementById('ko-memo').value = ent.n || '';
+    koSetHead(koHead(k, ent));
+    _koForms = Array.isArray(ent.ks) ? ent.ks.slice() : []; koRenderForms();
+    const sc = document.getElementById('ko-show'); if(sc) sc.checked = koShowsInText(ent);
+  }
+  document.getElementById('ko-del-btn').style.visibility = ent ? '' : 'hidden';
+}
+function koSaveWord(){
+  const k = document.getElementById('ko-key').value.trim();
+  const n = document.getElementById('ko-memo').value.trim();
+  if(document.getElementById('ko-mean').value.trim()) koAddMeaning(); // 入れたまま保存を押したとき
+  if(!k){ showToast('登録する形を入れてください'); return; }
+  if(!KO_HANGUL.test(k)){ showToast('韓国語の単語を入れてください'); return; }
+  if(!_koEdit.ms.length){ showToast('意味を入れてください'); return; }
+  koLoad();
+  const old = _koWords[k] || {};
+  const isNew = !_koWords[k];
+  const hit = _koCur || {};
+  let ms = _koEdit.ms.slice();
+  // 新しく登録するときは、選んだ意味を「いつもの意味」にする
+  if(isNew || !hit.place){ if(_koEdit.sel > 0){ const [x] = ms.splice(_koEdit.sel, 1); ms.unshift(x); } }
+  const h = ((document.getElementById('ko-headw') || {}).value || '').trim() || k;
+  const show = !!(document.getElementById('ko-show') || { checked: true }).checked;
+  const ks = _koForms.filter(f => f && f !== k);
+  _koWords[k] = Object.assign({}, old, { h, ks, show, m: ms[0].m, ms, n, at: old.at || new Date().toISOString(), ok: old.ok || 0, ng: old.ng || 0, u: new Date().toISOString() });
+  // 同じ見出しの単語がほかにあれば1つにまとめる（例：지었다 と 짓 → 짓다）
+  Object.keys(_koWords).forEach(k2 => {
+    if(k2 === k || koHead(k2) !== h) return;
+    const a = _koWords[k], b = _koWords[k2];
+    a.ks = Array.from(new Set([...(a.ks || []), k2, ...(b.ks || [])])).filter(x => x !== k);
+    koMs(b).forEach(x => { if(!a.ms.some(y => y.m === x.m)) a.ms.push(x); });
+    if((b.reps || 0) > (a.reps || 0)) ['ivl', 'ease', 'reps', 'lapses', 'due'].forEach(f => { if(b[f] != null) a[f] = b[f]; });
+    if(b.at && b.at < a.at) a.at = b.at;
+    if(!a.n && b.n) a.n = b.n;
+    delete _koWords[k2];
+    koMarkDeleted(k2);
+  });
+  // この場所だけ別の意味
+  if(!isNew && hit.place && hit.key === k && state.novel){
+    const sv = state.novel.koSense = state.novel.koSense || {};
+    const chosen = _koEdit.ms[_koEdit.sel];
+    if(chosen && chosen.m !== ms[0].m) sv[hit.place] = chosen.m; else delete sv[hit.place];
+    koPersistNovel();
+  }
+  // 消した意味・いつもと同じ意味を指している場所は、ふつうの表示に戻す
+  if(state.novel && state.novel.koSense){
+    const sv = state.novel.koSense; let ch = false;
+    Object.keys(sv).forEach(pk => { if(pk.split('|')[1] === k && (!ms.some(x => x.m === sv[pk]) || sv[pk] === ms[0].m)){ delete sv[pk]; ch = true; } });
+    if(ch) koPersistNovel();
+  }
+  koUndelete(k);
+  koSaveWords();
+  if(isNew) koStat('w');
+  koCloseSheet();
+  koRerender();
+  if(_koFromFreq){ _koFromFreq = false; setTimeout(openKoFreq, 50); }
+  showToast(isNew && k.length === 1 && show ? `「${h}」を保存（1文字なので、ほかの単語にも付くことがあります）` : `「${h}」を${show ? '保存しました' : '単語帳に保存しました（本文には出しません）'}`);
+}
+function koDeleteWord(){
+  const k = document.getElementById('ko-key').value.trim();
+  if(!_koWords[k]) return;
+  if(!confirm(`「${koHead(k)}」を単語帳から消しますか？`)) return;
+  delete _koWords[k];
+  koMarkDeleted(k);
+  koSaveWords();
+  koCloseSheet();
+  koRerender();
+}
+function koCloseSheet(){
+  const sh = document.getElementById('ko-sheet');
+  if(sh) sh.classList.remove('show');
+  const ov = document.getElementById('ko-sheet-ov');
+  if(ov) ov.classList.remove('show');
+}
+function koOpenDict(){
+  const k = (document.getElementById('ko-key') || {}).value || (_koCur && _koCur.eojeol) || '';
+  window.open('https://ja.dict.naver.com/#/search?range=all&query=' + encodeURIComponent(k), '_blank', 'noopener');
+}
+function koOpenPapago(){
+  const s = (_koCur && _koCur.sentence) || '';
+  window.open('https://papago.naver.com/?sk=ko&tk=ja&st=' + encodeURIComponent(s.slice(0, 1000)), '_blank', 'noopener');
+}
+
+/* ── 文のメモ ── */
+function koOpenNote(hit){
+  if(!hit) return;
+  _koCur = hit;
+  const h = koHash(hit.sentence);
+  const cur = koNotes()[h];
+  const body = document.getElementById('ko-sheet-body');
+  body.innerHTML = `
+    <div class="ko-label" style="margin-top:0">この文</div>
+    <div class="ko-sentence">${escapeHtml(hit.sentence)}</div>
+    <div class="ko-links" style="margin-top:8px">
+      <button onclick="koSpeak(_koCur.sentence)">発音を聞く</button>
+      <button onclick="koOpenPapago()">文を翻訳</button>
+    </div>
+    <div class="ko-label">文のメモ（訳・文法など）</div>
+    <textarea id="ko-note" class="ko-input" rows="4" placeholder="例：〜してしまった（-아/어 버리다）">${escapeHtml(cur ? cur.t : '')}</textarea>
+    <div class="ko-actions">
+      <button class="ko-del" onclick="koDeleteNote()" style="${cur ? '' : 'visibility:hidden'}">削除</button>
+      <button class="ko-cancel" onclick="koCloseSheet()">閉じる</button>
+      <button class="ko-save" onclick="koSaveNote()">保存</button>
+    </div>`;
+  document.getElementById('ko-sheet').classList.add('show');
+  document.getElementById('ko-sheet-ov').classList.add('show');
+}
+function koPersistNovel(){
+  if(!state.novel || !state.currentNovelId) return;
+  state.novel.updatedAt = new Date().toISOString();
+  const idx = state.library.findIndex(n => n.id === state.currentNovelId);
+  if(idx >= 0) state.library[idx].koNotes = JSON.parse(JSON.stringify(state.novel.koNotes || {}));
+  if(idx >= 0) state.library[idx].koTr = JSON.parse(JSON.stringify(state.novel.koTr || {}));
+  if(idx >= 0) state.library[idx].koSense = JSON.parse(JSON.stringify(state.novel.koSense || {}));
+  if(idx >= 0){ if(state.novel.koMode) state.library[idx].koMode = state.novel.koMode; else delete state.library[idx].koMode; }
+  if(idx >= 0) state.library[idx].updatedAt = state.novel.updatedAt;
+  libDbPut(state.novel).catch(e => console.warn('save koNotes failed:', e));
+}
+function koSaveNote(){
+  const t = document.getElementById('ko-note').value.trim();
+  const h = koHash(_koCur.sentence);
+  if(t) koNotes()[h] = { t, s: _koCur.sentence.slice(0, 60), at: new Date().toISOString() };
+  else delete koNotes()[h];
+  koPersistNovel();
+  koCloseSheet();
+  koRerender();
+  showToast(t ? '文のメモを保存しました' : '文のメモを消しました');
+}
+function koDeleteNote(){
+  if(!confirm('この文のメモを消しますか？')) return;
+  delete koNotes()[koHash(_koCur.sentence)];
+  koPersistNovel();
+  koCloseSheet();
+  koRerender();
+}
+
+/* ── 発音（端末の韓国語の声） ── */
+function koSpeak(text, quiet){
+  text = (text || '').trim();
+  if(!text) return;
+  if(!('speechSynthesis' in window)){ showToast('この端末では読み上げが使えません'); return; }
+  try{
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ko-KR';
+    const v = speechSynthesis.getVoices().find(v => /^ko/i.test(v.lang));
+    if(v) u.voice = v;
+    else if(!quiet) showToast('韓国語の声が見つからないので、うまく読めないかもしれません');
+    u.rate = 0.9;
+    speechSynthesis.speak(u);
+  }catch(e){ showToast('読み上げできませんでした'); }
+}
+
+/* ── 読書中のタップ ── */
+function setupKoTap(){
+  const vp = $.viewport;
+  let timer = null, downX = 0, downY = 0;
+  vp.addEventListener('pointerdown', e => { downX = e.clientX; downY = e.clientY; }, true);
+  vp.addEventListener('click', e => {
+    if(state.editMode || !state.currentEpisodeId || !koEnabled()) return;
+    if(Math.abs(e.clientX - downX) > 8 || Math.abs(e.clientY - downY) > 8) return;
+    if(e.target.closest && e.target.closest('button, a, .para-img-wrap')) return;
+    if(hasTextSelection()) return;
+    if(isPcPointer() && edgeZoneAt(e.clientX) !== 0) return; // 端はページ送り
+    const hit = koHitAt(e);
+    if(!hit) return;
+    clearTimeout(timer);
+    // ダブルタップ（編集モードに入る）と区別するため少し待つ
+    timer = setTimeout(() => {
+      if(state.editMode || hasTextSelection()) return;
+      koOpenSheet(hit);
+    }, 300);
+  });
+  vp.addEventListener('dblclick', () => { clearTimeout(timer); koCloseSheet(); });
+  vp.addEventListener('touchend', () => { /* 2回目のタップでenterEditModeが呼ばれたら timer 側で止まる */ }, { passive: true });
+}
+
+/* ── 「한」メニュー ── */
+function openKoMenu(){
+  if(state.editMode){ showToast('編集中は使えません'); return; }
+  const inBook = !!state.currentEpisodeId && koEnabled();
+  koSyncWords().catch(() => {});
+  const cnt = Object.keys(koLoad()).length;
+  const body = document.getElementById('ko-sheet-body');
+  const rc = koReviewCounts();
+  body.innerHTML = `
+    <div class="ko-title">韓国語メモ</div>
+    <button class="ko-review-big" onclick="openKoQuiz()" ${cnt ? '' : 'disabled'}>
+      <span class="t">今日の復習</span>
+      <span class="n">${rc.total ? `${rc.total}枚` : (cnt ? 'おわり' : '単語を登録すると始まります')}</span>
+    </button>
+    ${inBook ? `<button class="ko-menu-item" onclick="koToggleTrOnly()">${koTrMode() === 'only' ? '原文で読む' : '自分の訳で読む'}<span class="ko-mi-sub">${(() => { const pr = koTrProgress(); return pr ? `この話 ${pr.done}/${pr.all}段落` : ''; })()}</span></button>` : ''}
+    ${inBook ? `<button class="ko-menu-item" onclick="openKoFreq()">よく出る未登録の単語<span class="ko-mi-sub">${(() => { const f = koFreqScan(); return f && f.total ? `この話で読める ${Math.round(f.known / f.total * 100)}%` : ''; })()}</span></button>` : ''}
+    <button class="ko-menu-item" onclick="openKoWordList()">単語帳<span class="ko-mi-sub">${cnt}語</span></button>
+    <button class="ko-menu-item" onclick="openKoStats()">学習の記録</button>
+    <button class="ko-menu-item" onclick="openKoSettings()">表示の設定</button>
+    ${inBook ? `<button class="ko-menu-item" onclick="koExportTr()">この話の原文と訳を書き出す</button>
+    <button class="ko-menu-item" onclick="koExportTrOnly()">この話の訳だけを書き出す</button>` : ''}
+    <button class="ko-menu-item" onclick="openKoHelp()">使い方</button>
+    <div class="ko-actions"><span></span><button class="ko-cancel" onclick="koCloseSheet()">閉じる</button></div>`;
+  document.getElementById('ko-sheet').classList.add('show');
+  document.getElementById('ko-sheet-ov').classList.add('show');
+}
+function openKoHelp(){
+  document.getElementById('ko-sheet-body').innerHTML = `
+    <div class="ko-title">使い方</div>
+    <div class="ko-help">
+      <p><b>単語をタップ</b>すると、意味をメモできます。保存した単語は、<b>どの本でも</b>上に小さく意味が出ます。</p>
+      <p>「사람<b>들이</b>」のように後ろに助詞などが付いていても、候補から「사람」を選べば、ほかの形（사람은・사람을…）にも付きます。</p>
+      <p>単語帳には<b>辞書の形</b>（먹다・고맙다）で入ります。本文では、変わらない部分（먹・고맙）で探して意味を付けるので、먹고・먹었다 などにも付きます。探す形は「本文で探す形」を開くと変えられます。</p>
+      <p>「本文に意味を出す」をオフにすると、本文には何も出さず、<b>単語帳と復習だけ</b>に入ります。</p>
+      <p>意味は<b>いくつでも</b>登録できます。登録済みの単語をタップして、●でその場所の意味を選ぶと、<b>その場所だけ</b>別の意味で表示されます（ほかの場所は「いつも」の意味のまま）。</p>
+      <p><b>フレーズ</b>：単語の画面の「＋次の〜とつなげる」で、2語以上をひとまとまりで登録できます（例：고개를 끄덕 → うなずく）。</p>
+      <p><b>よく出る未登録の単語</b>：今の話で、まだ登録していない単語を多い順に出します。上から登録すると早く読めるようになります。</p>
+      <p><b>✎</b>は文のメモがある印です。文のメモは単語の画面の「文にメモ」から。</p>
+      <p><b>自分の訳</b>は「書く」にすると、韓国語の段落の下に入力欄が出ます。書いた訳は「表示」で原文の下に出て、タップでなおせます。</p>
+      <p><b>自分の訳で読む</b>にすると、訳した段落は訳だけで表示されます（段落の位置は原文と同じ）。まだ訳していない段落はうすい原文で出ます。</p>
+      <p>意味を「隠す」にすると、点線の単語だけになります。読みながら思い出すテストに。</p>
+      <p><b>復習</b>はAnkiと同じ考え方です。答えたあと「もう一回／難しい／普通／簡単」を選ぶと、覚えている単語ほど次に出るまでの間隔が伸びます（1日→3日→1週間→…）。毎日「今日の復習」をやるだけでOK。「한」ボタンの数字が今日の残りです。</p>
+      <p>次の復習が3週間以上先になった単語は「覚えた」になり、本文では意味が出なくなります（設定で変えられます）。</p>
+      <p>Googleドライブにログインしていると、単語帳と学習の記録はほかの端末と自動で同期します。</p>
+      <p>辞書の候補は「한국어기초사전」（韓国 国立国語院、CC BY-SA 2.0 KR）の日本語訳です。ウェブ小説の言い回しや固有名詞は載っていないことがあります。</p>
+    </div>
+    <div class="ko-actions"><span></span><button class="ko-cancel" onclick="openKoMenu()">戻る</button></div>`;
+}
+
+/* ── 単語帳 ── */
+function openKoWordList(q){
+  koCloseSheet();
+  koMigrateHeads().then(ch => { if(ch) renderKoWordList(); }).catch(() => {});
+  koSyncWords().then(ch => { if(ch) renderKoWordList(); }).catch(() => {});
+  const ov = document.getElementById('ko-list');
+  ov.classList.add('show');
+  const input = document.getElementById('ko-list-q');
+  if(typeof q === 'string') input.value = q;
+  renderKoWordList();
+}
+function closeKoWordList(){ document.getElementById('ko-list').classList.remove('show'); }
+function renderKoWordList(){
+  const w = koLoad();
+  const q = (document.getElementById('ko-list-q').value || '').trim();
+  let keys = Object.keys(w).sort((a, b) => (w[b].at || '').localeCompare(w[a].at || ''));
+  if(q) keys = keys.filter(k => k.includes(q) || koHead(k, w[k]).includes(q) || koMs(w[k]).some(x => x.m.includes(q)) || (w[k].n || '').includes(q));
+  document.getElementById('ko-list-count').textContent = `${Object.keys(w).length}語`;
+  const box = document.getElementById('ko-list-items');
+  if(!keys.length){ box.innerHTML = `<div class="ko-empty">${Object.keys(w).length ? '見つかりません' : 'まだ単語がありません。<br>読書中に韓国語の単語をタップしてみてください'}</div>`; return; }
+  box.innerHTML = keys.map(k => `
+    <div class="ko-row" onclick="koEditFromList('${encodeURIComponent(k)}')">
+      <div class="ko-row-main"><span class="ko-row-k">${escapeHtml(koHead(k, w[k]))}</span>${koShowsInText(w[k]) ? '' : '<span class="ko-row-off" title="本文には出さない">帳</span>'}<span class="ko-row-m">${escapeHtml(koMs(w[k]).map(x => x.m).join('・'))}</span>${koIsLearned(w[k]) ? '<span class="ko-learned-badge">覚えた</span>' : ''}<span class="ko-row-due">${koIsNewCard(w[k]) ? '新' : (w[k].due <= koDay() ? '今日' : w[k].due.slice(5).replace('-', '/'))}</span></div>
+      ${w[k].n ? `<div class="ko-row-n">${escapeHtml(w[k].n)}</div>` : ''}
+    </div>`).join('');
+}
+function koEditFromList(enc){
+  const k = decodeURIComponent(enc);
+  koOpenSheet({ type: 'word', key: k, eojeol: k, sentence: '', pi: -1, qi: -1 });
+}
+function koExportWords(){
+  const data = { app: 'ikasumi-ko-words', version: 1, words: koLoad(), exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ikasumi-ko-words-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+function koImportWords(input){
+  const f = input.files && input.files[0];
+  input.value = '';
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const d = JSON.parse(r.result);
+      const src = d && d.words && typeof d.words === 'object' ? d.words : null;
+      if(!src) throw new Error('bad');
+      koLoad();
+      let add = 0, upd = 0;
+      Object.entries(src).forEach(([k, v]) => {
+        if(!k || !v || typeof v.m !== 'string' || !KO_HANGUL.test(k)) return;
+        if(_koWords[k]) upd++; else add++;
+        _koWords[k] = Object.assign({}, v, { m: v.m, n: v.n || '', at: v.at || new Date().toISOString(), u: new Date().toISOString() });
+        koUndelete(k);
+      });
+      koSaveWords(); renderKoWordList(); koRerender();
+      showToast(`追加${add}語・上書き${upd}語`);
+    }catch(_){ showToast('単語帳のファイルではありません'); }
+  };
+  r.readAsText(f);
+}
+
+/* ── 復習（Ankiのような間隔反復） ──
+   答えるたびに次に出す日を決める。覚えているほど間隔が伸びる（1日→3日→1週間→…）。
+   その日に出す単語（期限が来た単語）＋ 新しい単語を1日○語まで。 */
+const KO_NEW_PER_DAY_LS = LS_PREFIX + 'ko-new-per-day';
+function koNewPerDay(){ return parseInt(localStorage.getItem(KO_NEW_PER_DAY_LS) || '10', 10); }
+function koSetNewPerDay(n){ try{ localStorage.setItem(KO_NEW_PER_DAY_LS, String(n)); }catch(_){} }
+function koAddDays(day, n){ const d = new Date(day + 'T00:00:00'); d.setDate(d.getDate() + n); return koDay(d); }
+function koIsNewCard(e){ return !e.reps && !e.due; }
+function koNewToday(){ const r = (koStatsByDay()[koDay()] || {}); return r.n || 0; }
+function koDueKeys(){
+  const w = koLoad(), today = koDay();
+  return Object.keys(w).filter(k => !koIsNewCard(w[k]) && w[k].due <= today).sort((a, b) => w[a].due.localeCompare(w[b].due));
+}
+function koNewKeys(){
+  const w = koLoad();
+  return Object.keys(w).filter(k => koIsNewCard(w[k])).sort((a, b) => (w[a].at || '').localeCompare(w[b].at || ''));
+}
+function koReviewCounts(){
+  const due = koDueKeys().length;
+  const newLeft = Math.max(0, Math.min(koNewKeys().length, koNewPerDay() - koNewToday()));
+  return { due, newLeft, total: due + newLeft };
+}
+// 4つのボタンそれぞれで、次の間隔（日）を計算
+function koSchedule(e, grade){ // grade: 1もう一回 2難しい 3普通 4簡単
+  const ease = e.ease || 2.5, ivl = e.ivl || 0;
+  let nIvl, nEase = ease;
+  if(!e.reps){ // はじめて
+    nIvl = { 1: 0, 2: 1, 3: 1, 4: 4 }[grade];
+  }else if(grade === 1){
+    nIvl = 0; nEase = Math.max(1.3, ease - 0.2);
+  }else if(grade === 2){
+    nIvl = Math.max(ivl + 1, Math.round(ivl * 1.2)); nEase = Math.max(1.3, ease - 0.15);
+  }else if(grade === 3){
+    nIvl = Math.max(ivl + 1, Math.round(ivl * ease));
+  }else{
+    nIvl = Math.max(ivl + 2, Math.round(ivl * ease * 1.3)); nEase = ease + 0.15;
+  }
+  return { ivl: nIvl, ease: Math.round(nEase * 100) / 100 };
+}
+function koIvlLabel(d){
+  if(d <= 0) return 'すぐ';
+  if(d < 30) return d + '日';
+  if(d < 365) return Math.round(d / 30) + 'か月';
+  return (Math.round(d / 36.5) / 10) + '年';
+}
+const KO_DIR_LS = LS_PREFIX + 'ko-card-dir';
+function koCardDir(){ return localStorage.getItem(KO_DIR_LS) || 'ko'; } // ko 韓→日 / ja 日→韓 / mix 両方
+function koSetCardDir(v){ try{ localStorage.setItem(KO_DIR_LS, v); }catch(_){} }
+let _koQuiz = null;
+function openKoQuiz(opts){
+  opts = opts || {};
+  if(!opts._m && Object.values(koLoad()).some(e => !e.h)){
+    const o = Object.assign({}, opts, { _m: 1 });
+    koMigrateHeads().catch(() => {}).then(() => openKoQuiz(o));
+    return;
+  }
+  const w = koLoad();
+  if(!Object.keys(w).length){ showToast('まだ単語がありません'); return; }
+  let keys;
+  if(opts.all){
+    // 期限に関係なく、全部から（間隔は変えない練習）
+    keys = Object.keys(w).sort(() => Math.random() - 0.5).slice(0, 20);
+  }else{
+    const due = koDueKeys();
+    const newK = koNewKeys().slice(0, Math.max(0, koNewPerDay() - koNewToday()));
+    keys = due.concat(newK);
+    // 新しい単語は復習の間にちらばせる
+    if(newK.length && due.length){
+      keys = due.slice();
+      newK.forEach((k, i) => keys.splice(Math.min(keys.length, Math.round((i + 1) * due.length / (newK.length + 1)) + i), 0, k));
+    }
+  }
+  koCloseSheet(); closeKoWordList();
+  if(!keys.length){ koQuizDone({ none: true }); return; }
+  _koQuiz = { keys, i: 0, done: 0, again: 0, practice: !!opts.all, dirs: {} };
+  koQuizShow(false);
+}
+function koQuizDone(o){
+  const body = document.getElementById('ko-sheet-body');
+  const w = koLoad(), today = koDay();
+  const tomorrow = Object.values(w).filter(e => !koIsNewCard(e) && e.due <= koAddDays(today, 1)).length;
+  body.innerHTML = `<div class="ko-title">${o && o.none ? '今日の復習はありません' : 'おつかれさま！'}</div>
+    <div class="ko-quiz-res">${o && o.none ? '新しい単語を登録するか、明日また来てね' : `${_koQuiz.done}枚 復習しました`}</div>
+    <div class="ko-quiz-sub">明日の復習：${tomorrow}枚</div>
+    <div class="ko-actions"><button class="ko-cancel" onclick="openKoQuiz({all:true})" style="background:none;color:#007070;padding-left:0">期限に関係なく練習</button><button class="ko-save" onclick="koCloseSheet()">閉じる</button></div>`;
+  document.getElementById('ko-sheet').classList.add('show');
+  document.getElementById('ko-sheet-ov').classList.add('show');
+  koUpdateBadge();
+}
+function koQuizShow(reveal){
+  const q = _koQuiz, w = koLoad();
+  if(q.i >= q.keys.length){ koQuizDone(); return; }
+  const k = q.keys[q.i], e = w[k];
+  if(!e){ q.i++; koQuizShow(false); return; }
+  const cd = koCardDir();
+  q.dirs = q.dirs || {};
+  if(q.dirs[q.i] == null) q.dirs[q.i] = cd === 'mix' ? (Math.random() < 0.5 ? 'ko' : 'ja') : cd;
+  const dir = q.dirs[q.i];
+  const body = document.getElementById('ko-sheet-body');
+  const left = q.keys.length - q.i;
+  const tag = q.practice ? '練習' : (koIsNewCard(e) ? '<span class="ko-tag new">新しい単語</span>' : '<span class="ko-tag">復習</span>');
+  const btns = [1, 2, 3, 4].map(g => {
+    const iv = q.practice ? null : koSchedule(e, g).ivl;
+    const name = { 1: 'もう一回', 2: '難しい', 3: '普通', 4: '簡単' }[g];
+    return `<button class="ko-grade g${g}" onclick="koQuizAnswer(${g})"><span>${name}</span>${iv == null ? '' : `<small>${koIvlLabel(iv)}</small>`}</button>`;
+  }).join('');
+  body.innerHTML = `
+    <div class="ko-quiz-top"><span>${tag}</span><span>のこり ${left}</span></div>
+    ${dir === 'ja'
+      ? `<div class="ko-quiz-k ja">${koMs(e).map(x => escapeHtml(x.m)).join('<span class="ko-dict-sep">／</span>')}</div>
+         <div class="ko-quiz-m">${reveal ? `<div class="ko-quiz-ans" onclick="koSpeak('${koHead(k, e).replace(/'/g, '')}')">${escapeHtml(koHead(k, e))}</div>` + koQuizBack(k, e, true) : '<span class="ko-quiz-hint">韓国語で言うと？</span>'}</div>`
+      : `<div class="ko-quiz-k" onclick="koSpeak('${koHead(k, e).replace(/'/g, '')}')">${escapeHtml(koHead(k, e))}</div>
+         <div class="ko-quiz-m">${reveal ? koQuizBack(k, e) : ''}</div>`}
+    ${reveal
+      ? `<div class="ko-grades">${btns}</div>`
+      : `<div class="ko-actions"><button class="ko-cancel" onclick="koCloseSheet();koUpdateBadge()">やめる</button><button class="ko-save" onclick="koQuizShow(true)">答えを見る</button></div>`}`;
+  document.getElementById('ko-sheet').classList.add('show');
+  document.getElementById('ko-sheet-ov').classList.add('show');
+  if(dir === 'ko' ? !reveal : reveal) koSpeak(koHead(k, e), true);
+}
+function koQuizAnswer(grade){
+  const q = _koQuiz, w = koLoad(), k = q.keys[q.i];
+  const e = w[k];
+  if(e){
+    const wasLearned = koIsLearned(e);
+    if(!q.practice){
+      const wasNew = koIsNewCard(e);
+      const sc = koSchedule(e, grade);
+      e.ivl = sc.ivl; e.ease = sc.ease;
+      e.reps = (e.reps || 0) + 1;
+      if(grade === 1 && !wasNew) e.lapses = (e.lapses || 0) + 1;
+      e.due = koAddDays(koDay(), sc.ivl);
+      if(grade >= 3) e.ok = (e.ok || 0) + 1; else if(grade === 1) e.ng = (e.ng || 0) + 1;
+      if(wasNew) koStat('n');
+    }
+    e.u = new Date().toISOString();
+    koSaveWords();
+    koStat('r');
+    if(wasLearned !== koIsLearned(e)) koRerender();
+  }
+  q.done++;
+  // 「もう一回」は少しあとにもう一度出す
+  if(grade === 1) q.keys.splice(Math.min(q.keys.length, q.i + 4), 0, k);
+  q.i++;
+  koQuizShow(false);
+}
+// 「한」ボタンに今日の復習の数
+function koUpdateBadge(){
+  try{ koUpdateLibReview(); }catch(_){}
+  const btn = document.getElementById('topbar-ko');
+  if(!btn) return;
+  const n = koReviewCounts().total;
+  let b = btn.querySelector('.ko-badge');
+  if(!n){ if(b) b.remove(); return; }
+  if(!b){ b = document.createElement('span'); b.className = 'ko-badge'; btn.appendChild(b); }
+  b.textContent = n > 99 ? '99+' : n;
+}
+
+/* ══════ 辞書（한국어기초사전・国立国語院 CC BY-SA 2.0 KR）══════ */
+const KO_DICT_URL = 'krdict-ja.json';
+const KO_DICT_VER = 'v1';
+let _koDict = null, _koDictLoading = null;
+function koDictIdb(){
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(LS_PREFIX + 'krdict', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('d');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function koDictLoad(){
+  if(_koDict) return _koDict;
+  if(_koDictLoading) return _koDictLoading;
+  _koDictLoading = (async () => {
+    let txt = null;
+    try{
+      const db = await koDictIdb();
+      txt = await new Promise(res => { const q = db.transaction('d').objectStore('d').get(KO_DICT_VER); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); });
+    }catch(_){}
+    if(!txt){
+      let r = await fetch(KO_DICT_URL).catch(() => null);
+      if((!r || !r.ok) && !KO_IS_BETA2) r = await fetch('beta2/' + KO_DICT_URL).catch(() => null);
+      if(!r || !r.ok) throw new Error('dict ' + (r ? r.status : 'network'));
+      txt = await r.text();
+      try{ const db = await koDictIdb(); db.transaction('d', 'readwrite').objectStore('d').put(txt, KO_DICT_VER); }catch(_){}
+    }
+    _koDict = JSON.parse(txt).d;
+    return _koDict;
+  })();
+  try{ return await _koDictLoading; } finally { _koDictLoading = null; }
+}
+// 「たべる【食べる】。くう【食う・喰う】」→「食べる・食う」
+function koJaShort(s){
+  return String(s || '').split('。').map(p => {
+    p = p.trim();
+    const m = p.match(/【([^】]+)】/);
+    return m ? m[1].split('・')[0] : p;
+  }).filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).slice(0, 3).join('・');
+}
+/* ハングルの分解・組み立て */
+function koDec(ch){
+  const c = ch.charCodeAt(0) - 0xAC00;
+  if(c < 0 || c > 11171) return null;
+  return { L: Math.floor(c / 588), V: Math.floor((c % 588) / 28), T: c % 28 };
+}
+function koCmp(L, V, T){ return String.fromCharCode(0xAC00 + L * 588 + V * 28 + T); }
+// 活用した形から、辞書の見出し（〜다）の候補を作る → [{c: 見出し候補, n: 本文で使った文字数}]
+function koLemmaCandsN(w){
+  const out = [], seen = new Set();
+  const add = (x, n) => { if(x && !seen.has(x)){ seen.add(x); out.push({ c: x, n }); } };
+  for(let n = w.length; n >= 1; n--){
+    const p = w.slice(0, n);
+    add(p, n); add(p + '다', n);
+    const base = p.slice(0, -1), d = koDec(p[n - 1]);
+    if(!d) continue;
+    const forms = [p];
+    if([4, 8, 16, 17, 20].includes(d.T)) forms.push(base + koCmp(d.L, d.V, 0)); // 받침を外す（갔→가 한→하 할→하 합→하）
+    if(d.T === 8) forms.push(base + koCmp(d.L, d.V, 7));                         // ㄷ不規則（들→듣）
+    forms.forEach(f => {
+      const fb = f.slice(0, -1), fd = koDec(f[f.length - 1]);
+      add(f + '다', n);
+      if(!fd || fd.T) return;
+      const V2 = { 9: 8, 14: 13, 6: 20, 10: 11, 15: 16 }[fd.V];               // 와→오 워→우 여→이 왜→외 웨→위
+      if(V2 != null) add(fb + koCmp(fd.L, V2, 0) + '다', n);
+      if(fd.L === 18 && fd.V === 1) add(fb + koCmp(18, 0, 0) + '다', n);       // 해→하
+      if(fd.V === 4 || fd.V === 0) add(fb + koCmp(fd.L, 18, 0) + '다', n);     // 써→쓰 예뻐→예쁘
+      add(fb + koCmp(fd.L, fd.V, 19) + '다', n);                               // ㅅ不規則（지어→짓）
+      if(fd.L === 11 && (fd.V === 14 || fd.V === 13) && fb){                   // ㅂ不規則（고마워・고마운→고맙）
+        const pd = koDec(fb[fb.length - 1]);
+        if(pd && !pd.T) add(fb.slice(0, -1) + koCmp(pd.L, pd.V, 17) + '다', n - 1);
+      }
+    });
+  }
+  return out;
+}
+function koLemmaCands(w){ return koLemmaCandsN(w).map(x => x.c); }
+const KO_FUNC_POS = ['助', '語尾', '接'];
+const KO_VERB_REST = ['어','아','여','었','았','였','고','는','은','을','게','지','다','며','면','서','니','기','음','자','도','요','세','시','습','겠','던','든','라','러','려','네','나','냐','죠','군','구','ㄴ','ㄹ','ㅂ'];
+const KO_COPULA = ['이다','이었다','였다','이야','야','이고','인','이라','이라고','이었','였','이지','이죠','이에요','예요','입니다'];
+function koRestFits(rest, verb){
+  if(!rest) return true;
+  if(verb) return KO_VERB_REST.some(e => rest.startsWith(e));
+  const r = rest.startsWith('들') ? rest.slice(1) : rest;
+  return !r || KO_PARTICLES.includes(r) || KO_COPULA.includes(r) || KO_PARTICLES.some(a => r.startsWith(a) && KO_PARTICLES.includes(r.slice(a.length)));
+}
+const KO_LV_ORDER = { 1: 0, 2: 1, 3: 2, 0: 3 };
+// 辞書で引けた候補（本文に合う長いもの順・助詞などは単語そのものの時だけ）
+function koDictLookup(eojeol){
+  if(!_koDict) return [];
+  const res = [];
+  for(const { c, n } of koLemmaCandsN(eojeol)){
+    const ents = _koDict[c];
+    if(!ents) continue;
+    const useful = ents.map((e, i) => { const x = e.slice(); x.i = i; return x; })
+      .filter(e => !KO_FUNC_POS.includes(e[0]) || c === eojeol)
+      .sort((a, b) => (KO_LV_ORDER[a[3] || 0]) - (KO_LV_ORDER[b[3] || 0]));
+    if(!useful.length) continue;
+    const verb = c.endsWith('다') && useful.some(e => /^(動|形|補動|補形)$/.test(e[0]));
+    const fit = koRestFits(eojeol.slice(n), verb) ? 1 : 0;
+    res.push({ head: c, ents: useful, n, fit });
+  }
+  res.sort((a, b) => b.n - a.n || b.fit - a.fit);
+  const anyFit = res.some(r => r.fit);
+  let list = anyFit ? res.filter(r => r.fit) : res;
+  const hasLong = list.some(r => r.n >= 2);
+  if(hasLong) list = list.filter(r => r.n >= 2);
+  return list.slice(0, 4);
+}
+// 辞書の見出しから、本文に付ける形（語幹）を決める
+function koKeyFromHead(head, pos, eojeol){
+  if(/^(動|形|補動|補形)$/.test(pos) && head.endsWith('다') && head.length > 1){
+    const stem = head.slice(0, -1);
+    // 不規則で形が変わるとき（짓다→지었다 など）は、この形のまま登録
+    return eojeol.startsWith(stem) ? stem : eojeol;
+  }
+  return eojeol.startsWith(head) ? head : null;
+}
+async function koFillDict(hit, addMode){
+  const box = document.getElementById('ko-dict');
+  if(!box) return;
+  if(!_koDict){
+    box.innerHTML = '<div class="ko-dict-msg">辞書を読み込み中…（初回だけ少しかかります）</div>';
+    try{ await koDictLoad(); }
+    catch(e){ box.innerHTML = '<div class="ko-dict-msg">辞書を読み込めませんでした</div>'; return; }
+    if(_koCur !== hit) return;
+  }
+  const found = koDictLookup(hit.eojeol);
+  if(!found.length && _koHeadAuto && !addMode){ const kk = (document.getElementById('ko-key') || {}).value; if(kk) koSetHead(koGuessHead(kk, hit.eojeol)); }
+  if(!found.length){ box.innerHTML = '<div class="ko-dict-msg">辞書に見つかりませんでした。下の「辞書で調べる」でNaverを開けます</div>'; return; }
+  window._koDictRows = [];
+  let shown = 0;
+  box.innerHTML = found.map(f => f.ents.slice(0, 3).filter(() => shown++ < 5).map(e => {
+    const i = window._koDictRows.push({ head: f.head, pos: e[0], ja: e[1], hanja: e[2] || '', idx: e.i }) - 1;
+    return `<button class="ko-dict-row" onclick="koPickDict(${i})">
+      <span class="ko-dict-h">${escapeHtml(f.head)}${e[2] ? `<small>${escapeHtml(e[2])}</small>` : ''}</span>
+      ${e[0] ? `<span class="ko-dict-pos">${escapeHtml(e[0])}</span>` : ''}
+      <span class="ko-dict-ja">${e[1].map(s => escapeHtml(koJaShort(s))).filter(Boolean).slice(0, 3).join('<span class="ko-dict-sep">／</span>')}</span>
+    </button>`;
+  }).join('')).join('');
+  // まだ意味が空なら、いちばん上の候補を入れておく
+  if(!addMode && !_koEdit.ms.length && window._koDictRows[0]){
+    const r = window._koDictRows[0];
+    koAddMeaning(koJaShort(r.ja[0]).split('・').slice(0, 2).join('・'));
+    _koEdit._auto = true;
+    const first = box.querySelector('.ko-dict-row'); if(first) first.classList.add('on');
+    koShowExamples(r);
+    const k = koKeyFromHead(r.head, r.pos, hit.eojeol);
+    if(k && !hit.key) koSetKey(k);
+    if(_koHeadAuto) koSetHead(r.head);
+  }
+}
+function koSetKey(k){
+  document.getElementById('ko-key').value = k;
+  const sum = document.getElementById('ko-key-sum'); if(sum) sum.textContent = k;
+  if(![...document.querySelectorAll('#ko-sheet .ko-chip')].some(b => b.textContent === k)){
+    const wrap = document.querySelector('#ko-sheet .ko-chips');
+    const b = document.createElement('button');
+    b.className = 'ko-chip'; b.textContent = k; b.onclick = () => koPickKey(b);
+    wrap.appendChild(b);
+  }
+  document.querySelectorAll('#ko-sheet .ko-chip').forEach(b => b.classList.toggle('on', b.textContent === k));
+  document.getElementById('ko-del-btn').style.visibility = _koWords[k] ? '' : 'hidden';
+}
+function koPickDict(i){
+  const r = window._koDictRows[i];
+  if(!r) return;
+  document.querySelectorAll('#ko-dict .ko-dict-row').forEach((b, j) => b.classList.toggle('on', j === i));
+  const m = koJaShort(r.ja[0]).split('・').slice(0, 2).join('・');
+  // 新しい単語で、自動で入れた候補しかないなら入れ替え。それ以外は意味を足す
+  if(!_koWords[(document.getElementById('ko-key') || {}).value] && _koEdit.ms.length === 1 && _koEdit._auto) _koEdit.ms = [];
+  koAddMeaning(m);
+  _koEdit._auto = false;
+  const memo = document.getElementById('ko-memo');
+  if(memo && !memo.value) memo.value = r.head + (r.hanja ? `（${r.hanja}）` : '') + (r.pos ? ` ${r.pos}` : '');
+  const k = _koCur && koKeyFromHead(r.head, r.pos, _koCur.eojeol);
+  if(k) koSetKey(k);
+  koSetHead(r.head);
+  _koHeadAuto = false;
+  // 不規則（짓다→지었다）なら、辞書の形の語幹も「ほかの形」に
+  if(/다$/.test(r.head) && /^(動|形|補動|補形)$/.test(r.pos)){
+    const stem = r.head.slice(0, -1), key = document.getElementById('ko-key').value.trim();
+    if(stem !== key && !_koForms.includes(stem) && !stem.startsWith(key)) { _koForms.push(stem); koRenderForms(); }
+  }
+  koShowExamples(r);
+}
+
+
+/* ══════ 自分の訳（段落の下に書く） ══════ */
+function koTrs(){
+  if(!state.novel) return {};
+  if(!state.novel.koTr || typeof state.novel.koTr !== 'object') state.novel.koTr = {};
+  return state.novel.koTr;
+}
+let _koTrTimer = null;
+function koTrSaveSoon(){
+  clearTimeout(_koTrTimer);
+  _koTrTimer = setTimeout(koPersistNovel, 600);
+}
+function koTrSet(h, text){
+  text = (text || '').replace(/\s+$/, '');
+  const had = !!koTrs()[h];
+  if(text) koTrs()[h] = text; else delete koTrs()[h];
+  if(text && !had) koStat('t');
+}
+function koAutoGrow(ta){ ta.style.height = 'auto'; ta.style.height = (ta.scrollHeight + 2) + 'px'; }
+// 閲覧中のページに、段落ごとの訳の欄（または書いた訳）を差し込む
+function koDecoratePage(pageEl, pi){
+  if(state.editMode || !pageEl || !state.novel || !koEnabled()) return;
+  const mode = koTrMode();
+  if(mode === 'off' || mode === 'only') return;
+  const trs = state.novel.koTr || {};
+  pageEl.querySelectorAll('p[data-qi][data-type="text"]').forEach(p => {
+    const para = state.pages[pi] && state.pages[pi].paras[parseInt(p.dataset.qi, 10)];
+    if(!para) return;
+    const plain = koParaPlain(para);
+    if(!KO_HANGUL.test(plain)) return;
+    const h = koHash(plain);
+    const tr = trs[h] || '';
+    if(mode === 'show' && !tr) return;
+    const box = document.createElement('div');
+    box.className = 'ko-tr' + (mode === 'write' ? ' write' : '');
+    box.contentEditable = 'false';
+    box.dataset.h = h;
+    box.style.textAlign = p.style.textAlign || '';
+    // 訳の欄での入力・タップが本文（編集の仕組み）に伝わらないようにする
+    ['input', 'beforeinput', 'keydown', 'keyup', 'keypress', 'paste', 'cut', 'compositionstart', 'compositionupdate', 'compositionend', 'click', 'dblclick']
+      .forEach(ev => box.addEventListener(ev, e => e.stopPropagation()));
+    if(mode === 'write'){
+      const ta = document.createElement('textarea');
+      ta.className = 'ko-tr-input';
+      ta.rows = 1;
+      ta.placeholder = '訳を書く…';
+      ta.value = tr;
+      ta.addEventListener('input', () => { koAutoGrow(ta); koTrSet(h, ta.value); koTrSaveSoon(); });
+      ta.addEventListener('blur', () => { koTrSet(h, ta.value); koPersistNovel(); });
+      ta.addEventListener('keydown', e => e.stopPropagation());
+      box.appendChild(ta);
+      requestAnimationFrame(() => koAutoGrow(ta));
+    }else{
+      box.textContent = tr;
+      box.title = 'タップでなおす';
+      box.addEventListener('click', () => koOpenTrSheet(h, plain));
+    }
+    p.after(box);
+  });
+}
+function koOpenTrSheet(h, plain){
+  const body = document.getElementById('ko-sheet-body');
+  body.innerHTML = `
+    <div class="ko-label" style="margin-top:0">原文</div>
+    <div class="ko-sentence">${escapeHtml(plain)}</div>
+    <div class="ko-label">自分の訳</div>
+    <textarea id="ko-tr-edit" class="ko-input" rows="4">${escapeHtml(koTrs()[h] || '')}</textarea>
+    <div class="ko-actions">
+      <button class="ko-del" onclick="koTrSet('${h}','');koPersistNovel();koCloseSheet();koRerender();">削除</button>
+      <button class="ko-cancel" onclick="koCloseSheet()">閉じる</button>
+      <button class="ko-save" onclick="koTrSet('${h}',document.getElementById('ko-tr-edit').value);koPersistNovel();koCloseSheet();koRerender();">保存</button>
+    </div>`;
+  document.getElementById('ko-sheet').classList.add('show');
+  document.getElementById('ko-sheet-ov').classList.add('show');
+}
+// この話で訳を書いた段落の数
+function koTrProgress(){
+  if(!state.pages || !state.novel) return null;
+  const trs = state.novel.koTr || {};
+  let all = 0, done = 0;
+  state.pages.forEach(pg => (pg.paras || []).forEach(para => {
+    if(para.type !== 'text') return;
+    const plain = koParaPlain(para);
+    if(!KO_HANGUL.test(plain)) return;
+    all++; if(trs[koHash(plain)]) done++;
+  }));
+  return all ? { all, done } : null;
+}
+// 訳を書いた文をまとめて書き出す（原文と訳を交互に）
+function koExportTr(){
+  const ep = state.novel && state.novel.episodes.find(e => e.id === state.currentEpisodeId);
+  if(!ep) return;
+  const trs = state.novel.koTr || {};
+  const lines = [];
+  state.pages.forEach(pg => (pg.paras || []).forEach(para => {
+    if(para.type !== 'text') return;
+    const plain = koParaPlain(para);
+    if(!plain.trim()) return;
+    lines.push(plain);
+    const t = trs[koHash(plain)];
+    if(t) lines.push('→ ' + t);
+    lines.push('');
+  }));
+  const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (ep.title || '訳') + '_自分の訳.txt';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+function koUnlearn(){
+  const k = document.getElementById('ko-key').value.trim();
+  if(!_koWords[k]) return;
+  Object.assign(_koWords[k], { ivl: 1, due: koAddDays(koDay(), 1), u: new Date().toISOString() });
+  koSaveWords(); koRerender();
+  const row = document.querySelector('#ko-sheet .ko-learned-row'); if(row) row.remove();
+  showToast('本文に意味を出すようにしました');
+}
+
+
+/* ══════ 辞書の例文（8個に分けて、必要な分だけ読む） ══════ */
+const KO_EX_N = 8;
+const _koEx = {};
+function koExShard(w){ let h = 0; for(const ch of w) h = (Math.imul(h, 31) + ch.codePointAt(0)) >>> 0; return (h % 1009) % KO_EX_N; }
+async function koExLoad(head){
+  const n = koExShard(head);
+  if(_koEx[n]) return _koEx[n];
+  let txt = null;
+  try{
+    const db = await koDictIdb();
+    txt = await new Promise(res => { const q = db.transaction('d').objectStore('d').get('ex' + n); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); });
+  }catch(_){}
+  if(!txt){
+    let r = await fetch('krdict-ex/' + n + '.json').catch(() => null);
+    if((!r || !r.ok) && !KO_IS_BETA2) r = await fetch('beta2/krdict-ex/' + n + '.json').catch(() => null);
+    if(!r || !r.ok) throw new Error('ex ' + (r ? r.status : 'network'));
+    txt = await r.text();
+    try{ const db = await koDictIdb(); db.transaction('d', 'readwrite').objectStore('d').put(txt, 'ex' + n); }catch(_){}
+  }
+  _koEx[n] = JSON.parse(txt);
+  return _koEx[n];
+}
+async function koShowExamples(r){
+  const box = document.getElementById('ko-ex');
+  if(!box || !r) return;
+  box.innerHTML = '';
+  let list = [];
+  try{ const sh = await koExLoad(r.head); list = ((sh[r.head] || [])[r.idx]) || []; }catch(_){ return; }
+  if(document.getElementById('ko-ex') !== box) return;
+  if(!list.length){ box.innerHTML = ''; return; }
+  box.innerHTML = '<div class="ko-label">例文（タップで発音）</div>' + list.map(t =>
+    `<button class="ko-ex-row" onclick="koSpeak(this.textContent)">${escapeHtml(t)}</button>`).join('');
+}
+
+/* ══════ 学習の記録（端末ごとに日別で数える → 同期で合わせる） ══════ */
+const KO_STATS_LS = LS_PREFIX + 'ko-stats';
+function koDeviceId(){
+  const k = LS_PREFIX + 'device-id';
+  let d = localStorage.getItem(k);
+  if(!d){ d = Math.random().toString(36).slice(2) + Date.now().toString(36); try{ localStorage.setItem(k, d); }catch(_){} }
+  return d;
+}
+function koStats(){ try{ return JSON.parse(localStorage.getItem(KO_STATS_LS) || '{}') || {}; }catch(_){ return {}; } }
+function koDay(d){ d = d || new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function koStat(field){
+  const all = koStats(), dev = koDeviceId(), day = koDay();
+  all[dev] = all[dev] || {};
+  const rec = all[dev][day] = all[dev][day] || {};
+  rec[field] = (rec[field] || 0) + 1;
+  try{ localStorage.setItem(KO_STATS_LS, JSON.stringify(all)); }catch(_){}
+  koSyncSoon();
+}
+function koStatsByDay(){
+  const all = koStats(), out = {};
+  Object.values(all).forEach(days => Object.entries(days || {}).forEach(([day, r]) => {
+    const o = out[day] = out[day] || { w: 0, r: 0, t: 0, n: 0 };
+    o.w += r.w || 0; o.r += r.r || 0; o.t += r.t || 0; o.n += r.n || 0;
+  }));
+  return out;
+}
+function koBarChart(title, days, field, unit){
+  const vals = days.map(d => d.v[field] || 0);
+  const max = Math.max(1, ...vals);
+  const sum = vals.reduce((a, b) => a + b, 0);
+  return `<div class="ko-chart">
+    <div class="ko-chart-h"><span>${title}</span><span class="ko-chart-sum">14日で ${sum}${unit}</span></div>
+    <div class="ko-chart-plot">
+      <div class="ko-chart-grid"></div>
+      ${days.map((d, i) => `<div class="ko-chart-col" title="${d.label}：${vals[i]}${unit}" onclick="this.parentNode.querySelectorAll('.ko-chart-col').forEach(c=>c.classList.remove('sel'));this.classList.add('sel')">
+        <span class="ko-chart-val">${vals[i]}</span>
+        <div class="ko-chart-bar" style="height:${vals[i] ? Math.max(4, Math.round(vals[i] / max * 100)) : 0}%"></div>
+      </div>`).join('')}
+    </div>
+    <div class="ko-chart-x">${days.map((d, i) => `<span>${i % 2 === 0 || i === days.length - 1 ? d.short : ''}</span>`).join('')}</div>
+  </div>`;
+}
+function openKoStats(){
+  const byDay = koStatsByDay();
+  const days = [];
+  for(let i = 13; i >= 0; i--){
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const key = koDay(d);
+    days.push({ key, v: byDay[key] || {}, label: `${d.getMonth() + 1}/${d.getDate()}`, short: `${d.getMonth() + 1}/${d.getDate()}` });
+  }
+  const w = koLoad();
+  const total = Object.keys(w).length, learned = Object.values(w).filter(koIsLearned).length;
+  let trs = 0; (state.library || []).forEach(n => { trs += Object.keys(n.koTr || {}).length; });
+  if(state.novel && state.novel.koTr){ const idx = (state.library || []).findIndex(n => n.id === state.currentNovelId); if(idx < 0) trs += Object.keys(state.novel.koTr).length; }
+  // 続けた日数（今日か昨日から、さかのぼって何か記録がある日）
+  let streak = 0;
+  for(let i = 0; i < 400; i++){
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const v = byDay[koDay(d)];
+    const any = v && (v.w || v.r || v.t);
+    if(any) streak++; else if(i > 0) break;
+  }
+  document.getElementById('ko-sheet-body').innerHTML = `
+    <div class="ko-title">学習の記録</div>
+    <div class="ko-tiles">
+      <div class="ko-tile"><div class="ko-tile-v">${total}</div><div class="ko-tile-l">登録した単語</div></div>
+      <div class="ko-tile"><div class="ko-tile-v">${learned}</div><div class="ko-tile-l">覚えた単語</div></div>
+      <div class="ko-tile"><div class="ko-tile-v">${trs}</div><div class="ko-tile-l">訳した段落</div></div>
+      <div class="ko-tile"><div class="ko-tile-v">${streak}<small>日</small></div><div class="ko-tile-l">続けている</div></div>
+    </div>
+    ${koBarChart('登録した単語', days, 'w', '語')}
+    ${koBarChart('訳した段落', days, 't', '段落')}
+    ${koBarChart('復習した回数', days, 'r', '回')}
+    <div class="ko-actions"><span></span><button class="ko-cancel" onclick="openKoMenu()">戻る</button></div>`;
+  document.getElementById('ko-sheet').classList.add('show');
+  document.getElementById('ko-sheet-ov').classList.add('show');
+}
+
+/* ══════ 単語帳・記録をGoogleドライブで同期（本のデータとは別の小さいファイル） ══════ */
+const KO_IS_BETA2 = typeof IS_BETA2 !== 'undefined' && IS_BETA2;
+const KO_SYNC_FILE = KO_IS_BETA2 ? 'ko-data-beta2.json' : 'ko-data.json';
+let _koSyncTimer = null, _koSyncing = null;
+function koSyncSoon(){
+  if(typeof gdriveIsSignedIn !== 'function' || !gdriveIsSignedIn()) return;
+  clearTimeout(_koSyncTimer);
+  _koSyncTimer = setTimeout(() => { koSyncWords().catch(e => console.warn('ko sync', e)); }, 5000);
+}
+function koMergeData(local, remote){
+  const words = {}, del = {};
+  const t = x => (x && (x.u || x.at)) || '';
+  Object.entries(remote.del || {}).forEach(([k, v]) => { if(!del[k] || v > del[k]) del[k] = v; });
+  Object.entries(local.del || {}).forEach(([k, v]) => { if(!del[k] || v > del[k]) del[k] = v; });
+  new Set([...Object.keys(local.words || {}), ...Object.keys(remote.words || {})]).forEach(k => {
+    const a = (local.words || {})[k], b = (remote.words || {})[k];
+    let w = a && b ? (t(b) > t(a) ? b : a) : (a || b);
+    if(del[k] && del[k] >= t(w)) return; // あとで消された
+    words[k] = w;
+    if(del[k]) delete del[k];             // 消したあとで登録し直した
+  });
+  // 古い削除の記録は捨てる
+  const old = new Date(Date.now() - 180 * 864e5).toISOString();
+  Object.keys(del).forEach(k => { if(del[k] < old) delete del[k]; });
+  // 記録：端末×日ごとに大きい方
+  const stats = JSON.parse(JSON.stringify(remote.stats || {}));
+  Object.entries(local.stats || {}).forEach(([dev, days]) => {
+    stats[dev] = stats[dev] || {};
+    Object.entries(days || {}).forEach(([day, r]) => {
+      const o = stats[dev][day] = stats[dev][day] || {};
+      ['w', 'r', 't', 'n'].forEach(f => { o[f] = Math.max(o[f] || 0, r[f] || 0); });
+    });
+  });
+  return { words, del, stats };
+}
+async function koDriveFind(name){
+  await gdriveEnsureToken();
+  const url = 'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name,modifiedTime)&q=' + encodeURIComponent("name='" + (name || KO_SYNC_FILE) + "'");
+  const data = await (await gdriveFetch(url)).json();
+  return (data.files && data.files[0]) || null;
+}
+// 戻り値：ほかの端末の変更が入ったら true
+async function koSyncWords(){
+  if(typeof gdriveIsSignedIn !== 'function' || !gdriveIsSignedIn()) return false;
+  if(_koSyncing) return _koSyncing;
+  _koSyncing = (async () => {
+    const file = await koDriveFind();
+    let remote = {};
+    if(file){
+      try{ remote = await (await gdriveFetch('https://www.googleapis.com/drive/v3/files/' + file.id + '?alt=media')).json() || {}; }catch(_){ remote = {}; }
+    }else if(!KO_IS_BETA2){
+      // 本番で初めて同期するとき：β2で同期していた単語帳を引き継ぐ
+      try{
+        const bf = await koDriveFind('ko-data-beta2.json');
+        if(bf) remote = await (await gdriveFetch('https://www.googleapis.com/drive/v3/files/' + bf.id + '?alt=media')).json() || {};
+      }catch(_){ remote = {}; }
+    }
+    koLoad();
+    const local = { words: _koWords, del: koDelMap(), stats: koStats() };
+    const merged = koMergeData(local, remote);
+    const before = JSON.stringify(local.words), after = JSON.stringify(merged.words);
+    const changedLocal = before !== after;
+    _koWords = merged.words;
+    koSaveWords(true);
+    koSetDelMap(merged.del);
+    try{ localStorage.setItem(KO_STATS_LS, JSON.stringify(merged.stats)); }catch(_){}
+    const payload = { app: 'ikasumi-ko', version: 1, syncedAt: new Date().toISOString(), words: merged.words, del: merged.del, stats: merged.stats };
+    const remoteSame = file && JSON.stringify(remote.words || {}) === after && JSON.stringify(remote.del || {}) === JSON.stringify(merged.del) && JSON.stringify(remote.stats || {}) === JSON.stringify(merged.stats);
+    if(!remoteSame){
+      const boundary = '-------ko-boundary-' + Date.now();
+      const meta = { name: KO_SYNC_FILE, mimeType: 'application/json' };
+      if(!file) meta.parents = ['appDataFolder'];
+      const body = '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(meta) + '\r\n--' + boundary +
+        '\r\nContent-Type: application/json\r\n\r\n' + JSON.stringify(payload) + '\r\n--' + boundary + '--';
+      await gdriveFetch(file
+        ? 'https://www.googleapis.com/upload/drive/v3/files/' + file.id + '?uploadType=multipart'
+        : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+        { method: file ? 'PATCH' : 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + boundary }, body });
+    }
+    if(changedLocal) koRerender();
+    return changedLocal;
+  })();
+  try{ return await _koSyncing; } finally { _koSyncing = null; }
+}
+function setupKoSync(){
+  koUpdateBadge();
+  setTimeout(() => { koMigrateFromBeta2().catch(() => {}); }, 1200);
+  setInterval(koUpdateBadge, 10 * 60 * 1000); // 日付が変わったとき用
+  // 起動して少ししたら、ほかの端末の単語を取り込む
+  setTimeout(() => koSyncWords().catch(e => console.warn('ko sync', e)), 3000);
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible') koSyncWords().catch(() => {});
+    else if(_koSyncTimer){ clearTimeout(_koSyncTimer); _koSyncTimer = null; koSyncWords().catch(() => {}); }
+  });
+}
+
+function openKoSettings(){
+  const m = koShowMode(), tm = koTrMode(), nw = koNewOn(), hl = koHideLearned(), np = koNewPerDay();
+  const seg = (items, cur, fn) => `<div class="ko-seg">${items.map(([v, l]) => `<button class="${v === cur ? 'on' : ''}" onclick="${fn}(${JSON.stringify(v).replace(/"/g, "'")});openKoSettings()">${l}</button>`).join('')}</div>`;
+  const pr = koTrProgress();
+  document.getElementById('ko-sheet-body').innerHTML = `
+    <div class="ko-title">表示の設定</div>
+    <div class="ko-set">
+      <div class="ko-set-l">単語の意味<small>登録した単語の上に出す意味</small></div>
+      ${seg([['on', '表示'], ['hide', '隠す'], ['off', 'オフ']], m, 'koSetShowMode')}
+    </div>
+    <div class="ko-set">
+      <div class="ko-set-l">自分の訳<small>${pr ? `この話 ${pr.done}/${pr.all}段落` : '段落の下に書く訳'}</small></div>
+      ${seg([['write', '書く'], ['show', '表示'], ['off', '隠す'], ['only', '訳で読む']], tm, 'koSetTrMode')}
+    </div>
+    <div class="ko-set">
+      <div class="ko-set-l">新しく登録した単語<small>本文に意味を出すか（単語ごとにも変えられます）</small></div>
+      ${seg([[true, '出す'], [false, '単語帳だけ']], koShowNewDefault(), 'koSetShowNewDefault')}
+    </div>
+    <div class="ko-set">
+      <div class="ko-set-l">未登録の単語<small>うすい黄色で目立たせる</small></div>
+      ${seg([[true, '色付き'], [false, 'なし']], nw, 'koSetNew')}
+    </div>
+    <div class="ko-set">
+      <div class="ko-set-l">覚えた単語<small>次の復習が3週間以上先の単語</small></div>
+      ${seg([[true, '意味なし'], [false, '意味あり']], hl, 'koSetHideLearned')}
+    </div>
+    <div class="ko-set">
+      <div class="ko-set-l">復習の向き<small>韓→日：韓国語を見て意味を思い出す</small></div>
+      ${seg([['ko', '韓→日'], ['ja', '日→韓'], ['mix', '両方']], koCardDir(), 'koSetCardDir')}
+    </div>
+    <div class="ko-set">
+      <div class="ko-set-l">新しい単語<small>1日に復習へ入れる数</small></div>
+      ${seg([[5, '5'], [10, '10'], [20, '20'], [50, '50']], np, 'koSetNewPerDayUI')}
+    </div>
+    <div class="ko-actions"><span></span><button class="ko-cancel" onclick="openKoMenu()">戻る</button></div>`;
+  document.getElementById('ko-sheet').classList.add('show');
+  document.getElementById('ko-sheet-ov').classList.add('show');
+}
+function koSetNewPerDayUI(n){ koSetNewPerDay(n); koUpdateBadge(); }
+
+let _koTrPrev = 'show';
+function koToggleTrOnly(){
+  if(koTrMode() === 'only'){ koSetTrMode(_koTrPrev === 'only' ? 'show' : _koTrPrev); showToast('原文で表示しています'); }
+  else{ _koTrPrev = koTrMode(); koSetTrMode('only'); showToast('自分の訳で表示しています（まだ訳していない段落はうすい原文）'); }
+  koCloseSheet();
+}
+// 訳だけを書き出す：段落の位置は原文と同じ。訳していない段落は原文のまま、空行は空行のまま
+function koExportTrOnly(){
+  const ep = state.novel && state.novel.episodes.find(e => e.id === state.currentEpisodeId);
+  if(!ep) return;
+  const trs = state.novel.koTr || {};
+  const out = [];
+  let missing = 0;
+  state.pages.forEach(pg => (pg.paras || []).forEach(para => {
+    if(para.type !== 'text') return;
+    const plain = koParaPlain(para);
+    if(!plain.trim()){ out.push(''); return; }
+    if(!KO_HANGUL.test(plain)){ out.push(plain); return; }
+    const t = trs[koHash(plain)];
+    if(t) out.push(t); else { out.push(plain); missing++; }
+  }));
+  const blob = new Blob([out.join('\n')], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (ep.title || '訳') + '_訳.txt';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  showToast(missing ? `書き出しました（まだ訳していない${missing}段落は原文のまま）` : '書き出しました');
+}
+
+
+/* ══════ 本番のクラウドから本を取り込む（読むだけ・本番のデータは変えない） ══════ */
+async function koImportFromMain(){
+  if(!gdriveIsSignedIn()){ gdriveSignIn(); return; }
+  if(!confirm('本番（イカ墨ノベル）のクラウドにある本を、このβ2に取り込みますか？\n\n・本番のデータは変わりません（読むだけ）\n・同じ本がある場合は、新しい方にそろえます\n・β2で書いた訳・メモ・単語帳は消えません')) return;
+  try{
+    showToast('本番のクラウドを読み込み中...');
+    await gdriveEnsureToken();
+    const url = 'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&fields=files(id,name,modifiedTime)&q=' + encodeURIComponent("name='novel-reader-data.json'");
+    const list = await (await gdriveFetch(url)).json();
+    const f = list.files && list.files[0];
+    if(!f){ showToast('本番のクラウドにデータがありません（本番で一度「クラウドへ同期」してください）'); return; }
+    const data = await (await gdriveFetch('https://www.googleapis.com/drive/v3/files/' + f.id + '?alt=media')).json();
+    const remote = (data && data.library) || [];
+    let add = 0, upd = 0, keep = 0;
+    for(const rn of remote){
+      if(!rn || !rn.id) continue;
+      const i = state.library.findIndex(n => n.id === rn.id);
+      if(i < 0){ state.library.push(rn); await libDbPut(rn); add++; continue; }
+      const ln = state.library[i];
+      if((rn.updatedAt || '') > (ln.updatedAt || '')){
+        const merged = Object.assign({}, rn, { koTr: ln.koTr, koNotes: ln.koNotes, koSense: ln.koSense }); // β2だけのデータは残す
+        await autoBackup(ln, true, true).catch(() => {});
+        state.library[i] = merged; await libDbPut(merged); upd++;
+      }else keep++;
+    }
+    // 「無題の小説」だけの空の本棚なら、取り込んだ後は消す
+    state.library = state.library.filter(n => !(n.title === '無題の小説' && remote.length && (n.episodes || []).length <= 1 && !n.koTr && !remote.some(r => r.id === n.id) && (n.episodes || []).every(e => (e.charCount || 0) < 200)));
+    if(state.currentNovelId && !state.library.some(n => n.id === state.currentNovelId)){ state.currentNovelId = null; state.currentEpisodeId = null; }
+    showLibrary();
+    showToast(`追加${add}冊・更新${upd}冊・そのまま${keep}冊`);
+    scheduleGdriveAutoSync();
+  }catch(e){
+    console.warn('koImportFromMain', e);
+    showToast('取り込めませんでした：' + e.message);
+  }
+}
+
+function koHi(sentence, key){
+  const esc = escapeHtml(sentence);
+  const ek = escapeHtml(key);
+  return ek ? esc.split(ek).join(`<b>${ek}</b>`) : esc;
+}
+function koQuizBack(k, e, noMeans){
+  const ms = koMs(e);
+  const ctx = ms.find(x => x.c);
+  return (noMeans ? '' : `<div class="ko-quiz-ms">${ms.map(x => escapeHtml(x.m)).join('<span class="ko-dict-sep">／</span>')}</div>`)
+    + (e.n ? `<div class="ko-quiz-n">${escapeHtml(e.n)}</div>` : '')
+    + (ctx ? `<div class="ko-quiz-ctx" onclick="koSpeak(${JSON.stringify(ctx.c).replace(/"/g, '&quot;')})">${koHi(ctx.c, k)}</div>` : '');
+}
+
+/* ══════ よく出る未登録の単語（今の話から） ══════ */
+function koFreqScan(){
+  koLoad();
+  const groups = {}, phrases = koPhraseList();
+  let total = 0, known = 0;
+  (state.pages || []).forEach(pg => (pg.paras || []).forEach(para => {
+    if(para.type !== 'text') return;
+    const plain = koParaPlain(para);
+    // フレーズで登録した部分は「読める」として数え、単語の一覧からは外す
+    let rest = plain;
+    phrases.forEach(pp => {
+      // 最後の語の活用部分（끄덕[였다]）まで含める
+      const re = new RegExp(pp.re.source.slice(0, -1) + '[\\uAC00-\\uD7A3]*)', 'g');
+      rest = rest.replace(re, (all, pre, body) => {
+        const n = (body.match(KO_RUN) || []).length;
+        total += n; known += n;
+        return pre + ' '.repeat(body.length);
+      });
+    });
+    (rest.match(KO_RUN) || []).forEach(run => {
+      total++;
+      if(koFindKey(run)){ known++; return; }
+      const g = koCandidates(run).slice(-1)[0] || run;
+      const o = groups[g] = groups[g] || { g, n: 0, forms: {}, sentence: plain };
+      o.n++; o.forms[run] = (o.forms[run] || 0) + 1;
+    });
+  }));
+  const list = Object.values(groups).sort((a, b) => b.n - a.n);
+  return { total, known, list };
+}
+let _koFromFreq = false;
+function openKoFreq(){
+  const f = koFreqScan();
+  const pct = f.total ? Math.round(f.known / f.total * 100) : 0;
+  const top = f.list.slice(0, 40);
+  window._koFreqRows = top;
+  document.getElementById('ko-sheet-body').innerHTML = `
+    <div class="ko-title">よく出る未登録の単語</div>
+    <div class="ko-freq-cov">
+      <div class="ko-freq-bar"><div style="width:${pct}%"></div></div>
+      <div class="ko-freq-cov-t">この話で読める単語 <b>${pct}%</b>（${f.known}/${f.total}語）</div>
+    </div>
+    <div class="ko-dict-msg" style="margin:8px 0 4px">上から登録すると、読める割合が早く上がります。タップで登録</div>
+    ${top.length ? top.map((r, i) => {
+      const sample = Object.entries(r.forms).sort((a, b) => b[1] - a[1])[0][0];
+      return `<button class="ko-freq-row" onclick="koFreqPick(${i})"><span class="ko-freq-w">${escapeHtml(r.g)}</span><span class="ko-freq-f">${escapeHtml(Object.keys(r.forms).slice(0, 3).join('・'))}</span><span class="ko-freq-n">${r.n}回</span></button>`;
+    }).join('') : '<div class="ko-empty">この話の単語は全部登録済みです！</div>'}
+    <div class="ko-actions"><span></span><button class="ko-cancel" onclick="openKoMenu()">戻る</button></div>`;
+  document.getElementById('ko-sheet').classList.add('show');
+  document.getElementById('ko-sheet-ov').classList.add('show');
+}
+function koFreqPick(i){
+  const r = window._koFreqRows[i];
+  if(!r) return;
+  const sample = Object.entries(r.forms).sort((a, b) => b[1] - a[1])[0][0];
+  koOpenSheet({ type: 'word', key: null, eojeol: sample, sentence: r.sentence, pi: -1, qi: -1, fromFreq: true });
+}
+
+
+/* ══════ 韓国語の本だけで使う（自動判定＋本ごとの設定） ══════ */
+const _koDetectCache = {};
+// 本の中にハングルがある程度あるか（最初の数話を見る）
+function koKoRatio(eps, minKo, minRatio){
+  let ko = 0, all = 0;
+  for(const ep of eps){
+    for(const pg of (ep.pages || [])){
+      for(const pa of (pg.paras || [])){
+        if(pa.type !== 'text') continue;
+        const t = pa.text || '';
+        for(const ch of t){ if(/\S/.test(ch)){ all++; if(KO_HANGUL.test(ch)) ko++; } }
+        if(all > 4000) break;
+      }
+    }
+  }
+  return ko >= (minKo || 30) && ko / Math.max(1, all) >= (minRatio || 0.15);
+}
+function koNovelHasKo(n){
+  if(!n) return false;
+  const ck = n.id + '|' + (n.updatedAt || '') + '|' + ((n.episodes || []).length);
+  if(_koDetectCache[ck] != null) return _koDetectCache[ck];
+  const r = koKoRatio((n.episodes || []).slice().sort((a, b) => a.number - b.number).slice(0, 5));
+  _koDetectCache[ck] = r;
+  return r;
+}
+// 今開いている話が韓国語か（日本語の本に韓国語の話を足したとき用）
+function koEpisodeHasKo(){
+  if(!state.currentEpisodeId || !state.pages) return false;
+  const ck = 'ep|' + state.currentEpisodeId + '|' + (state.pages[0] && (state.pages[0].paras || []).length);
+  if(_koDetectCache[ck] != null) return _koDetectCache[ck];
+  return (_koDetectCache[ck] = koKoRatio([{ pages: state.pages }], 8, 0.3));
+}
+function koNovelMode(n){ n = n || state.novel; return (n && n.koMode) || 'auto'; }
+// 今開いている本で韓国語メモを使うか
+function koEnabled(){
+  if(!state.currentNovelId || !state.novel) return false;
+  const m = koNovelMode();
+  if(m === 'on') return true;
+  if(m === 'off') return false;
+  return koNovelHasKo(state.novel) || koEpisodeHasKo();
+}
+function koApplyVisibility(){
+  const on = koEnabled();
+  const btn = document.getElementById('topbar-ko');
+  if(btn) btn.style.display = on ? '' : 'none';
+  document.body.classList.toggle('ko-on', on);
+  koRenderPanelRow();
+  koUpdateLibReview();
+}
+function koSetNovelMode(v){
+  if(!state.novel) return;
+  if(v === 'auto') delete state.novel.koMode; else state.novel.koMode = v;
+  koPersistNovel();
+  koApplyVisibility();
+  koRerender();
+}
+// 設定パネル（歯車）の「韓国語メモ」
+function koRenderPanelRow(){
+  const box = document.getElementById('ko-panel-row');
+  if(!box) return;
+  // 設定パネルのいちばん下に置く（日本語の本では邪魔にならないように）
+  const pb = document.getElementById('panel-body');
+  if(pb && pb.lastElementChild !== box) pb.appendChild(box);
+  if(!state.currentNovelId){ box.style.display = 'none'; return; }
+  box.style.display = '';
+  const m = koNovelMode();
+  const auto = koNovelHasKo(state.novel);
+  box.querySelectorAll('.ob').forEach(b => b.classList.toggle('active', b.dataset.v === m));
+  const hint = box.querySelector('.ko-panel-hint');
+  if(hint) hint.textContent = m === 'auto' ? (auto ? '韓国語の本と判定：「한」ボタンを出しています' : '日本語の本と判定：「한」ボタンを出していません') : '';
+}
+// 本棚の「今日の復習」
+function koUpdateLibReview(){
+  const b = document.getElementById('lib-ko-review');
+  if(!b) return;
+  const cnt = Object.keys(koLoad()).length;
+  if(!cnt){ b.style.display = 'none'; return; }
+  const n = koReviewCounts().total;
+  b.style.display = '';
+  b.classList.toggle('done', !n);
+  b.querySelector('.n').textContent = n ? n : '✓';
+}
+function openKoFromLibrary(){
+  openKoMenu();
+}
+
+/* ── 単語帳に入る形（見出し）と、本文で探すほかの形 ── */
+let _koHeadAuto = true, _koForms = [];
+// 辞書がまだ無いときの見出しの推測：動詞・形容詞っぽければ「語幹＋다」
+function koGuessHead(key, eojeol){
+  if(!key || /\s/.test(key)) return key;
+  if(_koDict){
+    const found = koDictLookup(eojeol || key);
+    if(found.length) return found[0].head;
+    if(_koDict[key]) return key;
+    if(_koDict[key + '다']) return key + '다';
+  }
+  const rest = (eojeol || '').slice(key.length);
+  if(rest && KO_VERB_REST.some(e => rest.startsWith(e)) && !KO_PARTICLES.includes(rest)) return key + '다';
+  return key;
+}
+function koSetHead(h){
+  const el = document.getElementById('ko-headw');
+  if(el && h){ el.value = h; }
+}
+function koRenderForms(){
+  const box = document.getElementById('ko-forms');
+  if(!box) return;
+  box.innerHTML = _koForms.length ? _koForms.map((f, i) => `<span class="ko-form">${escapeHtml(f)}<button onclick="_koForms.splice(${i},1);koRenderForms()">✕</button></span>`).join('') : '<span class="ko-dict-msg">なし</span>';
+}
+function koAddForm(){
+  const inp = document.getElementById('ko-form-in');
+  const f = (inp.value || '').trim();
+  if(!f || !KO_HANGUL.test(f)) return;
+  if(f !== document.getElementById('ko-key').value.trim() && !_koForms.includes(f)) _koForms.push(f);
+  inp.value = '';
+  koRenderForms();
+}
+// 見出しがまだ無い単語に、辞書で見出しを付ける（前のバージョンで登録した単語）
+async function koMigrateHeads(){
+  const w = koLoad();
+  const need = Object.keys(w).filter(k => !w[k].h);
+  if(!need.length) return false;
+  try{ await koDictLoad(); }catch(_){ return false; }
+  need.forEach(k => {
+    const e = w[k];
+    let h = null;
+    const mm = (e.n || '').match(/^([가-힣]+다)\s/); // 辞書から選んだときのメモ「짓다 動」
+    if(/\s/.test(k)) h = k;
+    else if(mm && (mm[1].startsWith(k) || _koDict[mm[1]])) h = mm[1];
+    else if(_koDict[k] && _koDict[k + '다']){
+      // 名詞と動詞の両方ある語：意味が動詞っぽい（〜る・〜い・〜だ）なら動詞
+      h = /[るいだ]$/.test((e.m || '').split(/[・、／]/)[0]) ? k + '다' : k;
+    }
+    else if(_koDict[k]) h = k;
+    else if(_koDict[k + '다']) h = k + '다';
+    else h = k;
+    e.h = h; // 同じ計算をほかの端末でもするので、更新時刻は変えない
+  });
+  koSaveWords(true);
+  return true;
+}
+
+
+/* ══════ 本番：β2で使っていたデータを引き継ぐ（1回だけ） ══════
+   同じサイト（ikazu23.github.io）なので、β2の保存場所もこの端末から読める */
+async function koMigrateFromBeta2(){
+  if(KO_IS_BETA2) return;
+  if(localStorage.getItem('ko-migrated-beta2') === '1') return;
+  let moved = 0;
+  try{
+    // 単語帳・記録・設定
+    const bw = JSON.parse(localStorage.getItem('beta2-ko-words') || 'null');
+    if(bw && Object.keys(bw).length){
+      koLoad();
+      const merged = koMergeData({ words: _koWords, del: koDelMap(), stats: koStats() },
+        { words: bw, del: JSON.parse(localStorage.getItem('beta2-ko-words-del') || '{}'), stats: JSON.parse(localStorage.getItem('beta2-ko-stats') || '{}') });
+      _koWords = merged.words; koSaveWords(true); koSetDelMap(merged.del);
+      try{ localStorage.setItem(KO_STATS_LS, JSON.stringify(merged.stats)); }catch(_){}
+      moved += Object.keys(bw).length;
+    }
+    ['ko-show', 'ko-new', 'ko-tr-mode', 'ko-hide-learned', 'ko-new-per-day', 'ko-card-dir', 'ko-show-new'].forEach(k => {
+      const v = localStorage.getItem('beta2-' + k);
+      if(v != null && localStorage.getItem(k) == null) try{ localStorage.setItem(k, v); }catch(_){}
+    });
+    // 本ごとの訳・メモ・場所ごとの意味（β2の本棚から）
+    const novels = await new Promise(res => {
+      let created = false;
+      const rq = indexedDB.open('novel-reader-db-beta2');
+      rq.onupgradeneeded = () => { created = true; try{ rq.transaction.abort(); }catch(_){} };
+      rq.onerror = () => res([]);
+      rq.onsuccess = () => {
+        const db = rq.result;
+        if(created || !db.objectStoreNames.contains(DB_LIBRARY_STORE)){ db.close(); res([]); return; }
+        const q = db.transaction(DB_LIBRARY_STORE).objectStore(DB_LIBRARY_STORE).getAll();
+        q.onsuccess = () => { res(q.result || []); db.close(); };
+        q.onerror = () => { res([]); db.close(); };
+      };
+    });
+    for(const bn of novels){
+      if(!bn || !bn.id) continue;
+      const has = ['koTr', 'koNotes', 'koSense'].some(f => bn[f] && Object.keys(bn[f]).length) || bn.koMode;
+      const i = state.library.findIndex(n => n.id === bn.id);
+      if(i >= 0){
+        if(!has) continue;
+        const n = state.library[i];
+        ['koTr', 'koNotes', 'koSense'].forEach(f => { if(bn[f]) n[f] = Object.assign({}, bn[f], n[f] || {}); });
+        if(bn.koMode && !n.koMode) n.koMode = bn.koMode;
+        await libDbPut(n).catch(() => {});
+        moved++;
+      }else if(bn.title !== '無題の小説' || has){
+        // β2にだけある本は、本番の本棚にも入れる
+        state.library.push(bn);
+        await libDbPut(bn).catch(() => {});
+        moved++;
+      }
+    }
+  }catch(e){ console.warn('koMigrateFromBeta2', e); return; }
+  try{ localStorage.setItem('ko-migrated-beta2', '1'); }catch(_){}
+  if(moved){
+    if(!state.currentNovelId) try{ renderLibrary(); }catch(_){}
+    koUpdateBadge();
+    showToast('お試し版（β2）の単語帳・訳・メモを引き継ぎました');
+  }
+}
+
+
 function setupDoubleTap(){
   let lastTap=0;
   const vp=$.viewport;
   vp.addEventListener('touchend',e=>{
     if(state.readingMode)return;
+    if(e.target.closest && e.target.closest('.ko-tr'))return;
     if(state.editMode)return;
     const now=Date.now();
     if(now-lastTap<300){e.preventDefault();enterEditMode();}
@@ -6692,6 +8922,7 @@ function setupDoubleTap(){
   },{passive:false});
   vp.addEventListener('dblclick',e=>{
     if(state.readingMode)return;
+    if(e.target.closest && e.target.closest('.ko-tr'))return;
     if(isPcPointer() && edgeZoneAt(e.clientX)!==0) return; // 端の連打はページ送り
     if(state.editMode)return;
     enterEditMode();
