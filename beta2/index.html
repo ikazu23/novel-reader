@@ -2127,6 +2127,12 @@ body.theme-dark .ko-freq-bar{background:#333;}
 body.theme-dark .ko-freq-row{border-bottom-color:#333;}
 body.theme-dark .ko-freq-cov-t{color:#bbb;}
 
+#lib-ko-review{width:auto;min-width:36px;height:30px;flex-shrink:0;display:flex;align-items:center;gap:4px;border:none;border-radius:15px;background:#e8f4f4;color:#007070;padding:0 10px 0 8px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;}
+#lib-ko-review .n{font-size:11px;background:#e0701b;color:#fff;border-radius:9px;padding:0 6px;line-height:17px;min-width:17px;text-align:center;}
+#lib-ko-review.done .n{background:#0a8a8a;}
+body.theme-dark #lib-ko-review{background:#1d2b2b;color:#7fd6d6;}
+.ko-panel-hint{font-family:'Noto Sans JP',sans-serif;font-size:10px;color:#999;margin-top:6px;line-height:1.5;}
+
 </style>
 </head>
 <body class="booting">
@@ -2158,7 +2164,7 @@ body.theme-dark .ko-freq-cov-t{color:#bbb;}
     </button>
   </div>
   <div id="library-topbar">
-    <div style="width:36px;flex-shrink:0;"></div>
+    <button id="lib-ko-review" onclick="openKoFromLibrary()" title="今日の復習" style="display:none">한<span class="n">0</span></button>
     <span id="library-topbar-title" contenteditable="true" spellcheck="false"
       onblur="saveLibraryName(this)"
       onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
@@ -2601,6 +2607,15 @@ body.theme-dark .ko-freq-cov-t{color:#bbb;}
     </button>
   </div>
   <div id="panel-body">
+  <div class="ps" id="ko-panel-row" style="display:none">
+    <div class="pl">韓国語メモ（この本）</div>
+    <div class="pr">
+      <button class="ob" data-v="auto" onclick="koSetNovelMode('auto')">自動</button>
+      <button class="ob" data-v="on" onclick="koSetNovelMode('on')">使う</button>
+      <button class="ob" data-v="off" onclick="koSetNovelMode('off')">使わない</button>
+    </div>
+    <div class="ko-panel-hint"></div>
+  </div>
   <div class="ps">
     <div class="stepper-line">
       <div class="pl">行間</div>
@@ -4481,6 +4496,7 @@ function showLibrary(){
   $.toc_screen.classList.remove('show');
   document.getElementById('library-fab').style.display='flex';
   renderLibrary();
+  koApplyVisibility();
 }
 
 function hideLibrary(){
@@ -4673,6 +4689,7 @@ async function openNovel(novelId){
   applyNovelLook();
   // この本の背景画像を復元
   loadNovelBgImage(novelId);
+  koApplyVisibility();
 }
 
 async function createNewNovel(){
@@ -4937,6 +4954,7 @@ function openEpisode(id, startPos='first'){
   // タイトル更新
   $.topbar_title.textContent=ep.title;
   setKztlMark(ep);
+  koApplyVisibility();
   // 画面切替
   hideToc();
   renderAllPages();
@@ -7037,6 +7055,7 @@ function koFindKey(run){
   return null;
 }
 function koDecorateHtml(html, para){
+  if(!koEnabled()) return html;
   const words = koLoad();
   const mode = koShowMode();
   const plain = koParaPlain(para);
@@ -7131,7 +7150,7 @@ function koDecorateHtml(html, para){
 // 閲覧中の段落の表示（ふりがな → 韓国語メモ）
 function buildReadDisplayHtml(para){
   // 自分の訳で読む：訳がある段落は訳だけ、まだの段落は原文をうすく
-  if(koTrMode() === 'only' && state.novel){
+  if(koTrMode() === 'only' && state.novel && koEnabled()){
     const plain = koParaPlain(para);
     if(KO_HANGUL.test(plain)){
       const tr = (state.novel.koTr || {})[koHash(plain)];
@@ -7461,6 +7480,7 @@ function koPersistNovel(){
   if(idx >= 0) state.library[idx].koNotes = JSON.parse(JSON.stringify(state.novel.koNotes || {}));
   if(idx >= 0) state.library[idx].koTr = JSON.parse(JSON.stringify(state.novel.koTr || {}));
   if(idx >= 0) state.library[idx].koSense = JSON.parse(JSON.stringify(state.novel.koSense || {}));
+  if(idx >= 0){ if(state.novel.koMode) state.library[idx].koMode = state.novel.koMode; else delete state.library[idx].koMode; }
   if(idx >= 0) state.library[idx].updatedAt = state.novel.updatedAt;
   libDbPut(state.novel).catch(e => console.warn('save koNotes failed:', e));
 }
@@ -7505,7 +7525,7 @@ function setupKoTap(){
   let timer = null, downX = 0, downY = 0;
   vp.addEventListener('pointerdown', e => { downX = e.clientX; downY = e.clientY; }, true);
   vp.addEventListener('click', e => {
-    if(state.editMode || !state.currentEpisodeId) return;
+    if(state.editMode || !state.currentEpisodeId || !koEnabled()) return;
     if(Math.abs(e.clientX - downX) > 8 || Math.abs(e.clientY - downY) > 8) return;
     if(e.target.closest && e.target.closest('button, a, .para-img-wrap')) return;
     if(hasTextSelection()) return;
@@ -7526,6 +7546,7 @@ function setupKoTap(){
 /* ── 「한」メニュー ── */
 function openKoMenu(){
   if(state.editMode){ showToast('編集中は使えません'); return; }
+  const inBook = !!state.currentEpisodeId && koEnabled();
   koSyncWords().catch(() => {});
   const cnt = Object.keys(koLoad()).length;
   const body = document.getElementById('ko-sheet-body');
@@ -7536,13 +7557,13 @@ function openKoMenu(){
       <span class="t">今日の復習</span>
       <span class="n">${rc.total ? `${rc.total}枚` : (cnt ? 'おわり' : '単語を登録すると始まります')}</span>
     </button>
-    <button class="ko-menu-item" onclick="koToggleTrOnly()">${koTrMode() === 'only' ? '原文で読む' : '自分の訳で読む'}<span class="ko-mi-sub">${(() => { const pr = koTrProgress(); return pr ? `この話 ${pr.done}/${pr.all}段落` : ''; })()}</span></button>
-    <button class="ko-menu-item" onclick="openKoFreq()" ${state.currentEpisodeId ? '' : 'disabled'}>よく出る未登録の単語<span class="ko-mi-sub">${(() => { const f = state.currentEpisodeId ? koFreqScan() : null; return f && f.total ? `この話で読める ${Math.round(f.known / f.total * 100)}%` : ''; })()}</span></button>
+    ${inBook ? `<button class="ko-menu-item" onclick="koToggleTrOnly()">${koTrMode() === 'only' ? '原文で読む' : '自分の訳で読む'}<span class="ko-mi-sub">${(() => { const pr = koTrProgress(); return pr ? `この話 ${pr.done}/${pr.all}段落` : ''; })()}</span></button>` : ''}
+    ${inBook ? `<button class="ko-menu-item" onclick="openKoFreq()">よく出る未登録の単語<span class="ko-mi-sub">${(() => { const f = koFreqScan(); return f && f.total ? `この話で読める ${Math.round(f.known / f.total * 100)}%` : ''; })()}</span></button>` : ''}
     <button class="ko-menu-item" onclick="openKoWordList()">単語帳<span class="ko-mi-sub">${cnt}語</span></button>
     <button class="ko-menu-item" onclick="openKoStats()">学習の記録</button>
     <button class="ko-menu-item" onclick="openKoSettings()">表示の設定</button>
-    <button class="ko-menu-item" onclick="koExportTr()" ${state.currentEpisodeId ? '' : 'disabled'}>この話の原文と訳を書き出す</button>
-    <button class="ko-menu-item" onclick="koExportTrOnly()" ${state.currentEpisodeId ? '' : 'disabled'}>この話の訳だけを書き出す</button>
+    ${inBook ? `<button class="ko-menu-item" onclick="koExportTr()">この話の原文と訳を書き出す</button>
+    <button class="ko-menu-item" onclick="koExportTrOnly()">この話の訳だけを書き出す</button>` : ''}
     <button class="ko-menu-item" onclick="openKoHelp()">使い方</button>
     <div class="ko-actions"><span></span><button class="ko-cancel" onclick="koCloseSheet()">閉じる</button></div>`;
   document.getElementById('ko-sheet').classList.add('show');
@@ -7776,6 +7797,7 @@ function koQuizAnswer(grade){
 }
 // 「한」ボタンに今日の復習の数
 function koUpdateBadge(){
+  try{ koUpdateLibReview(); }catch(_){}
   const btn = document.getElementById('topbar-ko');
   if(!btn) return;
   const n = koReviewCounts().total;
@@ -7983,7 +8005,7 @@ function koTrSet(h, text){
 function koAutoGrow(ta){ ta.style.height = 'auto'; ta.style.height = (ta.scrollHeight + 2) + 'px'; }
 // 閲覧中のページに、段落ごとの訳の欄（または書いた訳）を差し込む
 function koDecoratePage(pageEl, pi){
-  if(state.editMode || !pageEl || !state.novel) return;
+  if(state.editMode || !pageEl || !state.novel || !koEnabled()) return;
   const mode = koTrMode();
   if(mode === 'off' || mode === 'only') return;
   const trs = state.novel.koTr || {};
@@ -8455,6 +8477,93 @@ function koFreqPick(i){
   if(!r) return;
   const sample = Object.entries(r.forms).sort((a, b) => b[1] - a[1])[0][0];
   koOpenSheet({ type: 'word', key: null, eojeol: sample, sentence: r.sentence, pi: -1, qi: -1, fromFreq: true });
+}
+
+
+/* ══════ 韓国語の本だけで使う（自動判定＋本ごとの設定） ══════ */
+const _koDetectCache = {};
+// 本の中にハングルがある程度あるか（最初の数話を見る）
+function koKoRatio(eps, minKo, minRatio){
+  let ko = 0, all = 0;
+  for(const ep of eps){
+    for(const pg of (ep.pages || [])){
+      for(const pa of (pg.paras || [])){
+        if(pa.type !== 'text') continue;
+        const t = pa.text || '';
+        for(const ch of t){ if(/\S/.test(ch)){ all++; if(KO_HANGUL.test(ch)) ko++; } }
+        if(all > 4000) break;
+      }
+    }
+  }
+  return ko >= (minKo || 30) && ko / Math.max(1, all) >= (minRatio || 0.15);
+}
+function koNovelHasKo(n){
+  if(!n) return false;
+  const ck = n.id + '|' + (n.updatedAt || '') + '|' + ((n.episodes || []).length);
+  if(_koDetectCache[ck] != null) return _koDetectCache[ck];
+  const r = koKoRatio((n.episodes || []).slice().sort((a, b) => a.number - b.number).slice(0, 5));
+  _koDetectCache[ck] = r;
+  return r;
+}
+// 今開いている話が韓国語か（日本語の本に韓国語の話を足したとき用）
+function koEpisodeHasKo(){
+  if(!state.currentEpisodeId || !state.pages) return false;
+  const ck = 'ep|' + state.currentEpisodeId + '|' + (state.pages[0] && (state.pages[0].paras || []).length);
+  if(_koDetectCache[ck] != null) return _koDetectCache[ck];
+  return (_koDetectCache[ck] = koKoRatio([{ pages: state.pages }], 8, 0.3));
+}
+function koNovelMode(n){ n = n || state.novel; return (n && n.koMode) || 'auto'; }
+// 今開いている本で韓国語メモを使うか
+function koEnabled(){
+  if(!state.currentNovelId || !state.novel) return false;
+  const m = koNovelMode();
+  if(m === 'on') return true;
+  if(m === 'off') return false;
+  return koNovelHasKo(state.novel) || koEpisodeHasKo();
+}
+function koApplyVisibility(){
+  const on = koEnabled();
+  const btn = document.getElementById('topbar-ko');
+  if(btn) btn.style.display = on ? '' : 'none';
+  document.body.classList.toggle('ko-on', on);
+  koRenderPanelRow();
+  koUpdateLibReview();
+}
+function koSetNovelMode(v){
+  if(!state.novel) return;
+  if(v === 'auto') delete state.novel.koMode; else state.novel.koMode = v;
+  koPersistNovel();
+  koApplyVisibility();
+  koRerender();
+}
+// 設定パネル（歯車）の「韓国語メモ」
+function koRenderPanelRow(){
+  const box = document.getElementById('ko-panel-row');
+  if(!box) return;
+  // 設定パネルのいちばん下に置く（日本語の本では邪魔にならないように）
+  const pb = document.getElementById('panel-body');
+  if(pb && pb.lastElementChild !== box) pb.appendChild(box);
+  if(!state.currentNovelId){ box.style.display = 'none'; return; }
+  box.style.display = '';
+  const m = koNovelMode();
+  const auto = koNovelHasKo(state.novel);
+  box.querySelectorAll('.ob').forEach(b => b.classList.toggle('active', b.dataset.v === m));
+  const hint = box.querySelector('.ko-panel-hint');
+  if(hint) hint.textContent = m === 'auto' ? (auto ? '韓国語の本と判定：「한」ボタンを出しています' : '日本語の本と判定：「한」ボタンを出していません') : '';
+}
+// 本棚の「今日の復習」
+function koUpdateLibReview(){
+  const b = document.getElementById('lib-ko-review');
+  if(!b) return;
+  const cnt = Object.keys(koLoad()).length;
+  if(!cnt){ b.style.display = 'none'; return; }
+  const n = koReviewCounts().total;
+  b.style.display = '';
+  b.classList.toggle('done', !n);
+  b.querySelector('.n').textContent = n ? n : '✓';
+}
+function openKoFromLibrary(){
+  openKoMenu();
 }
 
 
