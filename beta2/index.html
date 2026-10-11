@@ -7347,13 +7347,28 @@ function koCaretAt(x, y){
   return null;
 }
 // 文の中で、その語の前後の語（フレーズにつなげる用）
-function koNeighbors(sentence, eojeol){
+function koNeighbors(sentence, eojeol, occ){
   const toks = String(sentence || '').split(/\s+/).filter(Boolean);
   const clean = t => (t.match(/[\uAC00-\uD7A3\u3131-\u318E]+/) || [''])[0];
-  const i = toks.findIndex(t => clean(t).startsWith(eojeol.split(/\s+/)[0]));
+  const first = eojeol.split(/\s+/)[0];
+  let idx = toks.map((t, j) => clean(t) === first ? j : -1).filter(j => j >= 0);
+  if(!idx.length) idx = toks.map((t, j) => clean(t).startsWith(first) ? j : -1).filter(j => j >= 0);
+  const i = idx.length ? (idx[occ || 0] != null ? idx[occ || 0] : idx[0]) : -1;
   // 文の終わり（. ! ? 」など）をまたいではつなげない
   const end = toks.map(t => /[.!?…。」』"'”’)\]]$/.test(t));
   return { toks: toks.map(clean), end, i };
+}
+// 押した語が、段落の中で同じ語の何回目か（ルビ・意味の表示は数えない）
+function koOccBefore(paraEl, node, offset, eojeol){
+  try{
+    const r = document.createRange();
+    r.setStart(paraEl, 0);
+    if(node.nodeType === 3) r.setEnd(node, offset); else r.setEndBefore(node);
+    const frag = r.cloneContents();
+    frag.querySelectorAll('rt, .ko-note-mark, .ko-tr').forEach(x => x.remove());
+    const first = String(eojeol || '').split(/\s+/)[0];
+    return frag.textContent.split(/\s+/).filter(t => ((t.match(/[\uAC00-\uD7A3\u3131-\u318E]+/) || [''])[0]) === first).length;
+  }catch(_){ return 0; }
 }
 function koHitAt(e){
   const t = e.target;
@@ -7370,7 +7385,8 @@ function koHitAt(e){
     const same = [...paraEl.querySelectorAll('.kw')].filter(x => x.dataset.kw === rb.dataset.kw);
     const place = koHash(sentence) + '|' + rb.dataset.kw + '|' + (same.indexOf(rb) + 1);
     const after = rb.nextSibling && rb.nextSibling.nodeType === 3 ? (rb.nextSibling.textContent.match(/^[가-힣ㄱ-ㆎ]*/) || [''])[0] : '';
-    return { type: 'word', key: rb.dataset.kw, eojeol: rb.textContent + after, sentence, pi, qi, place };
+    const eo = rb.textContent + after;
+    return { type: 'word', key: rb.dataset.kw, eojeol: eo, sentence, pi, qi, place, occ: koOccBefore(paraEl, rb, 0, eo) };
   }
   const c = koCaretAt(e.clientX, e.clientY);
   if(!c || !c.node || c.node.nodeType !== 3 || !paraEl.contains(c.node)) return null;
@@ -7383,10 +7399,11 @@ function koHitAt(e){
   // 単語の前半がメモ済み（ルビの中）で、後ろの助詞だけをタップしたとき
   if(s === 0 && c.node.previousSibling && c.node.previousSibling.nodeType === 1 && c.node.previousSibling.matches('.kw')){
     const k = c.node.previousSibling.dataset.kw;
-    return { type: 'word', key: k, eojeol: c.node.previousSibling.textContent + eojeol, sentence, pi, qi };
+    const eo = c.node.previousSibling.textContent + eojeol;
+    return { type: 'word', key: k, eojeol: eo, sentence, pi, qi, occ: koOccBefore(paraEl, c.node.previousSibling, 0, eo) };
   }
   if(!eojeol) return null;
-  return { type: 'word', key: null, eojeol, sentence, pi, qi };
+  return { type: 'word', key: null, eojeol, sentence, pi, qi, occ: koOccBefore(paraEl, c.node, s, eojeol) };
 }
 
 /* ── 語幹の候補（助詞・語尾をざっくり外す） ── */
@@ -7479,7 +7496,7 @@ function koOpenSheet(hit){
 /* フレーズにつなげる：前後の語を足していく */
 let _koJoin = null;
 function koJoinInit(hit, key){
-  const nb = koNeighbors(hit.sentence, hit.eojeol);
+  const nb = koNeighbors(hit.sentence, hit.eojeol, hit.occ);
   const n = /\s/.test(key) ? key.trim().split(/\s+/).length : 1;
   _koJoin = nb.i >= 0 ? { toks: nb.toks, end: nb.end, i0: nb.i, i1: nb.i + n - 1 } : null;
   koJoinRender();
@@ -7501,7 +7518,10 @@ function koJoin(dir){
   if(dir < 0) j.i0--; else j.i1++;
   const parts = j.toks.slice(j.i0, j.i1 + 1);
   const lastW = parts[parts.length - 1];
-  const stem = koCandidates(lastW).slice(-1)[0] || lastW;
+  // 最後の語：辞書で引けたら辞書の形から（세 가지 → 가지 のまま、끄덕였다 → 끄덕이）
+  let stem = null;
+  if(_koDict){ const f = koDictLookup(lastW); if(f.length) stem = koKeyFromHead(f[0].head, f[0].ents[0][0], lastW); }
+  if(!stem) stem = koCandidates(lastW).slice(-1)[0] || lastW;
   const k = parts.slice(0, -1).concat([stem]).join(' ');
   koSetKey(k);
   document.querySelector('#ko-sheet .ko-eojeol').textContent = parts.join(' ');
@@ -8135,12 +8155,13 @@ function koVerbFit(eojeol, head, loose){
   const t = koNormTail(koVerbTail(eojeol, stem));
   const sp = t === '' ? { left: '' } : (t ? koSplitTail(t, KO_END_TABLE) : null);
   const full = !!sp && !sp.left;
-  if(!literal) return full ? 2 : 0;          // 形が変わる候補（받침を外した・不規則）は語尾まで合うときだけ
+  if(!literal) return full ? 1 : 0;          // 形が変わる候補（받침を外した・不規則）は語尾まで合うときだけ
+  if(eojeol === stem) return 0.5;            // 語幹だけでは単語にならない（세→세다 より 세＝三）
   if(!full) return loose;
   // 母音で終わる語幹に、縮まない 어/었 が付く形（지었다→지다 より 짓다）は後回し
   const d = koDec(stem[stem.length - 1]), rest = eojeol.slice(stem.length);
   if(d && !d.T && [0, 4, 8, 13, 20, 1, 5].includes(d.V) && /^[어었아았여였]/.test(rest)) return 0.5;
-  return 2;
+  return loose;
 }
 // 辞書で引けた候補（本文に合う長いもの順・助詞などは単語そのものの時だけ）
 function koDictLookup(eojeol){
@@ -8159,7 +8180,7 @@ function koDictLookup(eojeol){
     const lv = Math.min(...useful.map(e => KO_LV_ORDER[e[3] || 0]));
     res.push({ head: c, ents: useful, n, fit, lv });
   }
-  res.sort((a, b) => b.n - a.n || b.fit - a.fit || a.lv - b.lv);
+  res.sort((a, b) => b.n - a.n || b.fit - a.fit);
   const anyFit = res.some(r => r.fit);
   // 合う候補が無いときは、短すぎる当てずっぽう（전지적→전 など）は出さない
   let list = anyFit ? res.filter(r => r.fit) : res.filter(r => r.n >= 2 && r.n * 2 >= eojeol.length);
