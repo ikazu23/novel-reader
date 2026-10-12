@@ -2196,6 +2196,15 @@ body.theme-dark .ko-more-btn{border-color:#333;color:#aaa;}
 .ko-fi-empty{font-size:13px;color:#999;margin-bottom:3px;}
 body.theme-dark .ko-fi-tap{color:#eee;}
 
+/* 2行にまたがる単語：意味も2行に分ける（位置はJSで測って入れる） */
+.page-editor .kw.kwrap::before{content:attr(data-m1);left:var(--k1x);top:var(--k1y);bottom:auto;transform:none;max-width:var(--k1w);font-size:var(--kf1);}
+.page-editor .kw.kwrap::after{content:attr(data-m2);position:absolute;left:var(--k2x);top:var(--k2y);max-width:var(--k2w);font-size:var(--kf2);
+  font-family:'Noto Sans JP',sans-serif;font-weight:500;line-height:1.2;letter-spacing:0;color:#0a8a8a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;text-indent:0;}
+.page-editor .kw.kwrap.alt::after{color:#c0661b;}
+body.theme-dark .page-editor .kw.kwrap::after{color:#6fd0d0;}
+body.theme-dark .page-editor .kw.kwrap.alt::after{color:#f0b070;}
+body.ko-hide .page-editor .kw.kwrap::after,.page-editor .kw.learned::after{display:none;}
+
 </style>
 </head>
 <body class="booting">
@@ -7242,6 +7251,51 @@ function koMeasureGloss(){
   const lh = (Math.ceil(need * 20) / 20).toFixed(2), dp = drop.toFixed(1) + 'px';
   if(root.getPropertyValue('--ko-minlh') !== lh) root.setProperty('--ko-minlh', lh);
   if(root.getPropertyValue('--ko-gdrop') !== dp) root.setProperty('--ko-gdrop', dp);
+  koLayoutWrapped(drop);
+}
+/* 2行にまたがる単語・フレーズ：意味も2つに分けて、それぞれの行の上に出す */
+function koSplitGloss(t, ratio){
+  const chars = [...t];
+  if(chars.length < 3) return [t, ''];
+  const target = Math.max(1, Math.min(chars.length - 1, Math.round(chars.length * ratio)));
+  const good = i => { const a = chars.slice(i).join(''), b = chars[i - 1]; return /^(という|として|ような|ように|の|を|が|は|に|で|と|も|へ|（|・)/.test(a) || /[・、）]/.test(b); };
+  let best = target, bd = Infinity;
+  for(let i = 1; i < chars.length; i++){ if(good(i) && Math.abs(i - target) < bd && Math.abs(i - target) <= 3){ bd = Math.abs(i - target); best = i; } }
+  return [chars.slice(0, best).join(''), chars.slice(best).join('')];
+}
+function koLayoutWrapped(drop){
+  const kws = [...document.querySelectorAll('#viewport:not(.edit-mode) .page-editor .kw')].slice(0, 600);
+  const clear = kw => {
+    if(!kw.classList.contains('kwrap')) return;
+    kw.classList.remove('kwrap');
+    ['--k1x', '--k1y', '--k1w', '--kf1', '--k2x', '--k2y', '--k2w', '--kf2'].forEach(v => kw.style.removeProperty(v));
+    delete kw.dataset.m1; delete kw.dataset.m2;
+  };
+  kws.forEach(kw => {
+    const rects = [...kw.getClientRects()].filter(r => r.width > 0);
+    if(rects.length < 2 || kw.classList.contains('learned')){ clear(kw); return; }
+    const r1 = rects[0], r2 = rects[rects.length - 1];
+    // 意味を置く基準の位置（ブラウザによって違うので、実際に測る）
+    const probe = document.createElement('span');
+    probe.style.cssText = 'position:absolute;left:0;top:0;width:0;height:0;padding:0;margin:0;border:0';
+    kw.appendChild(probe);
+    const o = probe.getBoundingClientRect();
+    probe.remove();
+    const fpx = parseFloat(getComputedStyle(kw).fontSize) || 15;
+    const g = Math.max(9, fpx * 0.5);
+    const full = kw.dataset.m || '';
+    const [m1, m2] = koSplitGloss(full, r1.width / (r1.width + r2.width));
+    const fit = (txt, w) => { const tw = koTextW(txt) * g; const sc = tw ? Math.max(0.75, Math.min(1, (w + fpx * 0.3) / tw)) : 1; return g * sc; };
+    const f1 = fit(m1, r1.width), f2 = fit(m2, r2.width);
+    const d = drop || 0;
+    kw.dataset.m1 = m1; kw.dataset.m2 = m2;
+    const set = (k, v) => kw.style.setProperty(k, v);
+    set('--k1x', (r1.left - o.left).toFixed(1) + 'px'); set('--k1y', (r1.top - o.top - f1 * 1.2 + d).toFixed(1) + 'px');
+    set('--k1w', (r1.width + fpx * 0.3).toFixed(1) + 'px'); set('--kf1', f1.toFixed(1) + 'px');
+    set('--k2x', (r2.left - o.left).toFixed(1) + 'px'); set('--k2y', (r2.top - o.top - f2 * 1.2 + d).toFixed(1) + 'px');
+    set('--k2w', (r2.width + fpx * 0.3).toFixed(1) + 'px'); set('--kf2', f2.toFixed(1) + 'px');
+    kw.classList.add('kwrap');
+  });
 }
 /* 本文の上に出す意味：「・」の前だけ（全部はタップで見る） */
 function koGlossText(m){
