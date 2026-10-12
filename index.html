@@ -9545,6 +9545,9 @@ const KO_DEUT_REST = {
 function koGrammarInfo(tok, prev){
   tok = String(tok || ''); prev = String(prev || '');
   if(!tok) return null;
+  // 이게＝이것이（これが）など、縮まった形
+  const dm = koDemoInfo(tok);
+  if(dm) return dm;
   const pl = prev ? koDec(prev[prev.length - 1]) : null;
   const fut = !!pl && pl.T === 8;                       // 살아남을・할 → 「〜だろう」
   const att = fut || (!!pl && pl.T === 4) || /던$/.test(prev); // 한・는・은・던 → 「〜の・〜こと」
@@ -9606,6 +9609,35 @@ function koFaded(e){ const n = koFadeN(); return !!e && n > 0 && (e.ok || 0) >= 
 const KO_TAPSPEAK_LS = LS_PREFIX + 'ko-tap-speak';
 function koTapSpeakOn(){ return localStorage.getItem(KO_TAPSPEAK_LS) === '1'; }
 function koSetTapSpeak(on){ try{ localStorage.setItem(KO_TAPSPEAK_LS, on ? '1' : '0'); }catch(_){} }
+
+
+/* ══════ 이게（これが）・그건（それは）・뭘（何を）など、縮まった形 ══════ */
+const KO_DEMO_BASE = { '이': ['이것', 'これ'], '그': ['그것', 'それ'], '저': ['저것', 'あれ'] };
+// 縮まった語尾：[元の形, 説明, 日本語]
+const KO_DEMO_END = {
+  '게': ['이', '〜が', 'が'], '건': ['은', '〜は', 'は'], '걸': ['을', '〜を', 'を'], '거': ['', '', ''],
+  '거야': ['이야', '〜だよ', 'だよ'], '거다': ['이다', '〜だ', 'だ'], '거지': ['이지', '〜でしょ', 'でしょ'], '거예요': ['이에요', '〜です', 'です'],
+  '거랑': ['이랑', '〜と', 'と'], '거나': ['이나', '〜でも', 'でも'], '거로': ['으로', '〜で', 'で'], '걸로': ['으로', '〜で', 'で'],
+  '건가': ['인가', '〜なのか', 'なのか'], '건데': ['인데', '〜なんだけど', 'なんだけど'], '거라고': ['이라고', '〜だと', 'だと'], '거란': ['이라는', '〜という', 'という']
+};
+const KO_WHAT = {
+  '뭘': ['무엇을', '何を'], '뭔': ['무슨', '何の'], '뭔가': ['무엇인가', '何か'], '뭐야': ['무엇이야', '何だ・何なの'], '뭐지': ['무엇이지', '何だろう'],
+  '뭐가': ['무엇이', '何が'], '뭐든': ['무엇이든', '何でも'], '뭐라고': ['무엇이라고', '何だって'], '뭐야?': ['무엇이야', '何だ・何なの'], '뭐냐': ['무엇이냐', '何だ・何なのか']
+};
+function koDemoInfo(tok){
+  if(KO_WHAT[tok]){
+    const [orig, ja] = KO_WHAT[tok];
+    return { head: '뭐', rest: tok, ja, parts: [{ k: '뭐', d: '（＝무엇、何）' }, { k: tok + '＝' + orig, d: ja }], note: `${tok} は ${orig} の縮まった形です`, mean: '何', msg: '会話でよく使う縮まった形です。辞書には載っていないので、アプリで分けて出しています' };
+  }
+  const b = KO_DEMO_BASE[tok[0]], end = tok.slice(1);
+  if(!b || !(end in KO_DEMO_END)) return null;
+  const [orig, d, j] = KO_DEMO_END[end];
+  const full = b[0] + orig;
+  const ja = b[1] + j;
+  const parts = [{ k: b[0], d: '（' + b[1] + '）' }];
+  if(orig) parts.push({ k: tok + '＝' + full, d });
+  return { head: b[0], rest: end, ja, parts, note: orig ? `${tok} は ${full} の縮まった形です` : `${tok} は ${b[0]} の話し言葉です`, mean: b[1], msg: 'これ・それ・あれ（이것・그것・저것）が縮まった形です。辞書には載っていないので、アプリで分けて出しています' };
+}
 
 
 function setupDoubleTap(){
