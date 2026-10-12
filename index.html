@@ -1910,6 +1910,13 @@ body.theme-dark .page-editor [data-dkfix]{color:var(--ink) !important;}
 body.theme-dark .edge-hint{color:rgba(255,255,255,0.4);}
 body.toc-mode .edge-hint,body.library-mode .edge-hint{display:none;}
 body.booting{visibility:hidden}
+/* 起動中の「読み込み中…」（すぐ終わるときは出さないよう、少し待ってから表示） */
+#boot-loader{display:none;}
+body.booting #boot-loader{display:flex;visibility:visible;position:fixed;inset:0;z-index:99999;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#8a8a8a;letter-spacing:.08em;opacity:0;animation:bootFade .3s ease .35s forwards;pointer-events:none;}
+#boot-loader .sp{width:28px;height:28px;border-radius:50%;border:3px solid rgba(0,128,128,.18);border-top-color:#008080;animation:bootSpin .8s linear infinite;}
+@keyframes bootFade{to{opacity:1}}
+@keyframes bootSpin{to{transform:rotate(360deg)}}
 /* ══════ 韓国語メモ（beta2） ══════ */
 #topbar-ko{background:none;border:none;width:36px;height:36px;border-radius:6px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Noto Sans JP',sans-serif;font-size:15px;font-weight:700;color:#008080;}
 #topbar-ko:hover{background:#f0f0f0;}
@@ -2195,6 +2202,7 @@ body.theme-dark .ko-fi-tap{color:#eee;}
 </style>
 </head>
 <body class="booting">
+<div id="boot-loader" aria-live="polite"><div class="sp"></div><div>読み込み中…</div></div>
 <script>setTimeout(function(){document.body.classList.remove('booting');},4000);</script>
 <noscript>
   <div style="max-width:640px;margin:40px auto;padding:0 20px;font-family:sans-serif;line-height:1.8;color:#222">
@@ -2246,6 +2254,10 @@ body.theme-dark .ko-fi-tap{color:#eee;}
   <button id="gdrive-menu-sync" onclick="gdriveSyncNow();closeBackupMenu();" style="display:none;align-items:center;gap:10px;width:100%;border:none;background:none;padding:10px 16px;font-size:13px;color:#3a6d8c;cursor:pointer;text-align:left;">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
     クラウドへ同期
+  </button>
+  <button id="ko-import-beta2" onclick="closeBackupMenu();koImportFromBeta2Cloud();" style="display:flex;align-items:center;gap:10px;width:100%;border:none;background:none;padding:10px 16px;font-size:13px;color:#007070;cursor:pointer;text-align:left;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><polyline points="9 9 12 12 15 9"/><line x1="12" y1="5" x2="12" y2="12"/></svg>
+    お試し版（β2）のクラウドから引き継ぐ
   </button>
   <button id="gdrive-menu-restore" onclick="gdriveRestoreFromCloud();closeBackupMenu();" style="display:none;align-items:center;gap:10px;width:100%;border:none;background:none;padding:10px 16px;font-size:13px;color:#3a6d8c;cursor:pointer;text-align:left;">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/><polyline points="9 15 12 12 15 15"/><line x1="12" y1="12" x2="12" y2="21"/></svg>
@@ -7896,6 +7908,7 @@ function openKoMenu(){
     <button class="ko-menu-item" onclick="openKoSettings()">表示の設定</button>
     ${inBook ? `<button class="ko-menu-item" onclick="koExportTr()">この話の原文と訳を書き出す</button>
     <button class="ko-menu-item" onclick="koExportTrOnly()">この話の訳だけを書き出す</button>` : ''}
+    ${KO_IS_BETA2 ? '' : '<button class="ko-menu-item" onclick="koCloseSheet();koImportFromBeta2Cloud()">お試し版（β2）から引き継ぐ<span class="ko-mi-sub">クラウド経由</span></button>'}
     <button class="ko-menu-item" onclick="openKoHelp()">使い方</button>
     <div class="ko-actions"><span></span><button class="ko-cancel" onclick="koCloseSheet()">閉じる</button></div>`;
   document.getElementById('ko-sheet').classList.add('show');
@@ -9023,6 +9036,69 @@ async function koMigrateHeads(){
 
 /* ══════ 本番：β2で使っていたデータを引き継ぐ（1回だけ） ══════
    同じサイト（ikazu23.github.io）なので、β2の保存場所もこの端末から読める */
+// β2の本を本番の本棚に合わせる：同じ本は訳・メモ・場所ごとの意味だけ足す（本番で書いたものが優先）、β2にしか無い本は追加
+async function koMergeBeta2Novels(novels){
+  let added = 0, merged = 0;
+  for(const bn of novels || []){
+    if(!bn || !bn.id) continue;
+    const has = ['koTr', 'koNotes', 'koSense'].some(f => bn[f] && Object.keys(bn[f]).length) || bn.koMode;
+    const i = state.library.findIndex(n => n.id === bn.id);
+    if(i >= 0){
+      if(!has) continue;
+      const n = state.library[i];
+      const before = JSON.stringify([n.koTr, n.koNotes, n.koSense, n.koMode]);
+      ['koTr', 'koNotes', 'koSense'].forEach(f => { if(bn[f]) n[f] = Object.assign({}, bn[f], n[f] || {}); });
+      if(bn.koMode && !n.koMode) n.koMode = bn.koMode;
+      if(JSON.stringify([n.koTr, n.koNotes, n.koSense, n.koMode]) === before) continue;
+      await libDbPut(n).catch(() => {});
+      if(state.novel && state.novel.id === n.id) ['koTr', 'koNotes', 'koSense', 'koMode'].forEach(f => { state.novel[f] = n[f]; });
+      merged++;
+    }else if(bn.title !== '無題の小説' || has){
+      state.library.push(bn);
+      await libDbPut(bn).catch(() => {});
+      added++;
+    }
+  }
+  return { added, merged };
+}
+// 本番：β2のクラウド（Googleドライブ）から引き継ぐ。アプリとウェブで保存場所が違うときや、別の端末から
+async function koImportFromBeta2Cloud(){
+  if(KO_IS_BETA2) return;
+  if(typeof gdriveIsSignedIn !== 'function' || !gdriveIsSignedIn()){ showToast('先にGoogleドライブにログインしてください'); try{ gdriveSignIn(); }catch(_){} return; }
+  if(!confirm('お試し版（β2）のクラウドにある単語帳・訳・メモ・本を、本番に引き継ぎますか？\n\n・先にβ2で「クラウドへ同期」しておいてください\n・本番のデータは消えません（足すだけ）\n・両方にある本は、本文はそのままで訳・メモだけ足します\n・何回やっても、同じ単語や本が2つにはなりません')) return;
+  try{
+    showToast('β2のクラウドを読み込み中...');
+    await gdriveEnsureToken();
+    const get = async name => { const f = await koDriveFind(name); return f ? await (await gdriveFetch('https://www.googleapis.com/drive/v3/files/' + f.id + '?alt=media')).json() : null; };
+    const kd = await get('ko-data-beta2.json').catch(() => null);
+    const nd = await get('novel-reader-data-beta2.json').catch(() => null);
+    if(!kd && !nd){ showToast('β2のクラウドにデータがありません（β2で一度「クラウドへ同期」してください）'); return; }
+    let words = 0;
+    if(kd && kd.words){
+      koLoad();
+      const beforeN = Object.keys(_koWords).length, before = JSON.stringify(_koWords);
+      const m = koMergeData({ words: _koWords, del: koDelMap(), stats: koStats() }, kd);
+      _koWords = m.words; koSaveWords(true); koSetDelMap(m.del);
+      try{ localStorage.setItem(KO_STATS_LS, JSON.stringify(m.stats)); }catch(_){}
+      words = Math.max(0, Object.keys(_koWords).length - beforeN);
+      if(JSON.stringify(_koWords) !== before && !words) words = -1; // 数は同じでも中身が変わった
+    }
+    const r = await koMergeBeta2Novels((nd && nd.library) || []);
+    try{ localStorage.setItem('ko-migrated-beta2', '1'); }catch(_){}
+    if(!state.currentNovelId) try{ renderLibrary(); }catch(_){}
+    koUpdateBadge(); koRerender();
+    try{ await koSyncWords(); }catch(_){}
+    try{ scheduleGdriveAutoSync(); }catch(_){}
+    const parts = [];
+    if(words > 0) parts.push(`単語${words}語`); else if(words < 0) parts.push('単語帳を更新');
+    if(r.added) parts.push(`本${r.added}冊を追加`);
+    if(r.merged) parts.push(`${r.merged}冊に訳・メモを追加`);
+    showToast(parts.length ? '引き継ぎました：' + parts.join('・') : '新しく引き継ぐものはありませんでした');
+  }catch(e){
+    console.warn('koImportFromBeta2Cloud', e);
+    showToast('引き継げませんでした：' + e.message);
+  }
+}
 async function koMigrateFromBeta2(){
   if(KO_IS_BETA2) return;
   if(localStorage.getItem('ko-migrated-beta2') === '1') return;
@@ -9056,24 +9132,8 @@ async function koMigrateFromBeta2(){
         q.onerror = () => { res([]); db.close(); };
       };
     });
-    for(const bn of novels){
-      if(!bn || !bn.id) continue;
-      const has = ['koTr', 'koNotes', 'koSense'].some(f => bn[f] && Object.keys(bn[f]).length) || bn.koMode;
-      const i = state.library.findIndex(n => n.id === bn.id);
-      if(i >= 0){
-        if(!has) continue;
-        const n = state.library[i];
-        ['koTr', 'koNotes', 'koSense'].forEach(f => { if(bn[f]) n[f] = Object.assign({}, bn[f], n[f] || {}); });
-        if(bn.koMode && !n.koMode) n.koMode = bn.koMode;
-        await libDbPut(n).catch(() => {});
-        moved++;
-      }else if(bn.title !== '無題の小説' || has){
-        // β2にだけある本は、本番の本棚にも入れる
-        state.library.push(bn);
-        await libDbPut(bn).catch(() => {});
-        moved++;
-      }
-    }
+    const r = await koMergeBeta2Novels(novels);
+    moved += r.added + r.merged;
   }catch(e){ console.warn('koMigrateFromBeta2', e); return; }
   try{ localStorage.setItem('ko-migrated-beta2', '1'); }catch(_){}
   if(moved){
