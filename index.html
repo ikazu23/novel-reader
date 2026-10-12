@@ -8389,14 +8389,16 @@ async function koFillDict(hit, addMode){
   // まだ意味が空なら、いちばん上の候補を入れておく
   if(!addMode && !_koEdit.ms.length && window._koDictRows[0]){
     const r = window._koDictRows[0];
-    koAddMeaning(koJaShort(r.ja[0]).split('・').slice(0, 2).join('・'));
+    // 数のあとの単位（몇 번 → 回）は、分かりやすい言い方を先に
+    const cm = r.pos === '依名' && koIsNumberWord(prevTok) ? KO_COUNTER_JA[r.head] : '';
+    koAddMeaning(cm || koJaShort(r.ja[0]).split('・').slice(0, 2).join('・'));
     _koEdit._auto = true;
     const first = box.querySelector('.ko-dict-row'); if(first) first.classList.add('on');
     koShowExamples(r);
     const k = koKeyFromHead(r.head, r.pos, hit.eojeol);
     if(k && !hit.key) koSetKey(k);
     if(_koHeadAuto) koSetHead(r.head);
-    koRenderFormInfo(koFormInfo(hit.eojeol, r.head, r.pos, koJaShort(r.ja[0])));
+    koRenderFormInfo(koFormInfo(hit.eojeol, r.head, r.pos, cm || koJaShort(r.ja[0])));
   }
 }
 function koSetKey(k){
@@ -9244,7 +9246,7 @@ const KO_PART_TABLE = {
   '로': ['〜で・〜へ', 'で'], '으로': ['〜で・〜へ', 'で'], '로서': ['〜として', 'として'], '으로서': ['〜として', 'として'],
   '로써': ['〜によって', 'によって'], '으로써': ['〜によって', 'によって'], '까지': ['〜まで', 'まで'], '부터': ['〜から', 'から'],
   '처럼': ['〜のように', 'のように'], '보다': ['〜より', 'より'], '마저': ['〜さえ', 'さえ'], '조차': ['〜さえ', 'さえ'],
-  '밖에': ['〜しか', 'しか'], '이나': ['〜や・〜でも', 'や'], '나': ['〜や・〜でも', 'や'], '께서': ['〜が（尊敬）', 'が'],
+  '밖에': ['〜しか', 'しか'], '이나': ['〜や・〜でも・（数のあと）〜も', 'や'], '나': ['〜や・〜でも・（数のあと）〜も', 'や'], '께서': ['〜が（尊敬）', 'が'],
   '들': ['〜たち', 'たち'], '님': ['〜さん・〜様', 'さん'], '씨': ['〜さん', 'さん'],
   '적': ['〜的', '的'], '적인': ['〜的な', '的な'], '적으로': ['〜的に', '的に'], '적이다': ['〜的だ', '的だ'],
   '이다': ['〜だ', 'だ'], '다': ['〜だ', 'だ'], '입니다': ['〜です', 'です'], '이에요': ['〜です', 'です'], '예요': ['〜です', 'です'],
@@ -9328,7 +9330,7 @@ function koFormInfo(eojeol, head, pos, mean){
   const sp = koSplitTail(rest, KO_PART_TABLE);
   if(!sp) return null;
   let ja = '';
-  if(m1 && !sp.left && sp.parts.every(p => p.j)) ja = m1 + sp.parts.map(p => p.j).join('');
+  if(m1 && !sp.left && sp.parts.every(p => p.j && KO_SAFE_J.includes(p.j))) ja = m1 + sp.parts.map(p => p.j).join('');
   else if(m1 && /的$/.test(m1) && !sp.left && sp.parts.length === 1 && sp.parts[0].k === '인') ja = m1 + 'な〜';
   return { head, mean: m1, parts: sp.parts, left: sp.left, ja };
 }
@@ -9346,7 +9348,8 @@ function koFormGuess(eojeol){
 function koRenderFormInfo(info){
   const box = document.getElementById('ko-form-info');
   if(!box) return;
-  if(!info || !info.parts || !info.parts.length){ box.innerHTML = ''; box.style.display = 'none'; return; }
+  if(!info || ((!info.parts || !info.parts.length) && !info.ja)){ box.innerHTML = ''; box.style.display = 'none'; return; }
+  info.parts = info.parts || [];
   const parts = info.parts.map(p => `<span class="ko-fi-plus">＋</span><span class="ko-fi-end">${escapeHtml(p.k)}</span><span class="ko-fi-d">${escapeHtml(p.d)}</span>`).join('');
   const head = info.head ? `<span class="ko-fi-h">${escapeHtml(info.head)}</span>${info.mean ? `<span class="ko-fi-d">${escapeHtml(info.mean)}</span>` : ''}` : `<span class="ko-fi-h">${escapeHtml(info.front || '')}…</span>`;
   box.innerHTML = `${info.ja ? `<div class="ko-fi-ja">${escapeHtml(info.ja)}</div>` : ''}
@@ -9445,7 +9448,8 @@ function koWordInfo(tok, prevTok){
     const f = koDictLookup(tok, prevTok);
     if(f.length){
       const e = f[0].ents[0];
-      const mean = koFirstMean(koJaShort(e[1][0]));
+      const cm = e[0] === '依名' && koIsNumberWord(prevTok) ? KO_COUNTER_JA[f[0].head] : '';
+      const mean = cm || koFirstMean(koJaShort(e[1][0]));
       const info = koFormInfo(tok, f[0].head, e[0], mean);
       return { tok, head: f[0].head, mean, parts: info ? info.parts : [], counter: koIsNumberWord(prevTok) && e[0] === '依名' };
     }
@@ -9466,7 +9470,9 @@ function koRenderPhraseInfo(){
   const own = (_koEdit.ms[_koEdit.sel] || _koEdit.ms[0] || {}).m || '';
   const last = infos[infos.length - 1] || { parts: [] };
   // 自分の意味のうしろに、最後の語の助詞（이→が など）を付ける
-  const tailJa = last.parts.length && last.parts.every(p => p.j) && !/다$/.test(last.head || '') ? last.parts.map(p => p.j).join('') : '';
+  // 意味のうしろに付けてよいのは、はっきりした助詞だけ（이나＝や／も のように意味が変わるものは付けない）
+  let tailJa = last.parts.length && last.parts.every(p => p.j && KO_SAFE_J.includes(p.j)) && !/다$/.test(last.head || '') ? last.parts.map(p => p.j).join('') : '';
+  if(tailJa && koGlossText(own).endsWith(tailJa)) tailJa = '';
   const seg = infos.map((w, i) => {
     const h = `<button class="ko-fi-h ko-fi-tap" onclick="koOpenPhraseWord(${i})">${escapeHtml(w.head || w.tok)}</button>`
       + (w.mean ? `<span class="ko-fi-d">${escapeHtml(w.mean)}</span>` : '<span class="ko-fi-d ko-fi-none">？</span>')
@@ -9511,12 +9517,32 @@ const KO_GEO_REST = {
 };
 // 縮まった形：건＝것은、걸＝것을、게＝것이
 const KO_GEO_SHORT = { '건': '은', '걸': '을', '게': '이' };
+// 듯 のうしろ：[説明, ㄹ・을のあと, ㄴ・는のあと]
+const KO_DEUT_REST = {
+  '': ['〜ように', '〜しそうに', '〜かのように・〜そうに'], '이': ['〜ように', '〜しそうに', '〜かのように・〜そうに'],
+  '한': ['〜ような（名詞の前）', '〜しそうな', '〜かのような'],
+  '하다': ['〜ようだ', '〜しそうだ', '〜ようだ'], '했다': ['〜ようだった', '〜しそうだった', '〜ようだった'],
+  '합니다': ['〜ようです', '〜しそうです', '〜ようです'], '해요': ['〜ようです', '〜しそうです', '〜ようです'],
+  '하게': ['〜ように', '〜しそうに', '〜かのように'], '해': ['〜ようで', '〜しそうで', '〜ようで'], '해서': ['〜ようで', '〜しそうで', '〜ようで'],
+  '하고': ['〜ようで', '〜しそうで', '〜ようで'], '했던': ['〜ようだった（名詞の前）', '〜しそうだった', '〜ようだった'], '하면서': ['〜ようにしながら', '〜しそうにしながら', '〜かのようにしながら']
+};
 function koGrammarInfo(tok, prev){
   tok = String(tok || ''); prev = String(prev || '');
   if(!tok) return null;
   const pl = prev ? koDec(prev[prev.length - 1]) : null;
   const fut = !!pl && pl.T === 8;                       // 살아남을・할 → 「〜だろう」
   const att = fut || (!!pl && pl.T === 4) || /던$/.test(prev); // 한・는・은・던 → 「〜の・〜こと」
+  // 〜는 듯／〜ㄴ 듯／〜ㄹ 듯：「〜かのように・〜しそうに」
+  if(/^듯/.test(tok)){
+    const rest = tok.slice(1);
+    if(!att || !(rest in KO_DEUT_REST)) return null;
+    const r = KO_DEUT_REST[rest];
+    const parts = [{ k: '듯', d: '（〜よう・〜ように）' }];
+    if(rest) parts.push({ k: rest, d: r[0] });
+    const note = fut ? `前の「${prev}」が「〜する（これから・名詞の前）」の形なので「〜しそう」になります`
+               : `前の「${prev}」が名詞の前の形なので「〜かのよう」になります`;
+    return { head: '듯', rest, ja: fut ? r[1] : r[2], parts, note, fut, mean: '〜よう', msg: '듯（〜よう）を使った言い回しです。辞書には「様」とだけ載っているので、アプリで分けて出しています' };
+  }
   let head, rest;
   if(KO_GEO_SHORT[tok]){ if(!att) return null; head = '거'; rest = KO_GEO_SHORT[tok]; }
   else if(/^[거것]/.test(tok)){ head = tok[0]; rest = tok.slice(1); }
@@ -9531,7 +9557,7 @@ function koGrammarInfo(tok, prev){
   if(rest) parts.push({ k: KO_GEO_SHORT[tok] ? tok + '＝것' + rest : rest, d: r[0] });
   const note = fut ? `前の「${prev}」が「〜する（これから・名詞の前）」の形なので「〜だろう」になります`
              : att ? `前の「${prev}」が名詞の前の形なので「〜の・〜こと」になります` : '';
-  return { head, rest, ja, parts, note, fut };
+  return { head, rest, ja, parts, note, fut, mean: 'こと・の', msg: '거（것＝こと・の）を使った言い回しです。辞書には載っていないので、アプリで分けて出しています' };
 }
 function koFillGrammar(hit, gi, addMode){
   const box = document.getElementById('ko-dict');
@@ -9539,14 +9565,19 @@ function koFillGrammar(hit, gi, addMode){
     box.innerHTML = `<button class="ko-dict-row on" onclick="koAddMeaning(${escapeHtml(JSON.stringify(gi.ja))})">
       <span class="ko-dict-h">${escapeHtml(hit.eojeol)}</span><span class="ko-dict-pos">言い回し</span>
       <span class="ko-dict-ja">${escapeHtml(gi.ja)}</span></button>
-      <div class="ko-dict-msg">거（것＝こと・の）を使った言い回しです。辞書には載っていないので、アプリで分けて出しています</div>`;
+      <div class="ko-dict-msg">${escapeHtml(gi.msg || '')}</div>`;
   }
   if(addMode) return;
   if(!_koEdit.ms.length){ koAddMeaning(gi.ja); _koEdit._auto = true; }
   try{ koSetKey(hit.eojeol); }catch(_){}
   if(_koHeadAuto) koSetHead(hit.eojeol);
-  koRenderFormInfo({ head: gi.head === '거' ? '거' : '것', mean: 'こと・の', parts: gi.parts.slice(1), left: '', ja: gi.ja, note: gi.note });
+  koRenderFormInfo({ head: gi.head, mean: gi.mean || 'こと・の', parts: gi.parts.slice(1), left: '', ja: gi.ja, note: gi.note });
 }
+
+// 数のあとの単位（依存名詞）の、分かりやすい意味
+const KO_COUNTER_JA = { '번': '回・度', '개': '個', '가지': '種類', '명': '人', '살': '歳', '권': '冊', '마리': '匹', '시': '時', '분': '分', '초': '秒', '달': 'か月', '년': '年', '층': '階', '잔': '杯', '병': '本（瓶）', '장': '枚', '대': '台', '채': '軒', '벌': '着', '켤레': '足', '송이': '輪', '그루': '本（木）', '자루': '本（ペン等）', '줄': '行・列', '주일': '週間', '군데': 'か所', '살짜리': '歳の' };
+// 日本語の意味のうしろに、そのまま付けてよい助詞
+const KO_SAFE_J = ['が', 'を', 'は', 'に', 'で', 'の', 'も', 'と', 'へ', 'から', 'まで', 'より', 'たち', 'だけ', '的', '的な', '的に', 'さん', 'として', 'のように', 'しか', 'さえ', 'によって', 'だ', 'です', 'だった', 'という'];
 
 
 function setupDoubleTap(){
