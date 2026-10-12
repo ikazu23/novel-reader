@@ -1910,7 +1910,8 @@ body.booting{visibility:hidden}
 /* 起動中の「読み込み中…」（すぐ終わるときは出さないよう、少し待ってから表示） */
 #boot-loader{display:none;}
 body.booting #boot-loader{display:flex;visibility:visible;position:fixed;inset:0;z-index:99999;flex-direction:column;align-items:center;justify-content:center;gap:14px;
-  font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#8a8a8a;letter-spacing:.08em;opacity:0;animation:bootFade .3s ease .35s forwards;pointer-events:none;}
+  background:#fff;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#8a8a8a;letter-spacing:.08em;pointer-events:none;}
+body.booting #boot-loader > *{opacity:0;animation:bootFade .3s ease .35s forwards;}
 #boot-loader .sp{width:28px;height:28px;border-radius:50%;border:3px solid rgba(0,128,128,.18);border-top-color:#008080;animation:bootSpin .8s linear infinite;}
 @keyframes bootFade{to{opacity:1}}
 @keyframes bootSpin{to{transform:rotate(360deg)}}
