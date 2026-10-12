@@ -1911,12 +1911,12 @@ body.booting{visibility:hidden}
 #topbar-ko{background:none;border:none;width:36px;height:36px;border-radius:6px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Noto Sans JP',sans-serif;font-size:15px;font-weight:700;color:#008080;}
 #topbar-ko:hover{background:#f0f0f0;}
 .page-editor .kw{position:relative;cursor:pointer;}
-.page-editor .kw::before{content:attr(data-m);position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:0;
+.page-editor .kw::before{content:attr(data-m);position:absolute;left:50%;bottom:calc(100% - var(--ko-gdrop,0px));transform:translateX(-50%);margin-bottom:0;
   font-family:'Noto Sans JP',sans-serif;font-size:var(--kfs,max(9px,0.5em));font-weight:500;line-height:1.2;letter-spacing:0;color:#0a8a8a;
   white-space:nowrap;max-width:var(--kmw,9em);overflow:hidden;text-overflow:ellipsis;pointer-events:none;text-indent:0;}
 .page-editor .kw.kl::before{left:0;transform:none;}
 /* 意味を出している間は、行の間に意味が入るだけの行間を確保（2行目以降が上の行に重ならないように） */
-body.ko-on:not(.ko-hide):not(.ko-moff) #viewport:not(.edit-mode) .page-editor p{line-height:max(var(--para-line-height),1.9);}
+body.ko-on:not(.ko-hide):not(.ko-moff) #viewport:not(.edit-mode) .page-editor p{line-height:max(var(--para-line-height),var(--ko-minlh,1.9));}
 body.ko-hide .page-editor .kw::before,.page-editor .kw.learned::before{display:none;}
 body.ko-hide .page-editor .kw{text-decoration:underline dotted #0a8a8a;text-underline-offset:4px;}
 body.theme-dark .page-editor .kw::before{color:#6fd0d0;}
@@ -3409,10 +3409,11 @@ function markDarkTextForTheme(root){
   });
 }
 function stripFuriganaHtml(html){
-  if(!html || (html.indexOf('<ruby') === -1 && html.indexOf('data-dkfix') === -1)) return html;
+  if(!html || (html.indexOf('<ruby') === -1 && html.indexOf('data-dkfix') === -1 && !koHasMarks(html))) return html;
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
   tmp.querySelectorAll('[data-dkfix]').forEach(el=>el.removeAttribute('data-dkfix'));
+  koStripDom(tmp);
   tmp.querySelectorAll('ruby').forEach(ruby=>{
     const rt = ruby.querySelector('rt');
     if(rt) rt.remove();
@@ -6318,6 +6319,7 @@ function cleanBakedStyleHtml(html){
 }
 function cleanBakedNovel(novel){
   let changed = false;
+  try{ changed = koCleanBakedNovel(novel); }catch(e){ console.warn('ko clean', e); }
   (novel && novel.episodes || []).forEach(ep=>(ep.pages||[]).forEach(pg=>(pg.paras||[]).forEach(pa=>{
     if(pa.type !== 'text' || !pa.html || !/background|font-family|line-height|letter-spacing|white-space|-webkit-/i.test(pa.html)) return;
     const c = cleanBakedStyleHtml(pa.html);
@@ -7191,6 +7193,39 @@ function koSetShowMode(v){
 function koApplyBodyClass(){
   document.body.classList.toggle('ko-hide', koShowMode() === 'hide');
   document.body.classList.toggle('ko-moff', koShowMode() === 'off');
+  koScheduleMeasure();
+}
+/* 意味が上の行に重ならない行間を、実際の画面で測って決める
+   （iPhoneなど、フォントによって文字の箱の高さが違うので決め打ちしない） */
+let _koMeasureReq = 0;
+function koScheduleMeasure(){
+  if(_koMeasureReq) return;
+  _koMeasureReq = requestAnimationFrame(() => requestAnimationFrame(() => { _koMeasureReq = 0; try{ koMeasureGloss(); }catch(e){ console.warn('ko measure', e); } }));
+}
+function koMeasureGloss(){
+  const kws = [...document.querySelectorAll('#viewport:not(.edit-mode) .page-editor .kw:not(.learned)')].slice(0, 40);
+  let need = 0, drop = Infinity;
+  kws.forEach(kw => {
+    const r = kw.getClientRects()[0];
+    if(!r || !r.height) return;
+    const cs = getComputedStyle(kw), bs = getComputedStyle(kw, '::before');
+    if(bs.display === 'none' || bs.content === 'none') return;
+    const fs = parseFloat(cs.fontSize) || 15;
+    const pfs = parseFloat(getComputedStyle(kw.closest('p') || kw).fontSize) || fs;
+    let gh = parseFloat(bs.height);
+    if(!(gh > 0)) gh = (parseFloat(bs.fontSize) || fs * 0.5) * 1.2;
+    // 文字の箱の上の余白の分だけ、意味を文字に近づける（控えめに）
+    const d = Math.max(0, ((r.height - fs) / 2 - fs * 0.06) * 0.6);
+    drop = Math.min(drop, d);
+    // 行の間隔 ≧ 文字の箱 ＋ 意味 − 近づけた分 ＋ 少しの余裕
+    need = Math.max(need, (r.height + gh - d + Math.max(2, fs * 0.06)) / pfs);
+  });
+  if(!need) return;
+  if(!isFinite(drop)) drop = 0;
+  const root = document.body.style;
+  const lh = (Math.ceil(need * 20) / 20).toFixed(2), dp = drop.toFixed(1) + 'px';
+  if(root.getPropertyValue('--ko-minlh') !== lh) root.setProperty('--ko-minlh', lh);
+  if(root.getPropertyValue('--ko-gdrop') !== dp) root.setProperty('--ko-gdrop', dp);
 }
 /* 本文の上に出す意味：「・」の前だけ（全部はタップで見る） */
 function koGlossText(m){
@@ -7363,8 +7398,10 @@ function buildReadDisplayHtml(para){
     const plain = koParaPlain(para);
     if(KO_HANGUL.test(plain)){
       const tr = (state.novel.koTr || {})[koHash(plain)];
-      if(tr) return '<span class="ko-tr-only">' + escapeHtml(tr).replace(/\n/g, '<br>') + '</span>';
-      return '<span class="ko-untr">' + escapeHtml(plain) + '</span>';
+      // 元の本文を data-orig に持たせておく（万一この表示が保存されても元に戻せるように）
+      const orig = ' data-orig="' + escapeHtml(para.html || escapeHtml(para.text || '')) + '"';
+      if(tr) return '<span class="ko-tr-only"' + orig + '>' + escapeHtml(tr).replace(/\n/g, '<br>') + '</span>';
+      return '<span class="ko-untr"' + orig + '>' + escapeHtml(plain) + '</span>';
     }
   }
   const base = shouldShowFuriganaDisplay() ? buildFuriganaDisplayHtml(para) : (para.html || '');
@@ -7800,6 +7837,9 @@ function koSpeak(text, quiet){
 
 /* ── 読書中のタップ ── */
 function setupKoTap(){
+  try{ if(document.fonts && document.fonts.ready) document.fonts.ready.then(() => koScheduleMeasure()); }catch(_){}
+  try{ document.fonts && document.fonts.addEventListener && document.fonts.addEventListener('loadingdone', () => koScheduleMeasure()); }catch(_){}
+  window.addEventListener('resize', () => koScheduleMeasure());
   const vp = $.viewport;
   let timer = null, downX = 0, downY = 0;
   vp.addEventListener('pointerdown', e => { downX = e.clientX; downY = e.clientY; }, true);
@@ -8330,6 +8370,7 @@ function koTrSet(h, text){
 function koAutoGrow(ta){ ta.style.height = 'auto'; ta.style.height = (ta.scrollHeight + 2) + 'px'; }
 // 閲覧中のページに、段落ごとの訳の欄（または書いた訳）を差し込む
 function koDecoratePage(pageEl, pi){
+  koScheduleMeasure();
   if(state.editMode || !pageEl || !state.novel || !koEnabled()) return;
   const mode = koTrMode();
   if(mode === 'off' || mode === 'only') return;
@@ -9198,6 +9239,41 @@ function koToggleMore(btn){
   const sh = document.getElementById('ko-sheet');
   const open = sh.classList.toggle('ko-more');
   if(btn) btn.textContent = open ? '▼ くわしく（とじる）' : '▶ くわしく（形を変える・メモ など）';
+}
+
+
+/* ══════ 表示用の飾り（意味・未登録の色・文のメモ印・訳）を本文の保存データに入れない ══════ */
+function koHasMarks(html){ return !!html && /class="[^"]*\b(kw|ko-new|ko-note-mark|ko-tr|ko-tr-only|ko-untr)\b/.test(html); }
+function koStripDom(root){
+  root.querySelectorAll('.ko-tr-only[data-orig], .ko-untr[data-orig]').forEach(el => {
+    const t = document.createElement('template'); t.innerHTML = el.getAttribute('data-orig') || ''; el.replaceWith(t.content);
+  });
+  root.querySelectorAll('.ko-untr').forEach(el => el.replaceWith(...el.childNodes));
+  root.querySelectorAll('.ko-note-mark, .ko-tr').forEach(el => el.remove());
+  root.querySelectorAll('span.kw, span.ko-new').forEach(el => el.replaceWith(...el.childNodes));
+}
+function koStripHtml(html){
+  if(!koHasMarks(html)) return html;
+  const tmp = document.createElement('div');
+  tmp.innerHTML = html;
+  koStripDom(tmp);
+  return tmp.innerHTML;
+}
+// 前のバージョンで本文に焼き付いた意味などを外す（本を開いたとき）
+function koCleanBakedNovel(novel){
+  let changed = false;
+  (novel && novel.episodes || []).forEach(ep => (ep.pages || []).forEach(pg => (pg.paras || []).forEach(pa => {
+    if(pa.type !== 'text') return;
+    if(koHasMarks(pa.html)){
+      const c = koStripHtml(pa.html);
+      if(c !== pa.html){ pa.html = c; changed = true; }
+    }
+    // 文のメモの印（✎）が文字として入ってしまったもの
+    if(typeof pa.text === 'string' && /✎\s*$/.test(pa.text) && !/✎\s*$/.test(String(pa.html || '').replace(/<[^>]*>/g, ''))){
+      pa.text = pa.text.replace(/\s*✎\s*$/, ''); changed = true;
+    }
+  })));
+  return changed;
 }
 
 
@@ -12280,8 +12356,8 @@ function reapplyIndentAll(){
     if(shouldIndentText(text)){
       if(addIndentToParaEl(el)) added++;
     }
-    p.html = el.innerHTML;
-    p.text = el.textContent;
+    p.html = koStripHtml(el.innerHTML);
+    { const _t = document.createElement('div'); _t.innerHTML = p.html; p.text = _t.textContent; }
   });
   // 直接保存
   syncCurrentEpisode();
