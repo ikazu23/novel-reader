@@ -1912,8 +1912,11 @@ body.booting{visibility:hidden}
 #topbar-ko:hover{background:#f0f0f0;}
 .page-editor .kw{position:relative;cursor:pointer;}
 .page-editor .kw::before{content:attr(data-m);position:absolute;left:50%;bottom:100%;transform:translateX(-50%);margin-bottom:0;
-  font-family:'Noto Sans JP',sans-serif;font-size:max(9px,0.5em);font-weight:500;line-height:1.2;letter-spacing:0;color:#0a8a8a;
-  white-space:nowrap;max-width:9em;overflow:hidden;text-overflow:ellipsis;pointer-events:none;text-indent:0;}
+  font-family:'Noto Sans JP',sans-serif;font-size:var(--kfs,max(9px,0.5em));font-weight:500;line-height:1.2;letter-spacing:0;color:#0a8a8a;
+  white-space:nowrap;max-width:var(--kmw,9em);overflow:hidden;text-overflow:ellipsis;pointer-events:none;text-indent:0;}
+.page-editor .kw.kl::before{left:0;transform:none;}
+/* 意味を出している間は、行の間に意味が入るだけの行間を確保（2行目以降が上の行に重ならないように） */
+body.ko-on:not(.ko-hide):not(.ko-moff) #viewport:not(.edit-mode) .page-editor p{line-height:max(var(--para-line-height),1.9);}
 body.ko-hide .page-editor .kw::before,.page-editor .kw.learned::before{display:none;}
 body.ko-hide .page-editor .kw{text-decoration:underline dotted #0a8a8a;text-underline-offset:4px;}
 body.theme-dark .page-editor .kw::before{color:#6fd0d0;}
@@ -7187,6 +7190,36 @@ function koSetShowMode(v){
 }
 function koApplyBodyClass(){
   document.body.classList.toggle('ko-hide', koShowMode() === 'hide');
+  document.body.classList.toggle('ko-moff', koShowMode() === 'off');
+}
+/* 本文の上に出す意味：「・」の前だけ（全部はタップで見る） */
+function koGlossText(m){
+  const s = String(m || '');
+  // チョン・ヒウォン のようなカタカナの名前の「・」では切らない
+  const t = s.split(/(?<![\u30a0-\u30ff])・|・(?![\u30a0-\u30ff])|、/)[0].trim();
+  return t || s;
+}
+// 文字のだいたいの幅（その文字の大きさを1として）
+function koTextW(t, korean){
+  let w = 0;
+  for(const ch of String(t)){
+    if(/\s/.test(ch)) w += 0.3;
+    else if(/[\u3000-\u9fff\uac00-\ud7a3\uff00-\uffef]/.test(ch)) w += korean ? 1.06 : 1;
+    else w += 0.6;
+  }
+  return w;
+}
+// 意味が下の単語より長いとき：小さくする → 後ろに語尾があれば左寄せでそこまで使う → それでも長ければ「…」
+function koFitGloss(rb, gloss, word, rest, fpx){
+  const g = Math.max(9, fpx * 0.5);
+  const gw = koTextW(gloss) * g;
+  const ww = koTextW(word, true) * fpx;
+  let room = ww + 0.4 * fpx;
+  if(gw <= room) return;
+  if(rest){ room = (koTextW(word, true) + koTextW(rest, true)) * fpx + 0.1 * fpx; rb.classList.add('kl'); }
+  const sc = Math.max(0.8, Math.min(1, room / gw));
+  rb.style.setProperty('--kfs', (g * sc).toFixed(1) + 'px');
+  rb.style.setProperty('--kmw', Math.max(room, g * sc * 2).toFixed(1) + 'px');
 }
 function koRerender(){
   if(state.editMode || !state.pages) return;
@@ -7236,15 +7269,19 @@ function koDecorateHtml(html, para){
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
   const ph = koHash(plain), senses = (state.novel && state.novel.koSense) || {}, occ = {};
-  const mkSpan = (key, text) => {
+  const fpx = (para && para.size) || (state.settings && state.settings.fontSize) || 15;
+  const mkSpan = (key, text, rest) => {
     const rb = document.createElement('span');
     rb.className = 'kw' + (/\s/.test(key) ? ' phrase' : '') + (koHideLearned() && koIsLearned(words[key]) ? ' learned' : '');
     rb.dataset.kw = key;
     const ni = occ[key] = (occ[key] || 0) + 1;
     const alt = senses[ph + '|' + key + '|' + ni];
-    rb.dataset.m = alt || words[key].m || '…';
+    const full = alt || words[key].m || '…';
+    rb.dataset.m = koGlossText(full);
+    if(rb.dataset.m !== full) rb.title = full;
     if(alt) rb.classList.add('alt');
     rb.textContent = text;
+    koFitGloss(rb, rb.dataset.m, text, rest || '', fpx);
     return rb;
   };
   // フレーズを先に（その中の単語には個別の意味を付けない）
@@ -7266,7 +7303,7 @@ function koDecorateHtml(html, para){
       found.forEach(f => {
         if(f.i < last) return;
         if(f.i > last) frag.appendChild(document.createTextNode(text.slice(last, f.i)));
-        frag.appendChild(mkSpan(f.key, text.substr(f.i, f.len)));
+        frag.appendChild(mkSpan(f.key, text.substr(f.i, f.len), (text.slice(f.i + f.len).match(/^[가-힣]*/) || [''])[0]));
         last = f.i + f.len;
       });
       if(last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
@@ -7302,7 +7339,7 @@ function koDecorateHtml(html, para){
         any = true;
         if(m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
         // 意味は文字の上に浮かせて出す（ルビだと単語の間が空いてしまうので）
-        frag.appendChild(mkSpan(key, fd.form));
+        frag.appendChild(mkSpan(key, fd.form, m[0].slice(fd.form.length)));
         last = m.index + fd.form.length;
       }
       if(!any) return;
