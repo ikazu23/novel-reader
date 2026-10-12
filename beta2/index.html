@@ -8348,14 +8348,22 @@ function koDictLookup(eojeol, prevTok){
     let fit = koRestFits(eojeol.slice(n), verb) ? 1 : 0;
     if(verb) fit = koVerbFit(eojeol, c, fit);
     const lv = Math.min(...useful.map(e => KO_LV_ORDER[e[3] || 0]));
-    res.push({ head: c, ents: useful, n, fit, lv });
+    let full = false;
+    if(verb){ const t = koNormTail(koVerbTail(eojeol, c.slice(0, -1))); const sp = t ? koSplitTail(t, KO_END_TABLE) : null; full = !!sp && !sp.left; }
+    res.push({ head: c, ents: useful, n, fit, lv, verb, full });
   }
   res.sort((a, b) => b.n - a.n || b.fit - a.fit || a.lv - b.lv);
   const anyFit = res.some(r => r.fit > 0);
   // 合う候補が無いときは、短すぎる当てずっぽう（전지적→전 など）は出さない
   let list = anyFit ? res.filter(r => r.fit > 0) : res.filter(r => r.fit >= 0 && r.n >= 2 && r.n * 2 >= eojeol.length);
   const hasLong = list.some(r => r.n >= 2);
-  if(hasLong) list = list.filter(r => r.n >= 2);
+  // 長く合う候補（보고＝報告）があっても、語尾まできちんと合う動詞（보다＋고）は残す
+  if(hasLong) list = list.filter(r => r.n >= 2 || (r.verb && r.full && r.fit >= 1));
+  // その動詞のほうが基本の単語なら先に（보고：報告 より 見る）
+  if(list.length > 1 && !list[0].verb){
+    const v = list.find(r => r.verb && r.full && r.fit >= 1 && r.lv < list[0].lv);
+    if(v){ list = [v].concat(list.filter(r => r !== v)); }
+  }
   return list.slice(0, 4);
 }
 // 辞書の見出しから、本文に付ける形（語幹）を決める
