@@ -2206,6 +2206,11 @@ body.theme-dark .page-editor .kw.kwrap::after{color:#6fd0d0;}
 body.theme-dark .page-editor .kw.kwrap.alt::after{color:#f0b070;}
 body.ko-hide .page-editor .kw.kwrap::after,.page-editor .kw.learned::after{display:none;}
 
+/* だんだん隠す：意味は出さず点線だけ */
+.page-editor .kw.kfade::before,.page-editor .kw.kfade::after{display:none;}
+.page-editor .kw.kfade{text-decoration:underline dotted #0a8a8a;text-underline-offset:4px;}
+body.theme-dark .page-editor .kw.kfade{text-decoration-color:#6fd0d0;}
+
 </style>
 </head>
 <body class="booting">
@@ -7274,7 +7279,7 @@ function koLayoutWrapped(drop){
   };
   kws.forEach(kw => {
     const rects = [...kw.getClientRects()].filter(r => r.width > 0);
-    if(rects.length < 2 || kw.classList.contains('learned')){ clear(kw); return; }
+    if(rects.length < 2 || kw.classList.contains('learned') || kw.classList.contains('kfade')){ clear(kw); return; }
     const r1 = rects[0], r2 = rects[rects.length - 1];
     // 意味を置く基準の位置（ブラウザによって違うので、実際に測る）
     const probe = document.createElement('span');
@@ -7378,7 +7383,8 @@ function koDecorateHtml(html, para){
   const fpx = (para && para.size) || (state.settings && state.settings.fontSize) || 15;
   const mkSpan = (key, text, rest) => {
     const rb = document.createElement('span');
-    rb.className = 'kw' + (/\s/.test(key) ? ' phrase' : '') + (koHideLearned() && koIsLearned(words[key]) ? ' learned' : '');
+    const learned = koHideLearned() && koIsLearned(words[key]);
+    rb.className = 'kw' + (/\s/.test(key) ? ' phrase' : '') + (learned ? ' learned' : (koFaded(words[key]) ? ' kfade' : ''));
     rb.dataset.kw = key;
     const ni = occ[key] = (occ[key] || 0) + 1;
     const alt = senses[ph + '|' + key + '|' + ni];
@@ -7639,6 +7645,7 @@ function koOpenSheet(hit){
   koRenderForms();
   koJoinInit(hit, key);
   if(!ent && !/\s/.test(key)) koFillDict(hit);
+  if(koTapSpeakOn() && hit.sentence && hit.pi >= 0 && !hit.fromFreq) koSpeak(hit.eojeol, true);
 }
 /* フレーズにつなげる：前後の語を足していく */
 let _koJoin = null;
@@ -8180,7 +8187,7 @@ function koQuizAnswer(grade){
   const q = _koQuiz, w = koLoad(), k = q.keys[q.i];
   const e = w[k];
   if(e){
-    const wasLearned = koIsLearned(e);
+    const wasLearned = koIsLearned(e), wasFaded = koFaded(e);
     if(!q.practice){
       const wasNew = koIsNewCard(e);
       const sc = koSchedule(e, grade);
@@ -8194,7 +8201,7 @@ function koQuizAnswer(grade){
     e.u = new Date().toISOString();
     koSaveWords();
     koStat('r');
-    if(wasLearned !== koIsLearned(e)) koRerender();
+    if(wasLearned !== koIsLearned(e) || wasFaded !== koFaded(e)) koRerender();
   }
   q.done++;
   // 「もう一回」は少しあとにもう一度出す
@@ -8781,6 +8788,14 @@ function openKoSettings(){
       ${seg([['write', '書く'], ['show', '表示'], ['off', '隠す'], ['only', '訳で読む']], tm, 'koSetTrMode')}
     </div>
     <div class="ko-set">
+      <div class="ko-set-l">だんだん隠す<small>復習で正解した回数がこれ以上の単語は、意味を隠して点線だけに。タップで答え合わせ</small></div>
+      ${seg([[0, 'オフ'], [2, '2回'], [3, '3回'], [5, '5回']], koFadeN(), 'koSetFadeN')}
+    </div>
+    <div class="ko-set">
+      <div class="ko-set-l">単語を押したら発音<small>小説に書いてあるとおりの形で読みます（🔊ボタンは辞書の形）</small></div>
+      ${seg([[true, 'オン'], [false, 'オフ']], koTapSpeakOn(), 'koSetTapSpeak')}
+    </div>
+    <div class="ko-set">
       <div class="ko-set-l">単語を押したときの画面<small>かんたん：形・メモなどの欄を「くわしく」にたたむ</small></div>
       ${seg([[false, 'ぜんぶ'], [true, 'かんたん']], koSimpleOn(), 'koSetSimple')}
     </div>
@@ -9174,7 +9189,7 @@ async function koMigrateFromBeta2(){
       try{ localStorage.setItem(KO_STATS_LS, JSON.stringify(merged.stats)); }catch(_){}
       moved += Object.keys(bw).length;
     }
-    ['ko-show', 'ko-new', 'ko-tr-mode', 'ko-hide-learned', 'ko-new-per-day', 'ko-card-dir', 'ko-show-new'].forEach(k => {
+    ['ko-show', 'ko-new', 'ko-tr-mode', 'ko-hide-learned', 'ko-new-per-day', 'ko-card-dir', 'ko-show-new', 'ko-fade', 'ko-tap-speak', 'ko-simple'].forEach(k => {
       const v = localStorage.getItem('beta2-' + k);
       if(v != null && localStorage.getItem(k) == null) try{ localStorage.setItem(k, v); }catch(_){}
     });
@@ -9577,6 +9592,18 @@ function koFillGrammar(hit, gi, addMode){
 const KO_COUNTER_JA = { '번': '回・度', '개': '個', '가지': '種類', '명': '人', '살': '歳', '권': '冊', '마리': '匹', '시': '時', '분': '分', '초': '秒', '달': 'か月', '년': '年', '층': '階', '잔': '杯', '병': '本（瓶）', '장': '枚', '대': '台', '채': '軒', '벌': '着', '켤레': '足', '송이': '輪', '그루': '本（木）', '자루': '本（ペン等）', '줄': '行・列', '주일': '週間', '군데': 'か所', '살짜리': '歳の' };
 // 日本語の意味のうしろに、そのまま付けてよい助詞
 const KO_SAFE_J = ['が', 'を', 'は', 'に', 'で', 'の', 'も', 'と', 'へ', 'から', 'まで', 'より', 'たち', 'だけ', '的', '的な', '的に', 'さん', 'として', 'のように', 'しか', 'さえ', 'によって', 'だ', 'です', 'だった', 'という'];
+
+
+/* ══════ だんだん隠す：復習で何回か正解した単語は、本文では点線だけにする ══════ */
+const KO_FADE_LS = LS_PREFIX + 'ko-fade';
+function koFadeN(){ return parseInt(localStorage.getItem(KO_FADE_LS) || '0', 10) || 0; }
+function koSetFadeN(n){ try{ localStorage.setItem(KO_FADE_LS, String(n)); }catch(_){} koRerender(); }
+// 「もう一回」と答えた直後（次の復習が今日）は、また意味を出す
+function koFaded(e){ const n = koFadeN(); return !!e && n > 0 && (e.ok || 0) >= n && (e.ivl || 0) >= 1; }
+/* 単語を押したら発音（最初はオフ） */
+const KO_TAPSPEAK_LS = LS_PREFIX + 'ko-tap-speak';
+function koTapSpeakOn(){ return localStorage.getItem(KO_TAPSPEAK_LS) === '1'; }
+function koSetTapSpeak(on){ try{ localStorage.setItem(KO_TAPSPEAK_LS, on ? '1' : '0'); }catch(_){} }
 
 
 function setupDoubleTap(){
