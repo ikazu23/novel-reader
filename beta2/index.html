@@ -7613,7 +7613,9 @@ function koJoin(dir){
   // 最後の語：辞書で引けたら辞書の形から（세 가지 → 가지 のまま、끄덕였다 → 끄덕이）
   let stem = null;
   const prevW = parts.length > 1 ? parts[parts.length - 2] : '';
-  if(_koDict){ const f = koDictLookup(lastW, prevW); if(f.length) stem = koKeyFromHead(f[0].head, f[0].ents[0][0], lastW); }
+  const lastG = koGrammarInfo(lastW, prevW);
+  if(lastG) stem = lastW;
+  else if(_koDict){ const f = koDictLookup(lastW, prevW); if(f.length) stem = koKeyFromHead(f[0].head, f[0].ents[0][0], lastW); }
   if(!stem) stem = koCandidates(lastW).slice(-1)[0] || lastW;
   const k = parts.slice(0, -1).concat([stem]).join(' ');
   koSetKey(k);
@@ -7621,7 +7623,7 @@ function koJoin(dir){
   // 見出し：最後の語を辞書の形に（끄덕였다 → 끄덕이다）
   let lastHead = lastW;
   // 세 가지 방법이 → 세 가지 방법（助詞は外す）、끄덕였다 → 끄덕이다
-  if(_koDict){ const f = koDictLookup(lastW, prevW); if(f.length && (/다$/.test(f[0].head) || lastW.startsWith(f[0].head))) lastHead = f[0].head; }
+  if(!lastG && _koDict){ const f = koDictLookup(lastW, prevW); if(f.length && (/다$/.test(f[0].head) || lastW.startsWith(f[0].head))) lastHead = f[0].head; }
   koSetHead(parts.slice(0, -1).concat([lastHead]).join(' '));
   _koHeadAuto = false;
   _koEdit = { ms: koMs(_koWords[k]), sel: 0 }; koRenderMeans();
@@ -8256,7 +8258,7 @@ function koVerbFit(eojeol, head, loose){
   const t = koNormTail(koVerbTail(eojeol, stem));
   const sp = t === '' ? { left: '' } : (t ? koSplitTail(t, KO_END_TABLE) : null);
   const full = !!sp && !sp.left;
-  if(!literal) return full ? 1 : 0;          // 形が変わる候補（받침を外した・不規則）は語尾まで合うときだけ
+  if(!literal) return full ? 1 : -1;         // 形が変わる候補（받침を外した・不規則）は語尾まで合うときだけ（合わなければ出さない：거란→거르다 など）
   if(eojeol === stem) return 0.5;            // 語幹だけでは単語にならない（세→세다 より 세＝三）
   if(!full) return loose;
   // 母音で終わる語幹に、縮まない 어/었 が付く形（지었다→지다 より 짓다）は後回し
@@ -8283,9 +8285,9 @@ function koDictLookup(eojeol, prevTok){
     res.push({ head: c, ents: useful, n, fit, lv });
   }
   res.sort((a, b) => b.n - a.n || b.fit - a.fit);
-  const anyFit = res.some(r => r.fit);
+  const anyFit = res.some(r => r.fit > 0);
   // 合う候補が無いときは、短すぎる当てずっぽう（전지적→전 など）は出さない
-  let list = anyFit ? res.filter(r => r.fit) : res.filter(r => r.n >= 2 && r.n * 2 >= eojeol.length);
+  let list = anyFit ? res.filter(r => r.fit > 0) : res.filter(r => r.fit >= 0 && r.n >= 2 && r.n * 2 >= eojeol.length);
   const hasLong = list.some(r => r.n >= 2);
   if(hasLong) list = list.filter(r => r.n >= 2);
   return list.slice(0, 4);
@@ -8308,7 +8310,10 @@ async function koFillDict(hit, addMode){
     catch(e){ box.innerHTML = '<div class="ko-dict-msg">辞書を読み込めませんでした</div>'; return; }
     if(_koCur !== hit) return;
   }
-  const found = koDictLookup(hit.eojeol, koPrevTok(hit));
+  const prevTok = koPrevTok(hit);
+  const gi = koGrammarInfo(hit.eojeol, prevTok);
+  if(gi){ koFillGrammar(hit, gi, addMode); return; }
+  const found = koDictLookup(hit.eojeol, prevTok);
   if(!found.length && _koHeadAuto && !addMode){ const kk = (document.getElementById('ko-key') || {}).value; if(kk) koSetHead(koGuessHead(kk, hit.eojeol)); }
   if(!found.length){
     box.innerHTML = '<div class="ko-dict-msg">辞書に見つかりませんでした。下の「辞書で調べる」でNaverを開けます</div>';
@@ -9290,7 +9295,7 @@ function koRenderFormInfo(info){
   const head = info.head ? `<span class="ko-fi-h">${escapeHtml(info.head)}</span>${info.mean ? `<span class="ko-fi-d">${escapeHtml(info.mean)}</span>` : ''}` : `<span class="ko-fi-h">${escapeHtml(info.front || '')}…</span>`;
   box.innerHTML = `${info.ja ? `<div class="ko-fi-ja">${escapeHtml(info.ja)}</div>` : ''}
     <div class="ko-fi-row">${head}${parts}${info.left ? `<span class="ko-fi-d">＋${escapeHtml(info.left)}</span>` : ''}</div>
-    ${info.guess ? '<div class="ko-fi-note">辞書に無いので、語尾だけの推測です</div>' : ''}`;
+    ${info.guess ? '<div class="ko-fi-note">辞書に無いので、語尾だけの推測です</div>' : ''}${info.note ? `<div class="ko-fi-note">${escapeHtml(info.note)}</div>` : ''}`;
   box.style.display = '';
 }
 // 登録済みの単語：保存してある見出しと意味から
@@ -9378,6 +9383,8 @@ function koWordInfo(tok, prevTok){
   // 数の言葉は、辞書の1つ目（数人・幾 など）より分かりやすい言い方で
   const NUM_JA = { '몇': 'いくつ', '한': '一つの', '두': '二つの', '세': '三つの', '네': '四つの', '다섯': '五つの', '여섯': '六つの', '일곱': '七つの', '여덟': '八つの', '아홉': '九つの', '열': '十の', '여러': 'いくつもの', '몇몇': 'いくつかの' };
   if(NUM_JA[tok]) return { tok, head: tok, mean: NUM_JA[tok], parts: [] };
+  const gi = koGrammarInfo(tok, prevTok);
+  if(gi) return { tok, head: gi.head, mean: gi.ja, parts: gi.parts.slice(1) };
   if(_koDict){
     const f = koDictLookup(tok, prevTok);
     if(f.length){
@@ -9426,6 +9433,63 @@ function koOpenPhraseWord(i){
   let occ = 0;
   if(nb && nb.i >= 0){ const at = nb.i + i; occ = nb.toks.slice(0, at).filter(t => t === tok).length; }
   koOpenSheet({ type: 'word', key: null, eojeol: tok, sentence: h.sentence || tok, pi: h.pi, qi: h.qi, occ });
+}
+
+
+/* ══════ 「〜거란・〜거야・〜건」など：것（こと・の）＋だ・という…（辞書に無い言い回し） ══════ */
+// 거／것 のうしろ：[説明, ㄹ・을のあと（〜だろう）, ㄴ・는のあと（〜の）]
+const KO_GEO_REST = {
+  '': ['', '〜こと・〜もの', '〜こと・〜の'],
+  '란': ['＝라는（〜という）', '〜だろうという', '〜という（こと）'], '라는': ['〜という', '〜だろうという', '〜という（こと）'], '이라는': ['〜という', '〜だろうという', '〜という（こと）'],
+  '라고': ['〜と', '〜だろうと', '〜ということだと'], '이라고': ['〜と', '〜だろうと', '〜ということだと'],
+  '야': ['〜だ（くだけた）', '〜だろう・〜するつもりだ', '〜なんだ'], '이야': ['〜だ（くだけた）', '〜だろう・〜するつもりだ', '〜なんだ'],
+  '예요': ['〜です', '〜でしょう・〜するつもりです', '〜なんです'], '에요': ['〜です', '〜でしょう・〜するつもりです', '〜なんです'], '이에요': ['〜です', '〜でしょう・〜するつもりです', '〜なんです'],
+  '입니다': ['〜です（かたい）', '〜でしょう・〜するつもりです', '〜なのです'],
+  '다': ['〜だ', '〜だろう', '〜のだ'], '이다': ['〜だ', '〜だろう', '〜のだ'],
+  '지': ['〜でしょ', '〜だろう？', '〜なんでしょ'], '이지': ['〜でしょ', '〜だろう？', '〜なんでしょ'], '죠': ['〜でしょう', '〜でしょう', '〜なんでしょう'],
+  '니까': ['〜だから', '〜だろうから', '〜なんだから'], '이니까': ['〜だから', '〜だろうから', '〜なんだから'],
+  '면': ['〜なら', '〜するなら', '〜なら'], '라면': ['〜なら', '〜するなら', '〜なら'], '이라면': ['〜なら', '〜するなら', '〜なら'],
+  '였다': ['〜だった', '〜だっただろう', '〜のだった'], '이었다': ['〜だった', '〜だっただろう', '〜のだった'],
+  '은': ['〜は', '〜ことは', '〜のは'], '을': ['〜を', '〜ことを', '〜のを'], '이': ['〜が', '〜ことが', '〜のが'], '도': ['〜も', '〜ことも', '〜のも'],
+  '만': ['〜だけ', '〜ことだけ', '〜のだけ'], '처럼': ['〜のように', '〜ように', '〜のように'], '같다': ['〜みたいだ', '〜しそうだ', '〜みたいだ'], '같은': ['〜みたいな', '〜しそうな', '〜みたいな']
+};
+// 縮まった形：건＝것은、걸＝것을、게＝것이
+const KO_GEO_SHORT = { '건': '은', '걸': '을', '게': '이' };
+function koGrammarInfo(tok, prev){
+  tok = String(tok || ''); prev = String(prev || '');
+  if(!tok) return null;
+  const pl = prev ? koDec(prev[prev.length - 1]) : null;
+  const fut = !!pl && pl.T === 8;                       // 살아남을・할 → 「〜だろう」
+  const att = fut || (!!pl && pl.T === 4) || /던$/.test(prev); // 한・는・은・던 → 「〜の・〜こと」
+  let head, rest;
+  if(KO_GEO_SHORT[tok]){ if(!att) return null; head = '거'; rest = KO_GEO_SHORT[tok]; }
+  else if(/^[거것]/.test(tok)){ head = tok[0]; rest = tok.slice(1); }
+  else return null;
+  if(!(rest in KO_GEO_REST)) return null;
+  // 前が「〜する（名詞の前）」の形でないときは、はっきりした言い回しだけ（거＝それ と区別）
+  if(!att && !['란', '라는', '라고', '야', '예요', '에요', '니까'].includes(rest) && head === '거') return null;
+  if(!att && head === '것' && !rest) return null;
+  const r = KO_GEO_REST[rest];
+  const ja = fut ? r[1] : r[2];
+  const parts = [{ k: head, d: (head === '거' ? '＝것（' : '（') + 'こと・の）' }];
+  if(rest) parts.push({ k: KO_GEO_SHORT[tok] ? tok + '＝것' + rest : rest, d: r[0] });
+  const note = fut ? `前の「${prev}」が「〜する（これから・名詞の前）」の形なので「〜だろう」になります`
+             : att ? `前の「${prev}」が名詞の前の形なので「〜の・〜こと」になります` : '';
+  return { head, rest, ja, parts, note, fut };
+}
+function koFillGrammar(hit, gi, addMode){
+  const box = document.getElementById('ko-dict');
+  if(box){
+    box.innerHTML = `<button class="ko-dict-row on" onclick="koAddMeaning(${escapeHtml(JSON.stringify(gi.ja))})">
+      <span class="ko-dict-h">${escapeHtml(hit.eojeol)}</span><span class="ko-dict-pos">言い回し</span>
+      <span class="ko-dict-ja">${escapeHtml(gi.ja)}</span></button>
+      <div class="ko-dict-msg">거（것＝こと・の）を使った言い回しです。辞書には載っていないので、アプリで分けて出しています</div>`;
+  }
+  if(addMode) return;
+  if(!_koEdit.ms.length){ koAddMeaning(gi.ja); _koEdit._auto = true; }
+  try{ koSetKey(hit.eojeol); }catch(_){}
+  if(_koHeadAuto) koSetHead(hit.eojeol);
+  koRenderFormInfo({ head: gi.head === '거' ? '거' : '것', mean: 'こと・の', parts: gi.parts.slice(1), left: '', ja: gi.ja, note: gi.note });
 }
 
 
