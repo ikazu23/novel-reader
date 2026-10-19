@@ -290,6 +290,7 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 
 /* ══════ SINGLE CONTENTEDITABLE EDITOR ══════ */
 .page-editor{
+  width:var(--text-w,100%);margin-left:auto;margin-right:auto; /* 本文の幅（設定） */
   outline:none;
   /* no border, no background */
   min-height:100%;
@@ -2837,6 +2838,16 @@ body.theme-dark .page-editor .kw.kfade{text-decoration-color:#6fd0d0;}
   </div>
   <div class="ps">
     <div class="stepper-line">
+      <div class="pl">本文の幅</div>
+      <div class="stepper-row">
+        <button class="stepper-btn" onclick="adjustTextWidth(-5)">－</button>
+        <span class="stepper-val" id="global-textwidth-val">100%</span>
+        <button class="stepper-btn" onclick="adjustTextWidth(5)">＋</button>
+      </div>
+    </div>
+  </div>
+  <div class="ps">
+    <div class="stepper-line">
       <div class="pl">この話の文字サイズ</div>
       <div class="stepper-row">
         <button class="stepper-btn" onclick="adjustAllFontSize(-1)">－</button>
@@ -4414,6 +4425,7 @@ function applyNovelLook(){
   applyTheme(novelThemeIdx(state.currentNovelId ? state.novel : null));
   applyParaLineHeight(lookSetting('lineHeight', 2.0), false);
   applyParaSpacing(lookSetting('paraSpacing', 24), false);
+  applyTextWidth(lookSetting('textWidth', 100), false);
   let fam = lookSetting('fontFamily', FONTS[0].family);
   if(!FONTS.some(f=>f.family===fam)) fam = FONTS[0].family; // 削除済みフォント
   applyGlobalFont(fam, FONTS.findIndex(f=>f.family===fam), false);
@@ -14250,6 +14262,22 @@ function adjustLineHeight(delta){
   val = Math.round(val * 10) / 10; // 浮動小数点の誤差防止
   val = Math.min(3.0, Math.max(1.2, val));
   applyParaLineHeight(val);
+}
+// 本文の幅（ページの幅に対する%）：本ごとに、全話まとめて。囲みの幅もこれに合わせて狭くなる
+function adjustTextWidth(delta){
+  let val = lookSetting('textWidth', 100) + delta;
+  val = Math.min(100, Math.max(50, val));
+  applyTextWidth(val);
+}
+function applyTextWidth(val, store = true){
+  val = parseInt(val);
+  if(isNaN(val)) val = 100;
+  val = Math.min(100, Math.max(50, val));
+  document.documentElement.style.setProperty('--text-w', val + '%');
+  const el = document.getElementById('global-textwidth-val');
+  if(el) el.textContent = val + '%';
+  if(store) storeLookSetting('textWidth', val);
+  if(store){ try{ window.dispatchEvent(new Event('resize')); }catch(_){} } // ふりがな・単語の意味などの位置を測り直す（流れる文字は自動で測り直す）
 }
 function adjustParaSpacing(delta){
   let val = lookSetting('paraSpacing', 24) + delta;
