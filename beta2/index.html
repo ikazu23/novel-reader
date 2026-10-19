@@ -1959,9 +1959,11 @@ body.theme-dark .kzs-opt.on{background:#1d2a2a;border-color:#2a8f8f;}
 body.theme-dark .kzs-warn{background:#2e2619;border-color:#5a4430;color:#f0c890;}
 body.theme-dark .kzs-later{background:#333;color:#ccc;}
 /* ── 囲み（段落を箱で囲む）：色は後ろの層（::after）で出す。背景色にするとiPhoneが文字に焼き付けるため ── */
-.page-editor p.pbx{isolation:isolate;margin-left:6px;margin-right:6px;margin-bottom:0;padding:0 14px var(--para-spacing);}
-.page-editor p.pbx.bx-first{margin-top:10px;padding-top:12px;}
-.page-editor p.pbx.bx-last{padding-bottom:12px;margin-bottom:calc(var(--para-spacing) + 10px);}
+.page-editor p.pbx{isolation:isolate;margin-left:6px;margin-right:6px;margin-bottom:0;padding:0 var(--bxpx,14px) var(--para-spacing);}
+.page-editor p.pbx.bx-first{margin-top:10px;padding-top:var(--bxpt,12px);}
+.page-editor p.pbx.bx-last{padding-bottom:var(--bxpb,12px);margin-bottom:calc(var(--para-spacing) + 10px);}
+/* イカ墨翻訳から届いた囲みの文字色（原文と同じ色。夜間テーマでは使わない） */
+body:not(.theme-dark) .page-editor p.pbx-bg.bx-txt{color:var(--bxt) !important;}
 .page-editor p.pbx::after{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;box-sizing:border-box;}
 .page-editor p.pbx.bx-first::after{border-top-left-radius:4px;border-top-right-radius:4px;}
 .page-editor p.pbx.bx-last::after{border-bottom-left-radius:4px;border-bottom-right-radius:4px;}
@@ -1976,6 +1978,14 @@ body.theme-dark .kzs-later{background:#333;color:#ccc;}
 .page-editor p.pbx-sys::after{background:rgba(47,143,214,.1);background:color-mix(in srgb, var(--bxc) 11%, transparent);}
 body.theme-dark .page-editor p.pbx-bg::after{background:color-mix(in srgb, var(--bxc) 52%, #000);}
 #viewport.edit-mode .page-editor p.pbx{margin:0 0 10px;padding:10px 12px;}
+/* ── 流れる文字（読むときだけ動く） ── */
+#viewport:not(.edit-mode) .page-editor p.pmq{white-space:nowrap;overflow:hidden;text-align:left !important;}
+#viewport:not(.edit-mode) .page-editor p.pmq br{display:none;}
+#viewport:not(.edit-mode) .page-editor p.pmq.mq-on{animation:pmq var(--mqd,10s) linear infinite;}
+@keyframes pmq{from{text-indent:var(--mqa,0)}to{text-indent:var(--mqb,0)}}
+#viewport.edit-mode .page-editor p.pmq{border-style:dashed;border-color:#0a8a8a;}
+.mqs-prev{overflow:hidden;white-space:nowrap;background:#1d1d1f;color:#ffb347;border-radius:8px;padding:8px 10px;margin:0 0 10px;font-size:14px;letter-spacing:.08em;}
+.mqs-run{animation:pmq var(--mqd,4s) linear infinite;}
 /* 囲みシート */
 .bxs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
 .bxs-opt{border:1.5px solid #e3e3e3;border-radius:12px;padding:7px;text-align:center;font-size:11px;color:#555;background:#fff;}
@@ -2683,6 +2693,13 @@ body.theme-dark .page-editor .kw.kfade{text-decoration-color:#6fd0d0;}
     <!-- 囲み（段落を箱で囲む） -->
     <button class="eb-btn" id="eb-box-btn" onclick="openBoxSheet()" title="囲み（段落を箱で囲む）">
       <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="10" x2="17" y2="10"/><line x1="7" y1="14" x2="13" y2="14"/></svg>
+    </button>
+
+    <div class="eb-sep"></div>
+
+    <!-- 流れる文字 -->
+    <button class="eb-btn" id="eb-mq-btn" onclick="openMqSheet()" title="流れる文字（電車の案内みたいに横に流す）">
+      <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><polyline points="9,9.5 6.5,12 9,14.5"/><line x1="6.5" y1="12" x2="17.5" y2="12"/></svg>
     </button>
 
     <div class="eb-sep"></div>
@@ -5662,6 +5679,27 @@ function kzPagesHash(pages){
   (pages || []).forEach(pg => (pg.paras || []).forEach(pa => { const t = String(pa.html != null ? pa.html : pa.text || '') + '\u0001'; for(let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0; }));
   return h.toString(36);
 }
+// 見た目（囲み・色・大きさ・配置）も含めた指紋。見た目だけ変わった新しい版も入れ替えられるように
+function kzPagesHash2(pages){
+  let h = 5381;
+  (pages || []).forEach(pg => (pg.paras || []).forEach(pa => {
+    const t = String(pa.html != null ? pa.html : pa.text || '') + '|' + JSON.stringify(pa.box || null) + '|' + (pa.size || '') + '|' + (pa.color || '') + '|' + (pa.align || '') + '\u0001';
+    for(let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0;
+  }));
+  return h.toString(36);
+}
+// 前にイカ墨翻訳から入れたままか（手で直していないか）
+function kzUntouched(ep){
+  const k = ep.kzImport;
+  if(!k) return false;
+  if(!k.h) return ep.charCount === k.cc;
+  return (k.hv === 2 ? kzPagesHash2(ep.pages) : kzPagesHash(ep.pages)) === k.h;
+}
+// 届いた版が、前に入れた版と同じか（古い指紋で入れた話も比べられるように）
+function kzSameAsImported(ep, pages){
+  const k = ep.kzImport;
+  return !!(k && k.h) && (k.hv === 2 ? kzPagesHash2(pages) : kzPagesHash(pages)) === k.h;
+}
 function kzEpTitle(t){
   return String(t || '').replace(/（翻訳）\s*$/, '').replace(/\s*[|｜\-–]\s*(카카오페이지|카카오 페이지|리디북스|리디|RIDI|RIDIBOOKS)\s*$/i, '').trim() || 'タイトルなし';
 }
@@ -5754,8 +5792,31 @@ function kzAskOverwrite(nums, total){
     });
   });
 }
+// 手で直した話に新しい版が届いたときに聞くシート（「残す」がふつう）
+function kzAskEdited(nums){
+  let ow = false;
+  const list = nums.slice(0, 12).map(n => `第${n}話`).join('・') + (nums.length > 12 ? ` ほか${nums.length - 12}話` : '');
+  return kzSheet((sh, done) => {
+    const render = () => {
+      sh.innerHTML = `<div class="kzs-grab"></div>
+        <div class="kzs-hd"><div class="kzs-ic">訳</div><div class="kzs-t">手で直した話に新しい版が届きました</div></div>
+        <div class="kzs-sub">イカ墨翻訳で訳し直した・見た目を記録し直した話のうち、${nums.length}話はこのアプリで手で直してあります。</div>
+        <div class="kzs-warn">${kzEsc(list)}<small>上書きすると直した分は消えます（今の内容は自動バックアップに残ります）</small></div>
+        <button class="kzs-opt ${!ow ? 'on' : ''}" data-ow="0"><span></span><div>直した話を残す<small>この話には新しい版を入れない</small></div></button>
+        <button class="kzs-opt ${ow ? 'on' : ''}" data-ow="1"><span></span><div>新しい版で上書きする<small>直した分は消えて、届いた版になる</small></div></button>
+        <div class="kzs-btns"><button class="kzs-ok" data-a="ok">決定</button></div>`;
+    };
+    render();
+    sh.addEventListener('click', ev => {
+      const b = ev.target.closest('button');
+      if(!b) return;
+      if(b.dataset.ow){ ow = b.dataset.ow === '1'; render(); return; }
+      if(b.dataset.a === 'ok') return done(ow);
+    });
+  });
+}
 // 1つの本に話を入れる。戻り値：受け取りを伝える話の一覧と、件数
-function kzImportInto(novelId, list, overwriteOthers){
+function kzImportInto(novelId, list, overwriteOthers, overwriteEdited){
   const isCur = state.currentNovelId === novelId && state.novel;
   if(isCur){ try{ if(state.editMode) syncEditorToState(state.curPage); syncCurrentEpisode(); }catch(_){} }
   const novel = isCur ? state.novel : state.library.find(n => n.id === novelId);
@@ -5766,15 +5827,17 @@ function kzImportInto(novelId, list, overwriteOthers){
     if(num == null) num = novel.episodes.reduce((m, e) => Math.max(m, e.number), 0) + 1;
     const pages = [{ paras: kzItemsToParas(kzItemsFromData(p.data || {})) }];
     const cc = countChars(pages);
-    const mark = { key: p.key, n: p.n || 0, cc, h: kzPagesHash(pages) };
+    const mark = { key: p.key, n: p.n || 0, cc, h: kzPagesHash2(pages), hv: 2 };
     const ep = novel.episodes.find(e => e.number === num);
     if(!ep){
       const ne = makeEpisode(num, kzEpTitle(p.title), pages); ne.charCount = cc; ne.kzImport = mark;
       novel.episodes.push(ne); added++;
     } else if(ep.kzImport && ep.kzImport.key === p.key){
-      // 前にこの仕組みで入れた話：手で直していなければ、新しい版（続きまで訳した版など）に入れ替える
-      const untouched = ep.kzImport.h ? kzPagesHash(ep.pages) === ep.kzImport.h : ep.charCount === ep.kzImport.cc;
-      if(untouched && (p.n || 0) > (ep.kzImport.n || 0) && ep.id !== state.currentEpisodeId){
+      // 前にこの仕組みで入れた話：中身か見た目が変わった新しい版なら入れ替える（手で直した話は、聞いて「上書き」を選んだときだけ）
+      if(ep.id === state.currentEpisodeId){ skipped++; return; } // いま開いている話は入れ替えない（次に開いたときにまた届く）
+      const untouched = kzUntouched(ep);
+      if(kzSameAsImported(ep, pages) || (untouched && kzPagesHash2(ep.pages) === mark.h)){ /* 前に入れた版と同じ：何もしない */ }
+      else if(untouched || overwriteEdited){
         ep.pages = pages; ep.charCount = cc; ep.kzImport = mark; ep.date = new Date().toISOString(); updated++;
       } else skipped++;
     } else if(!ep.charCount){
@@ -5782,7 +5845,7 @@ function kzImportInto(novelId, list, overwriteOthers){
     } else if(overwriteOthers && ep.id !== state.currentEpisodeId){
       ep.title = kzEpTitle(p.title); ep.pages = pages; ep.charCount = cc; ep.kzImport = mark; ep.date = new Date().toISOString(); updated++;
     } else skipped++;
-    acks.push({ key: p.key, n: p.n || 0 });
+    acks.push({ key: p.key, n: p.n || 0, h: p.h || '' });
   });
   if(added || updated){
     novel.updatedAt = new Date().toISOString();
@@ -5804,7 +5867,7 @@ async function kzReceive(eps){
     const acks = []; const ask = []; const todo = [];
     for(const g of groups.values()){
       const t = map[g.wk];
-      if(t === 'skip') acks.push(...g.eps.map(p => ({ key: p.key, n: p.n || 0 })));
+      if(t === 'skip') acks.push(...g.eps.map(p => ({ key: p.key, n: p.n || 0, h: p.h || '' })));
       else if(t && state.library.some(n => n.id === t)) todo.push([t, g]);
       else ask.push(g); // まだ決めていない・本が消された作品
     }
@@ -5813,7 +5876,7 @@ async function kzReceive(eps){
       for(let i = 0; i < ask.length; i++){
         const g = ask[i], a = ans[i];
         if(a === 'later') continue;
-        if(a === 'skip'){ map[g.wk] = 'skip'; acks.push(...g.eps.map(p => ({ key: p.key, n: p.n || 0 }))); continue; }
+        if(a === 'skip'){ map[g.wk] = 'skip'; acks.push(...g.eps.map(p => ({ key: p.key, n: p.n || 0, h: p.h || '' }))); continue; }
         let id = a;
         if(a === 'new'){
           const nv = makeNovel(g.work || '無題の小説');
@@ -5843,9 +5906,27 @@ async function kzReceive(eps){
       // 上書きする本は、先にバックアップ
       if(overwrite) for(const nv of conflictNovels){ try{ await autoBackup(JSON.parse(JSON.stringify(nv)), true, true); }catch(_){} }
     }
+    // 手で直した話に、新しい版（中身か見た目が変わった版）が届いたとき：まとめて1回だけ聞く
+    const editedNums = [], editedNovels = new Set();
+    todo.forEach(([id, g]) => {
+      const nv = state.currentNovelId === id && state.novel ? state.novel : state.library.find(n => n.id === id);
+      if(!nv) return;
+      g.eps.forEach(p => {
+        const e = nv.episodes.find(x => x.number === kzEpNum(p));
+        if(!e || !e.kzImport || e.kzImport.key !== p.key || e.id === state.currentEpisodeId || kzUntouched(e)) return;
+        const np = [{ paras: kzItemsToParas(kzItemsFromData(p.data || {})) }];
+        if(kzSameAsImported(e, np)) return; // 前に入れた版と同じ：聞かない
+        editedNums.push(e.number); editedNovels.add(nv);
+      });
+    });
+    let overwriteEdited = false;
+    if(editedNums.length){
+      overwriteEdited = await kzAskEdited(editedNums.sort((a, b) => a - b));
+      if(overwriteEdited) for(const nv of editedNovels){ try{ await autoBackup(JSON.parse(JSON.stringify(nv)), true, true); }catch(_){} }
+    }
     let added = 0, updated = 0, skipped = 0;
     for(const [id, g] of todo){
-      const r = kzImportInto(id, g.eps, overwrite);
+      const r = kzImportInto(id, g.eps, overwrite, overwriteEdited);
       if(!r) continue;
       acks.push(...r.acks); added += r.added; updated += r.updated; skipped += r.skipped;
     }
@@ -5873,7 +5954,11 @@ const BOX_STYLES = {
 const BOX_COLORS = ['#e2362a','#2f6fd6','#2e9b5a','#e0a21b','#222222','#9a9a9a'];
 function boxValid(b){
   if(!b || typeof b !== 'object' || !BOX_STYLES[b.s] || !/^#[0-9a-f]{6}$/i.test(b.c || '')) return null;
-  return { s: b.s, c: b.c.toLowerCase() };
+  const r = { s: b.s, c: b.c.toLowerCase() };
+  // イカ墨翻訳から届いた囲み：中の文字の色と、内側の余白（文字の大きさに対する割合）
+  if(/^#[0-9a-f]{6}$/i.test(b.t || '')) r.t = b.t.toLowerCase();
+  ['pt', 'pb', 'px'].forEach(k => { const v = Number(b[k]); if(b[k] != null && isFinite(v)) r[k] = Math.max(0, Math.min(6, v)); });
+  return r;
 }
 function boxLum(hex){
   const n = parseInt(hex.slice(1), 16);
@@ -5882,20 +5967,30 @@ function boxLum(hex){
 function boxApplyEl(p, box){
   p.classList.remove('pbx', 'bx-first', 'bx-last', 'bx-ondark', ...Object.keys(BOX_STYLES).map(k => 'pbx-' + k));
   p.style.removeProperty('--bxc');
-  delete p.dataset.box;
+  ['--bxpt', '--bxpb', '--bxpx', '--bxt'].forEach(k => p.style.removeProperty(k));
+  p.classList.remove('bx-txt');
+  delete p.dataset.box; delete p.dataset.bxx;
   const b = boxValid(box);
   if(!b) return;
+  const ex = {};
+  if(b.pt != null){ p.style.setProperty('--bxpt', Math.max(0.4, b.pt) + 'em'); ex.pt = b.pt; }
+  if(b.pb != null){ p.style.setProperty('--bxpb', Math.max(0.4, b.pb) + 'em'); ex.pb = b.pb; }
+  if(b.px != null){ p.style.setProperty('--bxpx', Math.max(0.5, Math.min(3, b.px)) + 'em'); ex.px = b.px; }
+  if(b.t){ ex.t = b.t; if(b.s === 'bg'){ p.style.setProperty('--bxt', b.t); p.classList.add('bx-txt'); } }
+  if(Object.keys(ex).length) p.dataset.bxx = JSON.stringify(ex);
   p.classList.add('pbx', 'pbx-' + b.s, 'bx-first', 'bx-last');
   p.dataset.box = b.s + '|' + b.c;
   // 黒っぽい線は文字色に合わせる（夜間テーマでも見えるように）
   p.style.setProperty('--bxc', (b.s !== 'bg' && isNearBlack(b.c)) ? 'var(--ink)' : b.c);
-  if(b.s === 'bg' && boxLum(b.c) < 0.4) p.classList.add('bx-ondark');
+  if(b.s === 'bg' && !b.t && boxLum(b.c) < 0.4) p.classList.add('bx-ondark'); // 文字の色が届いていればそれを使う
 }
 function boxFromEl(el){
   const k = el && el.dataset && el.dataset.box;
   if(!k) return null;
   const [s, c] = k.split('|');
-  return boxValid({ s, c });
+  let ex = {};
+  try{ ex = JSON.parse(el.dataset.bxx || '{}') || {}; }catch(_){}
+  return boxValid(Object.assign({}, ex, { s, c }));
 }
 // 同じ囲みが続く段落をつなげる（編集中は段落ごとに別の箱で見せる）
 function boxJoin(editor){
@@ -6014,6 +6109,108 @@ async function openBoxSheet(){
   refreshPage(pi);
   save();
   showToast(res.box ? (qis.length > 1 ? `${qis.length}段落を囲みました` : '囲みました') : '囲みを外しました');
+}
+
+/* ══════════════════════════════════════
+   流れる文字（電車の案内みたいに、段落の文字が横に流れる）
+   段落ごとに para.mq = {d:'rtl'|'ltr', v:1|2|3}。読むときだけ動く（編集中は止まる）
+══════════════════════════════════════ */
+const MQ_SPEED = { 1: 45, 2: 80, 3: 140 }; // 1秒に進む px
+function mqValid(m){
+  if(!m || typeof m !== 'object' || (m.d !== 'rtl' && m.d !== 'ltr')) return null;
+  const v = [1, 2, 3].includes(+m.v) ? +m.v : 2;
+  return { d: m.d, v };
+}
+function mqApplyEl(p, mq){
+  p.classList.remove('pmq', 'mq-on');
+  delete p.dataset.mq;
+  const m = mqValid(mq);
+  if(!m) return;
+  p.classList.add('pmq');
+  p.dataset.mq = m.d + '|' + m.v;
+  if(window.ResizeObserver) mqObserver().observe(p);
+}
+function mqFromEl(el){
+  const k = el && el.dataset && el.dataset.mq;
+  if(!k) return null;
+  const [d, v] = k.split('|');
+  return mqValid({ d, v });
+}
+// 見えたとき・大きさが変わったときに、文字の長さを測って動かす
+let _mqObs = null;
+function mqObserver(){
+  if(!_mqObs) _mqObs = new ResizeObserver(ents => ents.forEach(e => mqMeasure(e.target)));
+  return _mqObs;
+}
+function mqMeasure(p){
+  if(!p.isConnected || !p.classList.contains('pmq')){ try{ mqObserver().unobserve(p); }catch(_){} return; }
+  const m = mqFromEl(p);
+  if(!m || state.editMode){ p.classList.remove('mq-on'); return; }
+  const cs = getComputedStyle(p);
+  const cw = p.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+  if(cw <= 0) return; // 見えていない（あとで見えたときにまた測る）
+  const r = document.createRange();
+  r.selectNodeContents(p);
+  const tw = Math.ceil(r.getBoundingClientRect().width) || 0;
+  if(!tw) return;
+  const from = m.d === 'rtl' ? cw : -tw, to = m.d === 'rtl' ? -tw : cw;
+  const key = [from, to, m.v].join(',');
+  if(p.dataset.mqk === key && p.classList.contains('mq-on')) return;
+  p.dataset.mqk = key;
+  p.style.setProperty('--mqa', from + 'px');
+  p.style.setProperty('--mqb', to + 'px');
+  p.style.setProperty('--mqd', ((cw + tw) / MQ_SPEED[m.v]).toFixed(2) + 's');
+  p.classList.remove('mq-on'); void p.offsetWidth; // 測り直したら最初から
+  p.classList.add('mq-on');
+}
+function mqAsk(count, cur){
+  let d = cur ? cur.d : 'rtl', v = cur ? cur.v : 2;
+  return kzSheet((sh, done) => {
+    const render = () => {
+      const opt = (k, l, sub) => `<button class="kzs-opt ${d === k ? 'on' : ''}" data-d="${k}"><span></span><div>${l}<small>${sub}</small></div></button>`;
+      sh.innerHTML = `<div class="kzs-grab"></div>
+        <div class="kzs-hd"><div class="kzs-ic">流</div><div class="kzs-t">流れる文字</div></div>
+        <div class="kzs-sub">${count > 1 ? `選んだ${count}段落を` : 'この段落を'}電車の案内みたいに横に流します（読むときだけ動きます）</div>
+        ${d === 'none' ? '' : `<div class="mqs-prev"><div class="mqs-run" style="--mqa:${d === 'rtl' ? '100%' : '-100%'};--mqb:${d === 'rtl' ? '-100%' : '100%'};--mqd:${{ 1: 7, 2: 4, 3: 2.3 }[v]}s">まもなく ○○駅 です</div></div>`}
+        ${opt('rtl', '右から左へ', 'ふつうの電光掲示板の向き')}
+        ${opt('ltr', '左から右へ', '')}
+        ${opt('none', '流さない', '止まった文字に戻す')}
+        ${d === 'none' ? '' : `<div class="kzs-seg">${[[1, 'ゆっくり'], [2, 'ふつう'], [3, 'はやい']].map(([k, l]) => `<button class="${v === k ? 'on' : ''}" data-v="${k}">${l}</button>`).join('')}</div>`}
+        <div class="kzs-btns"><button class="kzs-later" data-a="cancel">やめる</button><button class="kzs-ok" data-a="ok">決定</button></div>`;
+    };
+    render();
+    sh.addEventListener('click', ev => {
+      const b = ev.target.closest('button');
+      if(!b) return;
+      if(b.dataset.d){ d = b.dataset.d; render(); return; }
+      if(b.dataset.v){ v = +b.dataset.v; render(); return; }
+      if(b.dataset.a === 'cancel') done(null);
+      if(b.dataset.a === 'ok') done({ mq: d === 'none' ? null : mqValid({ d, v }) });
+    });
+    sh.parentNode.addEventListener('click', ev => { if(ev.target === sh.parentNode) done(null); });
+  });
+}
+async function openMqSheet(){
+  if(!state.editMode) return;
+  const t = boxTargets();
+  if(!t){ showToast('流したい段落にカーソルを置くか、範囲を選んでください'); return; }
+  const { pi } = t;
+  syncEditorToState(pi);
+  const paras = state.pages[pi] && state.pages[pi].paras;
+  if(!paras) return;
+  const qis = [...new Set(t.els.map(el => parseInt(el.dataset.qi, 10)))]
+    .filter(q => !isNaN(q) && paras[q] && paras[q].type === 'text');
+  if(!qis.length){ showToast('流したい段落にカーソルを置くか、範囲を選んでください'); return; }
+  const cur = mqValid(paras[qis[0]].mq);
+  const res = await mqAsk(qis.length, cur);
+  if(!res) return;
+  _undoStack.push(JSON.stringify(state.pages));
+  if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
+  _redoStack.length = 0;
+  qis.forEach(q => { if(res.mq) paras[q].mq = res.mq; else delete paras[q].mq; });
+  refreshPage(pi);
+  save();
+  showToast(res.mq ? '読むときに流れます（編集中は止まっています）' : '流れる文字をやめました');
 }
 
 // ZIPファイルからtxt/htmlを一括インポート
@@ -6599,6 +6796,7 @@ function buildParaEl(pi,qi,para){
     if(_c && isNearBlack(_c)) p.dataset.origColor = _c;
     p.style.fontFamily=para.fontFamily||state.settings.fontFamily;
     if(para.box) boxApplyEl(p, para.box);
+    if(para.mq) mqApplyEl(p, para.mq);
     return p;
   }
 }
@@ -6971,6 +7169,8 @@ function syncEditorToState(pi){
         }
         const _bx = boxFromEl(node);
         if (_bx) builtPara.box = _bx;
+        const _mq = mqFromEl(node);
+        if (_mq) builtPara.mq = _mq;
         newParas.push(builtPara);
       }
       if(node.dataset){node.dataset.pi=pi; node.dataset.qi=globalQi;}
