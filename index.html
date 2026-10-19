@@ -1981,6 +1981,14 @@ body:not(.theme-dark) .page-editor p.pbx-bg.bx-txt{color:var(--bxt) !important;}
 .page-editor p.pbx-sys::after{background:rgba(47,143,214,.1);background:color-mix(in srgb, var(--bxc) 11%, transparent);}
 body.theme-dark .page-editor p.pbx-bg::after{background:color-mix(in srgb, var(--bxc) 52%, #000);}
 #viewport.edit-mode .page-editor p.pbx{margin:0 0 10px;padding:10px 12px;}
+/* ── 流れる文字（読むときだけ動く） ── */
+#viewport:not(.edit-mode) .page-editor p.pmq{white-space:nowrap;overflow:hidden;text-align:left !important;}
+#viewport:not(.edit-mode) .page-editor p.pmq br{display:none;}
+#viewport:not(.edit-mode) .page-editor p.pmq.mq-on{animation:pmq var(--mqd,10s) linear infinite;}
+@keyframes pmq{from{text-indent:var(--mqa,0)}to{text-indent:var(--mqb,0)}}
+#viewport.edit-mode .page-editor p.pmq{border-style:dashed;border-color:#0a8a8a;}
+.mqs-prev{overflow:hidden;white-space:nowrap;background:#1d1d1f;color:#ffb347;border-radius:8px;padding:8px 10px;margin:0 0 10px;font-size:14px;letter-spacing:.08em;}
+.mqs-run{animation:pmq var(--mqd,4s) linear infinite;}
 /* 囲みシート */
 .bxs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
 .bxs-opt{border:1.5px solid #e3e3e3;border-radius:12px;padding:7px;text-align:center;font-size:11px;color:#555;background:#fff;}
@@ -2688,6 +2696,13 @@ body.theme-dark .page-editor .kw.kfade{text-decoration-color:#6fd0d0;}
     <!-- 囲み（段落を箱で囲む） -->
     <button class="eb-btn" id="eb-box-btn" onclick="openBoxSheet()" title="囲み（段落を箱で囲む）">
       <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="10" x2="17" y2="10"/><line x1="7" y1="14" x2="13" y2="14"/></svg>
+    </button>
+
+    <div class="eb-sep"></div>
+
+    <!-- 流れる文字 -->
+    <button class="eb-btn" id="eb-mq-btn" onclick="openMqSheet()" title="流れる文字（電車の案内みたいに横に流す）">
+      <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><polyline points="9,9.5 6.5,12 9,14.5"/><line x1="6.5" y1="12" x2="17.5" y2="12"/></svg>
     </button>
 
     <div class="eb-sep"></div>
@@ -6098,6 +6113,108 @@ async function openBoxSheet(){
   showToast(res.box ? (qis.length > 1 ? `${qis.length}段落を囲みました` : '囲みました') : '囲みを外しました');
 }
 
+/* ══════════════════════════════════════
+   流れる文字（電車の案内みたいに、段落の文字が横に流れる）
+   段落ごとに para.mq = {d:'rtl'|'ltr', v:1|2|3}。読むときだけ動く（編集中は止まる）
+══════════════════════════════════════ */
+const MQ_SPEED = { 1: 45, 2: 80, 3: 140 }; // 1秒に進む px
+function mqValid(m){
+  if(!m || typeof m !== 'object' || (m.d !== 'rtl' && m.d !== 'ltr')) return null;
+  const v = [1, 2, 3].includes(+m.v) ? +m.v : 2;
+  return { d: m.d, v };
+}
+function mqApplyEl(p, mq){
+  p.classList.remove('pmq', 'mq-on');
+  delete p.dataset.mq;
+  const m = mqValid(mq);
+  if(!m) return;
+  p.classList.add('pmq');
+  p.dataset.mq = m.d + '|' + m.v;
+  if(window.ResizeObserver) mqObserver().observe(p);
+}
+function mqFromEl(el){
+  const k = el && el.dataset && el.dataset.mq;
+  if(!k) return null;
+  const [d, v] = k.split('|');
+  return mqValid({ d, v });
+}
+// 見えたとき・大きさが変わったときに、文字の長さを測って動かす
+let _mqObs = null;
+function mqObserver(){
+  if(!_mqObs) _mqObs = new ResizeObserver(ents => ents.forEach(e => mqMeasure(e.target)));
+  return _mqObs;
+}
+function mqMeasure(p){
+  if(!p.isConnected || !p.classList.contains('pmq')){ try{ mqObserver().unobserve(p); }catch(_){} return; }
+  const m = mqFromEl(p);
+  if(!m || state.editMode){ p.classList.remove('mq-on'); return; }
+  const cs = getComputedStyle(p);
+  const cw = p.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+  if(cw <= 0) return; // 見えていない（あとで見えたときにまた測る）
+  const r = document.createRange();
+  r.selectNodeContents(p);
+  const tw = Math.ceil(r.getBoundingClientRect().width) || 0;
+  if(!tw) return;
+  const from = m.d === 'rtl' ? cw : -tw, to = m.d === 'rtl' ? -tw : cw;
+  const key = [from, to, m.v].join(',');
+  if(p.dataset.mqk === key && p.classList.contains('mq-on')) return;
+  p.dataset.mqk = key;
+  p.style.setProperty('--mqa', from + 'px');
+  p.style.setProperty('--mqb', to + 'px');
+  p.style.setProperty('--mqd', ((cw + tw) / MQ_SPEED[m.v]).toFixed(2) + 's');
+  p.classList.remove('mq-on'); void p.offsetWidth; // 測り直したら最初から
+  p.classList.add('mq-on');
+}
+function mqAsk(count, cur){
+  let d = cur ? cur.d : 'rtl', v = cur ? cur.v : 2;
+  return kzSheet((sh, done) => {
+    const render = () => {
+      const opt = (k, l, sub) => `<button class="kzs-opt ${d === k ? 'on' : ''}" data-d="${k}"><span></span><div>${l}<small>${sub}</small></div></button>`;
+      sh.innerHTML = `<div class="kzs-grab"></div>
+        <div class="kzs-hd"><div class="kzs-ic">流</div><div class="kzs-t">流れる文字</div></div>
+        <div class="kzs-sub">${count > 1 ? `選んだ${count}段落を` : 'この段落を'}電車の案内みたいに横に流します（読むときだけ動きます）</div>
+        ${d === 'none' ? '' : `<div class="mqs-prev"><div class="mqs-run" style="--mqa:${d === 'rtl' ? '100%' : '-100%'};--mqb:${d === 'rtl' ? '-100%' : '100%'};--mqd:${{ 1: 7, 2: 4, 3: 2.3 }[v]}s">まもなく ○○駅 です</div></div>`}
+        ${opt('rtl', '右から左へ', 'ふつうの電光掲示板の向き')}
+        ${opt('ltr', '左から右へ', '')}
+        ${opt('none', '流さない', '止まった文字に戻す')}
+        ${d === 'none' ? '' : `<div class="kzs-seg">${[[1, 'ゆっくり'], [2, 'ふつう'], [3, 'はやい']].map(([k, l]) => `<button class="${v === k ? 'on' : ''}" data-v="${k}">${l}</button>`).join('')}</div>`}
+        <div class="kzs-btns"><button class="kzs-later" data-a="cancel">やめる</button><button class="kzs-ok" data-a="ok">決定</button></div>`;
+    };
+    render();
+    sh.addEventListener('click', ev => {
+      const b = ev.target.closest('button');
+      if(!b) return;
+      if(b.dataset.d){ d = b.dataset.d; render(); return; }
+      if(b.dataset.v){ v = +b.dataset.v; render(); return; }
+      if(b.dataset.a === 'cancel') done(null);
+      if(b.dataset.a === 'ok') done({ mq: d === 'none' ? null : mqValid({ d, v }) });
+    });
+    sh.parentNode.addEventListener('click', ev => { if(ev.target === sh.parentNode) done(null); });
+  });
+}
+async function openMqSheet(){
+  if(!state.editMode) return;
+  const t = boxTargets();
+  if(!t){ showToast('流したい段落にカーソルを置くか、範囲を選んでください'); return; }
+  const { pi } = t;
+  syncEditorToState(pi);
+  const paras = state.pages[pi] && state.pages[pi].paras;
+  if(!paras) return;
+  const qis = [...new Set(t.els.map(el => parseInt(el.dataset.qi, 10)))]
+    .filter(q => !isNaN(q) && paras[q] && paras[q].type === 'text');
+  if(!qis.length){ showToast('流したい段落にカーソルを置くか、範囲を選んでください'); return; }
+  const cur = mqValid(paras[qis[0]].mq);
+  const res = await mqAsk(qis.length, cur);
+  if(!res) return;
+  _undoStack.push(JSON.stringify(state.pages));
+  if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
+  _redoStack.length = 0;
+  qis.forEach(q => { if(res.mq) paras[q].mq = res.mq; else delete paras[q].mq; });
+  refreshPage(pi);
+  save();
+  showToast(res.mq ? '読むときに流れます（編集中は止まっています）' : '流れる文字をやめました');
+}
+
 // ZIPファイルからtxt/htmlを一括インポート
 async function handleZipBulkImport(event){
   const input = event.target;
@@ -6681,6 +6798,7 @@ function buildParaEl(pi,qi,para){
     if(_c && isNearBlack(_c)) p.dataset.origColor = _c;
     p.style.fontFamily=para.fontFamily||state.settings.fontFamily;
     if(para.box) boxApplyEl(p, para.box);
+    if(para.mq) mqApplyEl(p, para.mq);
     return p;
   }
 }
@@ -7053,6 +7171,8 @@ function syncEditorToState(pi){
         }
         const _bx = boxFromEl(node);
         if (_bx) builtPara.box = _bx;
+        const _mq = mqFromEl(node);
+        if (_mq) builtPara.mq = _mq;
         newParas.push(builtPara);
       }
       if(node.dataset){node.dataset.pi=pi; node.dataset.qi=globalQi;}
