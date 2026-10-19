@@ -1907,6 +1907,57 @@ body.theme-dark .page-editor [data-dkfix]{color:var(--ink) !important;}
 body.theme-dark .edge-hint{color:rgba(255,255,255,0.4);}
 body.toc-mode .edge-hint,body.library-mode .edge-hint{display:none;}
 body.booting{visibility:hidden}
+/* イカ墨翻訳から届いた話：取り込み先を選ぶシート */
+.kzs-ov{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,0);display:flex;align-items:flex-end;justify-content:center;transition:background .2s;}
+.kzs-ov.show{background:rgba(0,0,0,.38);}
+.kzs{width:100%;max-width:520px;max-height:88vh;overflow:auto;background:#fff;color:#222;border-radius:20px 20px 0 0;padding:10px 18px calc(18px + env(safe-area-inset-bottom));box-sizing:border-box;
+  font-family:'Noto Sans JP',sans-serif;transform:translateY(100%);transition:transform .22s ease;}
+.kzs-ov.show .kzs{transform:none;}
+.kzs button{font-family:inherit;cursor:pointer;}
+.kzs-grab{width:38px;height:4px;border-radius:2px;background:#ddd;margin:0 auto 12px;}
+.kzs-hd{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+.kzs-ic{width:32px;height:32px;border-radius:10px;background:#e3f2f2;color:#007070;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;}
+.kzs-t{font-size:15px;font-weight:700;}
+.kzs-sub{font-size:12px;color:#888;margin:2px 0 12px;line-height:1.6;}
+.kzs-card{border:1px solid #e6e6e6;border-radius:14px;padding:11px 12px 10px;margin-bottom:10px;}
+.kzs-w{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:14.5px;font-weight:700;}
+.kzs-w span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.kzs-w small{font-size:11px;color:#999;font-weight:400;flex-shrink:0;}
+.kzs-seg{display:flex;background:#f1f3f3;border-radius:10px;padding:3px;margin-top:9px;gap:3px;}
+.kzs-seg button{flex:1;border:none;background:none;font-size:12.5px;padding:7px 0;border-radius:8px;color:#666;}
+.kzs-seg button.on{background:#007070;color:#fff;font-weight:700;}
+.kzs-books{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;}
+.kzs-books button{font-size:12px;border:1px solid #d6e7e7;border-radius:999px;padding:5px 11px;color:#007070;background:#f4fafa;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.kzs-books button.on{background:#007070;color:#fff;border-color:#007070;}
+.kzs-never{display:flex;gap:14px;margin-top:9px;flex-wrap:wrap;}
+.kzs-never button{border:none;background:none;padding:2px 0;font-size:12px;color:#888;display:flex;align-items:center;gap:5px;}
+.kzs-never span,.kzs-opt > span{width:14px;height:14px;border-radius:50%;border:2px solid #bbb;box-sizing:border-box;flex-shrink:0;}
+.kzs-never button.on span,.kzs-opt.on > span{border:4px solid #007070;}
+.kzs-never button.on{color:#333;}
+.kzs-warn{background:#fff7ec;border:1px solid #f2dcc0;border-radius:12px;padding:10px 12px;font-size:12.5px;color:#7a4b10;line-height:1.7;margin-bottom:10px;}
+.kzs-warn small{display:block;font-size:11px;color:#a87b45;}
+.kzs-opt{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;border:1px solid #e6e6e6;background:#fff;border-radius:12px;padding:10px 12px;margin-bottom:8px;font-size:13.5px;color:#222;}
+.kzs-opt > span{margin-top:3px;}
+.kzs-opt.on{border-color:#007070;background:#f4fafa;}
+.kzs-opt small{display:block;font-size:11px;color:#999;margin-top:2px;}
+.kzs-btns{display:flex;gap:10px;margin-top:12px;}
+.kzs-btns button{flex:1;border:none;padding:12px 0;border-radius:12px;font-size:14px;font-weight:700;}
+.kzs-later{background:#f0f0f0;color:#555;}
+.kzs-ok{background:#007070;color:#fff;}
+body.theme-dark .kzs{background:#26262a;color:#e6e6e6;}
+body.theme-dark .kzs-grab{background:#444;}
+body.theme-dark .kzs-ic{background:#1d3333;color:#7fd0d0;}
+body.theme-dark .kzs-card,body.theme-dark .kzs-opt{border-color:#3a3a3e;}
+body.theme-dark .kzs-seg{background:#1f1f22;}
+body.theme-dark .kzs-seg button{color:#aaa;}
+body.theme-dark .kzs-seg button.on,body.theme-dark .kzs-ok{background:#2a8f8f;color:#fff;}
+body.theme-dark .kzs-books button{background:#1d2a2a;border-color:#2c4040;color:#7fd0d0;}
+body.theme-dark .kzs-books button.on{background:#2a8f8f;border-color:#2a8f8f;color:#fff;}
+body.theme-dark .kzs-never button.on{color:#ddd;}
+body.theme-dark .kzs-opt{background:#26262a;color:#e6e6e6;}
+body.theme-dark .kzs-opt.on{background:#1d2a2a;border-color:#2a8f8f;}
+body.theme-dark .kzs-warn{background:#2e2619;border-color:#5a4430;color:#f0c890;}
+body.theme-dark .kzs-later{background:#333;color:#ccc;}
 /* 起動中の「読み込み中…」（すぐ終わるときは出さないよう、少し待ってから表示） */
 #boot-loader{display:none;}
 body.booting #boot-loader{display:flex;visibility:visible;position:fixed;inset:0;z-index:99999;flex-direction:column;align-items:center;justify-content:center;gap:14px;
@@ -3135,6 +3186,8 @@ async function init(){
   // 最初はライブラリ画面を表示
   showLibrary();
   document.body.classList.remove('booting');
+  // イカ墨翻訳から訳した話を受け取れるようにする
+  try{ kzLinkReady(); }catch(e){ console.warn('kzLinkReady failed', e); }
   // 起動時に自動バックアップ（24時間経過していれば）
   setTimeout(()=>{ autoBackupAllNovels(); }, 2000);
   // 保存されたカスタムフォントを読み込む
@@ -5534,6 +5587,228 @@ async function handleHtmlImport(event){
   if(list.length) await importHtmlEpisodes(list);
   if(errors.length) showToast(`一部失敗しました（${errors.length}件）。コンソールを確認してください`);
   input.value = '';
+}
+
+// ══════ イカ墨翻訳から訳した話を自動で受け取る ══════
+// イカ墨翻訳（ユーザースクリプト）が、この端末で訳した話をこのページに渡してくる。
+// 作品ごとに取り込み先の本を覚えておき（本のIDで覚えるので、本の名前を変えても大丈夫）、2回目からは自動で入れる。
+// 一度取り込んだ話を手で直していたら、訳し直した版が来ても上書きしない。
+const KZ_LINK_KEY = LS_PREFIX + 'kzLinkMap'; // { 作品のキー: 本のID | 'skip' }
+function kzLinkMap(){ try{ return JSON.parse(localStorage.getItem(KZ_LINK_KEY) || '{}') || {}; }catch(e){ return {}; } }
+function kzSaveLinkMap(m){ try{ localStorage.setItem(KZ_LINK_KEY, JSON.stringify(m)); }catch(e){} }
+let kzLinkReadyFlag = false, kzLinkBusy = false, kzLinkPending = null;
+function kzLinkPost(obj){ try{ window.postMessage('kztlNovel:' + JSON.stringify(obj), location.origin); }catch(e){} }
+function kzItemsFromData(j){
+  let items = Array.isArray(j.paras) ? j.paras : [];
+  const bs = parseFloat(j.baseSize);
+  if(bs > 0) items = items.map(it => it && it.html ? Object.assign({}, it, {
+    html: String(it.html).replace(/font-size:\s*([\d.]+)px/g, (m, v) => 'font-size:' + (Math.round(parseFloat(v) / bs * 100) / 100) + 'em')
+  }) : it);
+  while(items.length && items[0] && items[0].blank) items.shift();
+  while(items.length && items[items.length-1] && items[items.length-1].blank) items.pop();
+  return items;
+}
+// 本文の指紋（手で直したかどうかを見分ける。文字数が同じでも中身が変われば違う値になる）
+function kzPagesHash(pages){
+  let h = 5381;
+  (pages || []).forEach(pg => (pg.paras || []).forEach(pa => { const t = String(pa.html != null ? pa.html : pa.text || '') + '\u0001'; for(let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0; }));
+  return h.toString(36);
+}
+function kzEpTitle(t){
+  return String(t || '').replace(/（翻訳）\s*$/, '').replace(/\s*[|｜\-–]\s*(카카오페이지|카카오 페이지|리디북스|리디|RIDI|RIDIBOOKS)\s*$/i, '').trim() || 'タイトルなし';
+}
+function kzEpNum(p){
+  if(p.num != null && isFinite(p.num)) return Number(p.num);
+  const t = String(p.title || ''); const m = t.match(/(\d+)\s*(?:화|話|回)/) || t.match(/(\d+)(?!.*\d)/);
+  return m ? parseInt(m[1], 10) : null;
+}
+window.addEventListener('message', e => {
+  if(e.origin !== location.origin || typeof e.data !== 'string' || !e.data.startsWith('kztlNovel:')) return;
+  let d; try{ d = JSON.parse(e.data.slice(10)); }catch(_){ return; }
+  if(!d || d.type !== 'send' || !Array.isArray(d.eps) || !d.eps.length) return;
+  if(!kzLinkReadyFlag || kzLinkBusy){ kzLinkPending = d.eps; return; }
+  kzReceive(d.eps);
+});
+function kzLinkReady(){
+  kzLinkReadyFlag = true;
+  if(kzLinkPending){ const p = kzLinkPending; kzLinkPending = null; kzReceive(p); }
+  kzLinkPost({ type: 'hello' }); // スクリプトが先に動いていたときのために、こちらからも合図する
+}
+// 取り込み先の本を選ぶ画面（初めての作品だけ）。アプリのほかの画面と同じ、下から出るシート
+function kzSheet(build){
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.className = 'kzs-ov';
+    const sh = document.createElement('div');
+    sh.className = 'kzs';
+    ov.appendChild(sh); document.body.appendChild(ov);
+    requestAnimationFrame(() => ov.classList.add('show'));
+    const done = v => { ov.classList.remove('show'); setTimeout(() => ov.remove(), 200); resolve(v); };
+    build(sh, done);
+  });
+}
+const kzEsc = t => String(t == null ? '' : t).replace(/[&<>"]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+function kzAskTargets(works){
+  const books = state.library.map(n => ({ id: n.id, title: n.title || '無題の小説' }));
+  const sel = works.map(() => ({ mode: 'new', book: books[0] ? books[0].id : null, never: false }));
+  return kzSheet((sh, done) => {
+    const render = () => {
+      sh.innerHTML = `<div class="kzs-grab"></div>
+        <div class="kzs-hd"><div class="kzs-ic">訳</div><div class="kzs-t">イカ墨翻訳から訳が届きました</div></div>
+        <div class="kzs-sub">初めての作品だけ、入れる本を選んでください。次からは自動で入ります。</div>
+        <div class="kzs-list">${works.map((w, i) => {
+          const s = sel[i];
+          const seg = [['new', '新しい本'], ...(books.length ? [['book', '本棚の本']] : []), ['none', '入れない']]
+            .map(([v, l]) => `<button class="${s.mode === v ? 'on' : ''}" data-i="${i}" data-mode="${v}">${l}</button>`).join('');
+          const extra = s.mode === 'book'
+            ? `<div class="kzs-books">${books.map(b => `<button class="${s.book === b.id ? 'on' : ''}" data-i="${i}" data-book="${kzEsc(b.id)}">${kzEsc(b.title)}</button>`).join('')}</div>`
+            : s.mode === 'none'
+            ? `<div class="kzs-never"><button class="${!s.never ? 'on' : ''}" data-i="${i}" data-never="0"><span></span>今回だけ</button><button class="${s.never ? 'on' : ''}" data-i="${i}" data-never="1"><span></span>この作品は今後も入れない</button></div>`
+            : '';
+          return `<div class="kzs-card"><div class="kzs-w"><span>${kzEsc(w.work || '作品')}</span><small>${w.eps.length}話</small></div><div class="kzs-seg">${seg}</div>${extra}</div>`;
+        }).join('')}</div>
+        <div class="kzs-btns"><button class="kzs-later" data-a="later">あとで</button><button class="kzs-ok" data-a="ok">取り込む</button></div>`;
+    };
+    render();
+    sh.addEventListener('click', ev => {
+      const b = ev.target.closest('button');
+      if(!b) return;
+      const i = b.dataset.i != null ? +b.dataset.i : -1;
+      if(b.dataset.mode){ sel[i].mode = b.dataset.mode; render(); return; }
+      if(b.dataset.book){ sel[i].book = b.dataset.book; render(); return; }
+      if(b.dataset.never){ sel[i].never = b.dataset.never === '1'; render(); return; }
+      if(b.dataset.a === 'later') return done(works.map(() => 'later'));
+      if(b.dataset.a === 'ok') return done(sel.map(s => s.mode === 'new' ? 'new' : s.mode === 'book' ? (s.book || 'new') : (s.never ? 'skip' : 'later')));
+    });
+  });
+}
+// 同じ話数がすでにあるとき（自分で入れた話・手で直した話）：上書きするか。null＝やめる
+function kzAskOverwrite(nums, total){
+  let ow = false;
+  const list = nums.slice(0, 12).map(n => `第${n}話`).join('・') + (nums.length > 12 ? ` ほか${nums.length - 12}話` : '');
+  return kzSheet((sh, done) => {
+    const render = () => {
+      sh.innerHTML = `<div class="kzs-grab"></div>
+        <div class="kzs-hd"><div class="kzs-ic">訳</div><div class="kzs-t">同じ話数がすでにあります</div></div>
+        <div class="kzs-sub">届いた${total}話のうち、${nums.length}話は本に同じ話数があります（自分で入れた話・手で直した話）。</div>
+        <div class="kzs-warn">${kzEsc(list)}<small>上書きすると、今の内容は自動バックアップに残ります</small></div>
+        <button class="kzs-opt ${!ow ? 'on' : ''}" data-ow="0"><span></span><div>今ある話を残す<small>届いた話のうち、新しい話数だけ入れる</small></div></button>
+        <button class="kzs-opt ${ow ? 'on' : ''}" data-ow="1"><span></span><div>届いた訳で上書きする<small>同じ話数を、届いた訳に入れ替える</small></div></button>
+        <div class="kzs-btns"><button class="kzs-later" data-a="cancel">やめる</button><button class="kzs-ok" data-a="ok">決定</button></div>`;
+    };
+    render();
+    sh.addEventListener('click', ev => {
+      const b = ev.target.closest('button');
+      if(!b) return;
+      if(b.dataset.ow){ ow = b.dataset.ow === '1'; render(); return; }
+      if(b.dataset.a === 'cancel') return done(null);
+      if(b.dataset.a === 'ok') return done(ow);
+    });
+  });
+}
+// 1つの本に話を入れる。戻り値：受け取りを伝える話の一覧と、件数
+function kzImportInto(novelId, list, overwriteOthers){
+  const isCur = state.currentNovelId === novelId && state.novel;
+  if(isCur){ try{ if(state.editMode) syncEditorToState(state.curPage); syncCurrentEpisode(); }catch(_){} }
+  const novel = isCur ? state.novel : state.library.find(n => n.id === novelId);
+  if(!novel) return null;
+  const acks = []; let added = 0, updated = 0, skipped = 0;
+  list.slice().sort((a, b) => (kzEpNum(a) ?? 1e9) - (kzEpNum(b) ?? 1e9)).forEach(p => {
+    let num = kzEpNum(p);
+    if(num == null) num = novel.episodes.reduce((m, e) => Math.max(m, e.number), 0) + 1;
+    const pages = [{ paras: kzItemsToParas(kzItemsFromData(p.data || {})) }];
+    const cc = countChars(pages);
+    const mark = { key: p.key, n: p.n || 0, cc, h: kzPagesHash(pages) };
+    const ep = novel.episodes.find(e => e.number === num);
+    if(!ep){
+      const ne = makeEpisode(num, kzEpTitle(p.title), pages); ne.charCount = cc; ne.kzImport = mark;
+      novel.episodes.push(ne); added++;
+    } else if(ep.kzImport && ep.kzImport.key === p.key){
+      // 前にこの仕組みで入れた話：手で直していなければ、新しい版（続きまで訳した版など）に入れ替える
+      const untouched = ep.kzImport.h ? kzPagesHash(ep.pages) === ep.kzImport.h : ep.charCount === ep.kzImport.cc;
+      if(untouched && (p.n || 0) > (ep.kzImport.n || 0) && ep.id !== state.currentEpisodeId){
+        ep.pages = pages; ep.charCount = cc; ep.kzImport = mark; ep.date = new Date().toISOString(); updated++;
+      } else skipped++;
+    } else if(!ep.charCount){
+      ep.title = kzEpTitle(p.title); ep.pages = pages; ep.charCount = cc; ep.kzImport = mark; ep.date = new Date().toISOString(); added++;
+    } else if(overwriteOthers && ep.id !== state.currentEpisodeId){
+      ep.title = kzEpTitle(p.title); ep.pages = pages; ep.charCount = cc; ep.kzImport = mark; ep.date = new Date().toISOString(); updated++;
+    } else skipped++;
+    acks.push({ key: p.key, n: p.n || 0 });
+  });
+  if(added || updated){
+    novel.updatedAt = new Date().toISOString();
+    if(isCur){ save(); try{ if(!state.currentEpisodeId) renderToc(); }catch(_){} }
+    else {
+      libDbPut(novel).catch(e => { console.warn('kz import save failed', e); showToast('保存に失敗しました'); });
+      try{ if(typeof scheduleGdriveAutoSync === 'function') scheduleGdriveAutoSync(); }catch(_){}
+    }
+  }
+  return { acks, added, updated, skipped };
+}
+async function kzReceive(eps){
+  if(kzLinkBusy) return;
+  kzLinkBusy = true;
+  try{
+    const map = kzLinkMap();
+    const groups = new Map();
+    eps.forEach(p => { if(p && p.key && p.wk && p.data){ const g = groups.get(p.wk) || { wk: p.wk, work: p.work, eps: [] }; g.eps.push(p); groups.set(p.wk, g); } });
+    const acks = []; const ask = []; const todo = [];
+    for(const g of groups.values()){
+      const t = map[g.wk];
+      if(t === 'skip') acks.push(...g.eps.map(p => ({ key: p.key, n: p.n || 0 })));
+      else if(t && state.library.some(n => n.id === t)) todo.push([t, g]);
+      else ask.push(g); // まだ決めていない・本が消された作品
+    }
+    if(ask.length){
+      const ans = await kzAskTargets(ask);
+      for(let i = 0; i < ask.length; i++){
+        const g = ask[i], a = ans[i];
+        if(a === 'later') continue;
+        if(a === 'skip'){ map[g.wk] = 'skip'; acks.push(...g.eps.map(p => ({ key: p.key, n: p.n || 0 }))); continue; }
+        let id = a;
+        if(a === 'new'){
+          const nv = makeNovel(g.work || '無題の小説');
+          await libDbPut(nv); state.library.push(nv); id = nv.id;
+        }
+        map[g.wk] = id; todo.push([id, g]);
+      }
+      kzSaveLinkMap(map);
+    }
+    // 同じ話数がすでに入っていて、この仕組みで入れた話ではないとき：まとめて1回だけ聞く
+    const conflictNums = [], conflictNovels = new Set();
+    let total = 0;
+    todo.forEach(([id, g]) => {
+      const nv = state.currentNovelId === id && state.novel ? state.novel : state.library.find(n => n.id === id);
+      total += g.eps.length;
+      if(!nv) return;
+      g.eps.forEach(p => { const num = kzEpNum(p); const e = nv.episodes.find(x => x.number === num); if(e && e.charCount > 0 && !(e.kzImport && e.kzImport.key === p.key)){ conflictNums.push(num); conflictNovels.add(nv); } });
+    });
+    let overwrite = false;
+    if(conflictNums.length){
+      overwrite = await kzAskOverwrite(conflictNums.sort((a, b) => a - b), total);
+      if(overwrite === null){
+        if(acks.length) kzLinkPost({ type: 'ack', items: acks });
+        showToast('取り込みをやめました（次に開いたときにまた届きます）');
+        return;
+      }
+      // 上書きする本は、先にバックアップ
+      if(overwrite) for(const nv of conflictNovels){ try{ await autoBackup(JSON.parse(JSON.stringify(nv)), true, true); }catch(_){} }
+    }
+    let added = 0, updated = 0, skipped = 0;
+    for(const [id, g] of todo){
+      const r = kzImportInto(id, g.eps, overwrite);
+      if(!r) continue;
+      acks.push(...r.acks); added += r.added; updated += r.updated; skipped += r.skipped;
+    }
+    if(acks.length) kzLinkPost({ type: 'ack', items: acks });
+    try{ if(document.getElementById('library-screen').classList.contains('show')) renderLibrary(); }catch(_){}
+    if(added || updated) showToast(`イカ墨翻訳から取り込みました（追加${added}話・更新${updated}話${skipped ? `・スキップ${skipped}話` : ''}）`);
+  }catch(e){ console.warn('kzReceive failed', e); showToast('イカ墨翻訳からの取り込みに失敗しました'); }
+  finally{
+    kzLinkBusy = false;
+    if(kzLinkPending){ const p = kzLinkPending; kzLinkPending = null; kzReceive(p); }
+  }
 }
 
 // ZIPファイルからtxt/htmlを一括インポート
