@@ -4958,6 +4958,7 @@ function showToc(){
   document.getElementById('library-screen').classList.remove('show');
   document.getElementById('library-fab').style.display='none';
   renderToc();
+  kzDeferredLater();
 }
 
 // 翻訳ユーザースクリプト用の目印：作品と話を見分けられるようにする（作品メモ・前の話の文脈が本ごとに分かれる）
@@ -5182,6 +5183,7 @@ function openEpisode(id, startPos='first'){
   hideToc();
   renderAllPages();
   updateNavBtns();
+  kzDeferredLater();
 }
 
 function openEpMenu(id){
@@ -5836,6 +5838,24 @@ function kzAskEdited(nums){
   });
 }
 // 1つの本に話を入れる。戻り値：受け取りを伝える話の一覧と、件数
+// 読んでいる最中の話に届いた新しい版：その話を閉じたとき（目次に戻る・ほかの話を開く）に入れる
+let kzDeferred = [], _kzDeferToast = 0;
+function kzDefer(p){
+  kzDeferred = kzDeferred.filter(x => x.key !== p.key);
+  kzDeferred.push(p);
+  if(Date.now() - _kzDeferToast > 10000){
+    _kzDeferToast = Date.now();
+    setTimeout(() => { try{ showToast('いま開いている話の新しい版は、この話を閉じたときに入ります'); }catch(_){} }, 1600);
+  }
+}
+function kzDeferredLater(){
+  if(!kzDeferred.length) return;
+  setTimeout(() => {
+    if(!kzDeferred.length || kzLinkBusy) return;
+    const list = kzDeferred; kzDeferred = [];
+    kzReceive(list);
+  }, 700);
+}
 function kzImportInto(novelId, list, overwriteOthers, overwriteEdited){
   const isCur = state.currentNovelId === novelId && state.novel;
   if(isCur){ try{ if(state.editMode) syncEditorToState(state.curPage); syncCurrentEpisode(); }catch(_){} }
@@ -5854,7 +5874,7 @@ function kzImportInto(novelId, list, overwriteOthers, overwriteEdited){
       novel.episodes.push(ne); added++;
     } else if(ep.kzImport && ep.kzImport.key === p.key){
       // 前にこの仕組みで入れた話：中身か見た目が変わった新しい版なら入れ替える（手で直した話は、聞いて「上書き」を選んだときだけ）
-      if(ep.id === state.currentEpisodeId){ skipped++; return; } // いま開いている話は入れ替えない（次に開いたときにまた届く）
+      if(ep.id === state.currentEpisodeId){ skipped++; kzDefer(p); return; } // いま開いている話は入れ替えない（話を閉じたら入れる）
       const untouched = kzUntouched(ep);
       if(kzSameAsImported(ep, pages) || (untouched && kzPagesHash2(ep.pages) === mark.h)){ /* 前に入れた版と同じ：何もしない */ }
       else if(untouched || overwriteEdited){
