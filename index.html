@@ -1962,9 +1962,11 @@ body.theme-dark .kzs-opt.on{background:#1d2a2a;border-color:#2a8f8f;}
 body.theme-dark .kzs-warn{background:#2e2619;border-color:#5a4430;color:#f0c890;}
 body.theme-dark .kzs-later{background:#333;color:#ccc;}
 /* ── 囲み（段落を箱で囲む）：色は後ろの層（::after）で出す。背景色にするとiPhoneが文字に焼き付けるため ── */
-.page-editor p.pbx{isolation:isolate;margin-left:6px;margin-right:6px;margin-bottom:0;padding:0 14px var(--para-spacing);}
-.page-editor p.pbx.bx-first{margin-top:10px;padding-top:12px;}
-.page-editor p.pbx.bx-last{padding-bottom:12px;margin-bottom:calc(var(--para-spacing) + 10px);}
+.page-editor p.pbx{isolation:isolate;margin-left:6px;margin-right:6px;margin-bottom:0;padding:0 var(--bxpx,14px) var(--para-spacing);}
+.page-editor p.pbx.bx-first{margin-top:10px;padding-top:var(--bxpt,12px);}
+.page-editor p.pbx.bx-last{padding-bottom:var(--bxpb,12px);margin-bottom:calc(var(--para-spacing) + 10px);}
+/* イカ墨翻訳から届いた囲みの文字色（原文と同じ色。夜間テーマでは使わない） */
+body:not(.theme-dark) .page-editor p.pbx-bg.bx-txt{color:var(--bxt) !important;}
 .page-editor p.pbx::after{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;box-sizing:border-box;}
 .page-editor p.pbx.bx-first::after{border-top-left-radius:4px;border-top-right-radius:4px;}
 .page-editor p.pbx.bx-last::after{border-bottom-left-radius:4px;border-bottom-right-radius:4px;}
@@ -5664,6 +5666,27 @@ function kzPagesHash(pages){
   (pages || []).forEach(pg => (pg.paras || []).forEach(pa => { const t = String(pa.html != null ? pa.html : pa.text || '') + '\u0001'; for(let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0; }));
   return h.toString(36);
 }
+// 見た目（囲み・色・大きさ・配置）も含めた指紋。見た目だけ変わった新しい版も入れ替えられるように
+function kzPagesHash2(pages){
+  let h = 5381;
+  (pages || []).forEach(pg => (pg.paras || []).forEach(pa => {
+    const t = String(pa.html != null ? pa.html : pa.text || '') + '|' + JSON.stringify(pa.box || null) + '|' + (pa.size || '') + '|' + (pa.color || '') + '|' + (pa.align || '') + '\u0001';
+    for(let i = 0; i < t.length; i++) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0;
+  }));
+  return h.toString(36);
+}
+// 前にイカ墨翻訳から入れたままか（手で直していないか）
+function kzUntouched(ep){
+  const k = ep.kzImport;
+  if(!k) return false;
+  if(!k.h) return ep.charCount === k.cc;
+  return (k.hv === 2 ? kzPagesHash2(ep.pages) : kzPagesHash(ep.pages)) === k.h;
+}
+// 届いた版が、前に入れた版と同じか（古い指紋で入れた話も比べられるように）
+function kzSameAsImported(ep, pages){
+  const k = ep.kzImport;
+  return !!(k && k.h) && (k.hv === 2 ? kzPagesHash2(pages) : kzPagesHash(pages)) === k.h;
+}
 function kzEpTitle(t){
   return String(t || '').replace(/（翻訳）\s*$/, '').replace(/\s*[|｜\-–]\s*(카카오페이지|카카오 페이지|리디북스|리디|RIDI|RIDIBOOKS)\s*$/i, '').trim() || 'タイトルなし';
 }
@@ -5756,8 +5779,31 @@ function kzAskOverwrite(nums, total){
     });
   });
 }
+// 手で直した話に新しい版が届いたときに聞くシート（「残す」がふつう）
+function kzAskEdited(nums){
+  let ow = false;
+  const list = nums.slice(0, 12).map(n => `第${n}話`).join('・') + (nums.length > 12 ? ` ほか${nums.length - 12}話` : '');
+  return kzSheet((sh, done) => {
+    const render = () => {
+      sh.innerHTML = `<div class="kzs-grab"></div>
+        <div class="kzs-hd"><div class="kzs-ic">訳</div><div class="kzs-t">手で直した話に新しい版が届きました</div></div>
+        <div class="kzs-sub">イカ墨翻訳で訳し直した・見た目を記録し直した話のうち、${nums.length}話はこのアプリで手で直してあります。</div>
+        <div class="kzs-warn">${kzEsc(list)}<small>上書きすると直した分は消えます（今の内容は自動バックアップに残ります）</small></div>
+        <button class="kzs-opt ${!ow ? 'on' : ''}" data-ow="0"><span></span><div>直した話を残す<small>この話には新しい版を入れない</small></div></button>
+        <button class="kzs-opt ${ow ? 'on' : ''}" data-ow="1"><span></span><div>新しい版で上書きする<small>直した分は消えて、届いた版になる</small></div></button>
+        <div class="kzs-btns"><button class="kzs-ok" data-a="ok">決定</button></div>`;
+    };
+    render();
+    sh.addEventListener('click', ev => {
+      const b = ev.target.closest('button');
+      if(!b) return;
+      if(b.dataset.ow){ ow = b.dataset.ow === '1'; render(); return; }
+      if(b.dataset.a === 'ok') return done(ow);
+    });
+  });
+}
 // 1つの本に話を入れる。戻り値：受け取りを伝える話の一覧と、件数
-function kzImportInto(novelId, list, overwriteOthers){
+function kzImportInto(novelId, list, overwriteOthers, overwriteEdited){
   const isCur = state.currentNovelId === novelId && state.novel;
   if(isCur){ try{ if(state.editMode) syncEditorToState(state.curPage); syncCurrentEpisode(); }catch(_){} }
   const novel = isCur ? state.novel : state.library.find(n => n.id === novelId);
@@ -5768,15 +5814,17 @@ function kzImportInto(novelId, list, overwriteOthers){
     if(num == null) num = novel.episodes.reduce((m, e) => Math.max(m, e.number), 0) + 1;
     const pages = [{ paras: kzItemsToParas(kzItemsFromData(p.data || {})) }];
     const cc = countChars(pages);
-    const mark = { key: p.key, n: p.n || 0, cc, h: kzPagesHash(pages) };
+    const mark = { key: p.key, n: p.n || 0, cc, h: kzPagesHash2(pages), hv: 2 };
     const ep = novel.episodes.find(e => e.number === num);
     if(!ep){
       const ne = makeEpisode(num, kzEpTitle(p.title), pages); ne.charCount = cc; ne.kzImport = mark;
       novel.episodes.push(ne); added++;
     } else if(ep.kzImport && ep.kzImport.key === p.key){
-      // 前にこの仕組みで入れた話：手で直していなければ、新しい版（続きまで訳した版など）に入れ替える
-      const untouched = ep.kzImport.h ? kzPagesHash(ep.pages) === ep.kzImport.h : ep.charCount === ep.kzImport.cc;
-      if(untouched && (p.n || 0) > (ep.kzImport.n || 0) && ep.id !== state.currentEpisodeId){
+      // 前にこの仕組みで入れた話：中身か見た目が変わった新しい版なら入れ替える（手で直した話は、聞いて「上書き」を選んだときだけ）
+      if(ep.id === state.currentEpisodeId){ skipped++; return; } // いま開いている話は入れ替えない（次に開いたときにまた届く）
+      const untouched = kzUntouched(ep);
+      if(kzSameAsImported(ep, pages) || (untouched && kzPagesHash2(ep.pages) === mark.h)){ /* 前に入れた版と同じ：何もしない */ }
+      else if(untouched || overwriteEdited){
         ep.pages = pages; ep.charCount = cc; ep.kzImport = mark; ep.date = new Date().toISOString(); updated++;
       } else skipped++;
     } else if(!ep.charCount){
@@ -5784,7 +5832,7 @@ function kzImportInto(novelId, list, overwriteOthers){
     } else if(overwriteOthers && ep.id !== state.currentEpisodeId){
       ep.title = kzEpTitle(p.title); ep.pages = pages; ep.charCount = cc; ep.kzImport = mark; ep.date = new Date().toISOString(); updated++;
     } else skipped++;
-    acks.push({ key: p.key, n: p.n || 0 });
+    acks.push({ key: p.key, n: p.n || 0, h: p.h || '' });
   });
   if(added || updated){
     novel.updatedAt = new Date().toISOString();
@@ -5806,7 +5854,7 @@ async function kzReceive(eps){
     const acks = []; const ask = []; const todo = [];
     for(const g of groups.values()){
       const t = map[g.wk];
-      if(t === 'skip') acks.push(...g.eps.map(p => ({ key: p.key, n: p.n || 0 })));
+      if(t === 'skip') acks.push(...g.eps.map(p => ({ key: p.key, n: p.n || 0, h: p.h || '' })));
       else if(t && state.library.some(n => n.id === t)) todo.push([t, g]);
       else ask.push(g); // まだ決めていない・本が消された作品
     }
@@ -5815,7 +5863,7 @@ async function kzReceive(eps){
       for(let i = 0; i < ask.length; i++){
         const g = ask[i], a = ans[i];
         if(a === 'later') continue;
-        if(a === 'skip'){ map[g.wk] = 'skip'; acks.push(...g.eps.map(p => ({ key: p.key, n: p.n || 0 }))); continue; }
+        if(a === 'skip'){ map[g.wk] = 'skip'; acks.push(...g.eps.map(p => ({ key: p.key, n: p.n || 0, h: p.h || '' }))); continue; }
         let id = a;
         if(a === 'new'){
           const nv = makeNovel(g.work || '無題の小説');
@@ -5845,9 +5893,27 @@ async function kzReceive(eps){
       // 上書きする本は、先にバックアップ
       if(overwrite) for(const nv of conflictNovels){ try{ await autoBackup(JSON.parse(JSON.stringify(nv)), true, true); }catch(_){} }
     }
+    // 手で直した話に、新しい版（中身か見た目が変わった版）が届いたとき：まとめて1回だけ聞く
+    const editedNums = [], editedNovels = new Set();
+    todo.forEach(([id, g]) => {
+      const nv = state.currentNovelId === id && state.novel ? state.novel : state.library.find(n => n.id === id);
+      if(!nv) return;
+      g.eps.forEach(p => {
+        const e = nv.episodes.find(x => x.number === kzEpNum(p));
+        if(!e || !e.kzImport || e.kzImport.key !== p.key || e.id === state.currentEpisodeId || kzUntouched(e)) return;
+        const np = [{ paras: kzItemsToParas(kzItemsFromData(p.data || {})) }];
+        if(kzSameAsImported(e, np)) return; // 前に入れた版と同じ：聞かない
+        editedNums.push(e.number); editedNovels.add(nv);
+      });
+    });
+    let overwriteEdited = false;
+    if(editedNums.length){
+      overwriteEdited = await kzAskEdited(editedNums.sort((a, b) => a - b));
+      if(overwriteEdited) for(const nv of editedNovels){ try{ await autoBackup(JSON.parse(JSON.stringify(nv)), true, true); }catch(_){} }
+    }
     let added = 0, updated = 0, skipped = 0;
     for(const [id, g] of todo){
-      const r = kzImportInto(id, g.eps, overwrite);
+      const r = kzImportInto(id, g.eps, overwrite, overwriteEdited);
       if(!r) continue;
       acks.push(...r.acks); added += r.added; updated += r.updated; skipped += r.skipped;
     }
@@ -5875,7 +5941,11 @@ const BOX_STYLES = {
 const BOX_COLORS = ['#e2362a','#2f6fd6','#2e9b5a','#e0a21b','#222222','#9a9a9a'];
 function boxValid(b){
   if(!b || typeof b !== 'object' || !BOX_STYLES[b.s] || !/^#[0-9a-f]{6}$/i.test(b.c || '')) return null;
-  return { s: b.s, c: b.c.toLowerCase() };
+  const r = { s: b.s, c: b.c.toLowerCase() };
+  // イカ墨翻訳から届いた囲み：中の文字の色と、内側の余白（文字の大きさに対する割合）
+  if(/^#[0-9a-f]{6}$/i.test(b.t || '')) r.t = b.t.toLowerCase();
+  ['pt', 'pb', 'px'].forEach(k => { const v = Number(b[k]); if(b[k] != null && isFinite(v)) r[k] = Math.max(0, Math.min(6, v)); });
+  return r;
 }
 function boxLum(hex){
   const n = parseInt(hex.slice(1), 16);
@@ -5884,20 +5954,30 @@ function boxLum(hex){
 function boxApplyEl(p, box){
   p.classList.remove('pbx', 'bx-first', 'bx-last', 'bx-ondark', ...Object.keys(BOX_STYLES).map(k => 'pbx-' + k));
   p.style.removeProperty('--bxc');
-  delete p.dataset.box;
+  ['--bxpt', '--bxpb', '--bxpx', '--bxt'].forEach(k => p.style.removeProperty(k));
+  p.classList.remove('bx-txt');
+  delete p.dataset.box; delete p.dataset.bxx;
   const b = boxValid(box);
   if(!b) return;
+  const ex = {};
+  if(b.pt != null){ p.style.setProperty('--bxpt', Math.max(0.4, b.pt) + 'em'); ex.pt = b.pt; }
+  if(b.pb != null){ p.style.setProperty('--bxpb', Math.max(0.4, b.pb) + 'em'); ex.pb = b.pb; }
+  if(b.px != null){ p.style.setProperty('--bxpx', Math.max(0.5, Math.min(3, b.px)) + 'em'); ex.px = b.px; }
+  if(b.t){ ex.t = b.t; if(b.s === 'bg'){ p.style.setProperty('--bxt', b.t); p.classList.add('bx-txt'); } }
+  if(Object.keys(ex).length) p.dataset.bxx = JSON.stringify(ex);
   p.classList.add('pbx', 'pbx-' + b.s, 'bx-first', 'bx-last');
   p.dataset.box = b.s + '|' + b.c;
   // 黒っぽい線は文字色に合わせる（夜間テーマでも見えるように）
   p.style.setProperty('--bxc', (b.s !== 'bg' && isNearBlack(b.c)) ? 'var(--ink)' : b.c);
-  if(b.s === 'bg' && boxLum(b.c) < 0.4) p.classList.add('bx-ondark');
+  if(b.s === 'bg' && !b.t && boxLum(b.c) < 0.4) p.classList.add('bx-ondark'); // 文字の色が届いていればそれを使う
 }
 function boxFromEl(el){
   const k = el && el.dataset && el.dataset.box;
   if(!k) return null;
   const [s, c] = k.split('|');
-  return boxValid({ s, c });
+  let ex = {};
+  try{ ex = JSON.parse(el.dataset.bxx || '{}') || {}; }catch(_){}
+  return boxValid(Object.assign({}, ex, { s, c }));
 }
 // 同じ囲みが続く段落をつなげる（編集中は段落ごとに別の箱で見せる）
 function boxJoin(editor){
