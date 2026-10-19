@@ -4532,6 +4532,20 @@ function applyLoadedSettings(){
   }
 }
 
+// 本棚用の控え：本文（pages）以外をコピーする。本文は書き換えるときに新しい配列に入れ替わるので、コピーしなくてよい
+// （毎回、本を丸ごとコピーすると、話数の多い本で入力のたびに重くなるため）
+function novelSnapshot(nv){
+  const { episodes, ...rest } = nv;
+  const copy = JSON.parse(JSON.stringify(rest));
+  copy.episodes = (episodes || []).map(e => {
+    const { pages, ...meta } = e;
+    const c = JSON.parse(JSON.stringify(meta));
+    c.pages = pages;
+    return c;
+  });
+  return copy;
+}
+
 // 即時保存
 function save(){
   if(!state.currentNovelId || !state.novel) return;
@@ -4541,7 +4555,7 @@ function save(){
   state.novel.updatedAt=new Date().toISOString();
   // ライブラリの該当小説を更新
   const idx=state.library.findIndex(n=>n.id===state.currentNovelId);
-  if(idx>=0) state.library[idx]=JSON.parse(JSON.stringify(state.novel));
+  if(idx>=0) state.library[idx]=novelSnapshot(state.novel);
   libDbPut(state.novel).catch(e=>{
     console.warn('save failed:',e);
     showToast('保存に失敗しました');
@@ -4554,7 +4568,7 @@ function save(){
 let _saveTimer=null;
 function debouncedSave(){
   clearTimeout(_saveTimer);
-  _saveTimer=setTimeout(()=>save(),300);
+  _saveTimer=setTimeout(()=>save(),800); // 打っている間は待って、手が止まってから保存（アプリを離れるときはすぐ保存）
 }
 
 // 即時保存：保留中のデバウンスをフラッシュして同期的にDBへ書き込み開始
@@ -4570,7 +4584,7 @@ function flushSave(){
     syncCurrentEpisode();
     state.novel.updatedAt = new Date().toISOString();
     const idx = state.library.findIndex(n=>n.id===state.currentNovelId);
-    if(idx>=0) state.library[idx] = JSON.parse(JSON.stringify(state.novel));
+    if(idx>=0) state.library[idx] = novelSnapshot(state.novel);
     libDbPut(state.novel).catch(e=>console.warn('flushSave failed:',e));
   }catch(e){ console.warn('flushSave error:',e); }
 }
@@ -5698,7 +5712,11 @@ function kzUntouched(ep){
 // 届いた版が、前に入れた版と同じか（古い指紋で入れた話も比べられるように）
 function kzSameAsImported(ep, pages){
   const k = ep.kzImport;
-  return !!(k && k.h) && (k.hv === 2 ? kzPagesHash2(pages) : kzPagesHash(pages)) === k.h;
+  if(!(k && k.h)) return false;
+  if(k.hv === 2) return kzPagesHash2(pages) === k.h;
+  // 前の版（文字だけの指紋）で入れた話：文字が同じでも、見た目（囲み・色など）が変わっていれば別の版
+  if(kzPagesHash(pages) !== k.h) return false;
+  return !kzUntouched(ep) || kzPagesHash2(ep.pages) === kzPagesHash2(pages);
 }
 function kzEpTitle(t){
   return String(t || '').replace(/（翻訳）\s*$/, '').replace(/\s*[|｜\-–]\s*(카카오페이지|카카오 페이지|리디북스|리디|RIDI|RIDIBOOKS)\s*$/i, '').trim() || 'タイトルなし';
