@@ -1961,6 +1961,46 @@ body.theme-dark .kzs-opt{background:#26262a;color:#e6e6e6;}
 body.theme-dark .kzs-opt.on{background:#1d2a2a;border-color:#2a8f8f;}
 body.theme-dark .kzs-warn{background:#2e2619;border-color:#5a4430;color:#f0c890;}
 body.theme-dark .kzs-later{background:#333;color:#ccc;}
+/* ── 囲み（段落を箱で囲む）：色は後ろの層（::after）で出す。背景色にするとiPhoneが文字に焼き付けるため ── */
+.page-editor p.pbx{isolation:isolate;margin-left:6px;margin-right:6px;margin-bottom:0;padding:0 14px var(--para-spacing);}
+.page-editor p.pbx.bx-first{margin-top:10px;padding-top:12px;}
+.page-editor p.pbx.bx-last{padding-bottom:12px;margin-bottom:calc(var(--para-spacing) + 10px);}
+.page-editor p.pbx::after{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;box-sizing:border-box;}
+.page-editor p.pbx.bx-first::after{border-top-left-radius:4px;border-top-right-radius:4px;}
+.page-editor p.pbx.bx-last::after{border-bottom-left-radius:4px;border-bottom-right-radius:4px;}
+.page-editor p.pbx-bg::after{background:var(--bxc);}
+.page-editor p.pbx-bg.bx-ondark{color:#fff !important;}
+.page-editor p.pbx-soft::after{background:rgba(128,128,128,.14);background:color-mix(in srgb, var(--bxc) 16%, transparent);}
+.page-editor p.pbx-line::after,.page-editor p.pbx-round::after{border-left:2px solid var(--bxc);border-right:2px solid var(--bxc);}
+.page-editor p.pbx-line.bx-first::after,.page-editor p.pbx-round.bx-first::after,.page-editor p.pbx-sys.bx-first::after{border-top:2px solid var(--bxc);}
+.page-editor p.pbx-line.bx-last::after,.page-editor p.pbx-round.bx-last::after,.page-editor p.pbx-sys.bx-last::after{border-bottom:2px solid var(--bxc);}
+.page-editor p.pbx-round.bx-first::after{border-top-left-radius:14px;border-top-right-radius:14px;}
+.page-editor p.pbx-round.bx-last::after{border-bottom-left-radius:14px;border-bottom-right-radius:14px;}
+.page-editor p.pbx-sys::after{background:rgba(47,143,214,.1);background:color-mix(in srgb, var(--bxc) 11%, transparent);}
+body.theme-dark .page-editor p.pbx-bg::after{background:color-mix(in srgb, var(--bxc) 52%, #000);}
+#viewport.edit-mode .page-editor p.pbx{margin:0 0 10px;padding:10px 12px;}
+/* 囲みシート */
+.bxs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;}
+.bxs-opt{border:1.5px solid #e3e3e3;border-radius:12px;padding:7px;text-align:center;font-size:11px;color:#555;background:#fff;}
+.bxs-opt.on{border-color:#007070;background:#f4fafa;color:#007070;font-weight:700;}
+.bxs-sw{height:36px;border-radius:6px;margin-bottom:5px;display:flex;align-items:center;justify-content:center;font-size:13px;box-sizing:border-box;color:#222;}
+.bxs-row{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;color:#444;flex-wrap:wrap;}
+.bxs-dot{width:26px;height:26px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #ccc;padding:0;}
+.bxs-dot.on{box-shadow:0 0 0 2.5px #007070;}
+.bxs-pick{margin-left:auto;color:#007070;font-size:12px;position:relative;display:flex;align-items:center;gap:5px;}
+.bxs-pick input{position:absolute;inset:0;opacity:0;width:100%;height:100%;}
+.bxs-pick i{width:16px;height:16px;border-radius:50%;display:inline-block;border:1px solid #ccc;}
+.bxs-chk{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;color:#444;border:none;background:none;padding:2px 0;}
+.bxs-chk span{width:18px;height:18px;border-radius:4px;border:2px solid #bbb;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;}
+.bxs-chk.on span{background:#007070;border-color:#007070;}
+.bxs-chk[disabled]{opacity:.35;}
+body.theme-dark .bxs-opt{background:#26262a;border-color:#3a3a3e;color:#aaa;}
+body.theme-dark .bxs-opt.on{background:#1d2a2a;border-color:#2a8f8f;color:#7fd0d0;}
+body.theme-dark .bxs-sw{color:#ddd;}
+body.theme-dark .bxs-row,body.theme-dark .bxs-chk{color:#ccc;}
+body.theme-dark .bxs-dot{border-color:#26262a;box-shadow:0 0 0 1px #555;}
+body.theme-dark .bxs-dot.on{box-shadow:0 0 0 2.5px #2a8f8f;}
+body.theme-dark .bxs-pick{color:#7fd0d0;}
 /* 起動中の「読み込み中…」（すぐ終わるときは出さないよう、少し待ってから表示） */
 #boot-loader{display:none;}
 body.booting #boot-loader{display:flex;visibility:visible;position:fixed;inset:0;z-index:99999;flex-direction:column;align-items:center;justify-content:center;gap:14px;
@@ -2639,6 +2679,13 @@ body.theme-dark .page-editor .kw.kfade{text-decoration-color:#6fd0d0;}
     </button>
     <button class="eb-btn eb-fmt-btn" data-fmt="strikethrough" onclick="ebToggleFmt('strikethrough');" title="取り消し線">
       <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4H9a3 3 0 0 0-2.83 4M14 12a4 4 0 0 1 0 8H6"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
+    </button>
+
+    <div class="eb-sep"></div>
+
+    <!-- 囲み（段落を箱で囲む） -->
+    <button class="eb-btn" id="eb-box-btn" onclick="openBoxSheet()" title="囲み（段落を箱で囲む）">
+      <svg class="eb-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="10" x2="17" y2="10"/><line x1="7" y1="14" x2="13" y2="14"/></svg>
     </button>
 
     <div class="eb-sep"></div>
@@ -5522,7 +5569,7 @@ function kzParseHtml(htmlText, fileName){
 function kzItemsToParas(items){
   const fs = state.settings.fontSize, col = state.settings.lastColor;
   const paras = items.map(it => {
-    if(!it || it.blank) return {type:'text', text:'', html:'<br>', align:'left', size:fs, color:col};
+    if(!it || it.blank) return {type:'text', text:'', html:'<br>', align:'left', size:fs, color:col, ...(it && boxValid(it.box) ? { box: boxValid(it.box) } : {})};
     const html = kzSanitizeInline(it.html != null ? it.html : String(it.text||'').replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])));
     const tmp = document.createElement('div'); tmp.innerHTML = html;
     return {
@@ -5532,6 +5579,7 @@ function kzItemsToParas(items){
       align: /^(center|right|left)$/.test(it.align||'') ? it.align : 'left',
       size: it.sizeRatio ? Math.max(8, Math.round(fs * it.sizeRatio)) : fs,
       color: it.color || col,
+      ...(boxValid(it.box) ? { box: boxValid(it.box) } : {}),
     };
   });
   return paras.length ? paras : [{type:'text', text:'', html:'<br>', align:'left', size:fs, color:col}];
@@ -5811,6 +5859,163 @@ async function kzReceive(eps){
     kzLinkBusy = false;
     if(kzLinkPending){ const p = kzLinkPending; kzLinkPending = null; kzReceive(p); }
   }
+}
+
+/* ══════════════════════════════════════
+   囲み（段落を箱で囲む）
+   段落ごとに para.box = {s:形, c:'#rrggbb'} を持つ。同じ囲みが続く段落は1つの箱に見せる
+══════════════════════════════════════ */
+const BOX_STYLES = {
+  bg:    { l:'背景',       c:'#e2362a' },
+  line:  { l:'枠だけ',     c:'#222222' },
+  soft:  { l:'うすい背景', c:'#9a9a9a' },
+  sys:   { l:'システム',   c:'#2f8fd6' },
+  round: { l:'丸い枠',     c:'#222222' },
+};
+const BOX_COLORS = ['#e2362a','#2f6fd6','#2e9b5a','#e0a21b','#222222','#9a9a9a'];
+function boxValid(b){
+  if(!b || typeof b !== 'object' || !BOX_STYLES[b.s] || !/^#[0-9a-f]{6}$/i.test(b.c || '')) return null;
+  return { s: b.s, c: b.c.toLowerCase() };
+}
+function boxLum(hex){
+  const n = parseInt(hex.slice(1), 16);
+  return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255;
+}
+function boxApplyEl(p, box){
+  p.classList.remove('pbx', 'bx-first', 'bx-last', 'bx-ondark', ...Object.keys(BOX_STYLES).map(k => 'pbx-' + k));
+  p.style.removeProperty('--bxc');
+  delete p.dataset.box;
+  const b = boxValid(box);
+  if(!b) return;
+  p.classList.add('pbx', 'pbx-' + b.s, 'bx-first', 'bx-last');
+  p.dataset.box = b.s + '|' + b.c;
+  // 黒っぽい線は文字色に合わせる（夜間テーマでも見えるように）
+  p.style.setProperty('--bxc', (b.s !== 'bg' && isNearBlack(b.c)) ? 'var(--ink)' : b.c);
+  if(b.s === 'bg' && boxLum(b.c) < 0.4) p.classList.add('bx-ondark');
+}
+function boxFromEl(el){
+  const k = el && el.dataset && el.dataset.box;
+  if(!k) return null;
+  const [s, c] = k.split('|');
+  return boxValid({ s, c });
+}
+// 同じ囲みが続く段落をつなげる（編集中は段落ごとに別の箱で見せる）
+function boxJoin(editor){
+  if(!editor) return;
+  const kids = Array.from(editor.children);
+  kids.forEach((el, i) => {
+    if(!el.dataset || !el.dataset.box) return;
+    const join = !state.editMode;
+    const prev = kids[i - 1], next = kids[i + 1];
+    el.classList.toggle('bx-first', !(join && prev && prev.dataset && prev.dataset.box === el.dataset.box));
+    el.classList.toggle('bx-last',  !(join && next && next.dataset && next.dataset.box === el.dataset.box));
+  });
+}
+// 囲む段落：範囲選択があればその段落ぜんぶ、なければカーソルの段落
+function boxTargets(){
+  const pi = state.curPage;
+  const pageEl = document.getElementById('page-' + pi);
+  if(!pageEl) return null;
+  const inPage = r => r && !r.collapsed && pageEl.contains(r.commonAncestorContainer);
+  let r = null;
+  const sel = window.getSelection();
+  if(sel && sel.rangeCount && inPage(sel.getRangeAt(0))) r = sel.getRangeAt(0);
+  else if(inPage(state.ui.savedRange)) r = state.ui.savedRange;
+  let els = [];
+  if(r){
+    els = Array.from(pageEl.querySelectorAll('.page-editor > p')).filter(p => {
+      if(!r.intersectsNode(p)) return false;
+      // 次の段落の先頭で終わっている選択は、その段落を含めない
+      if(p.contains(r.endContainer) && r.endOffset === 0 && !p.contains(r.startContainer)){
+        const pre = document.createRange(); pre.selectNodeContents(p); pre.setEnd(r.endContainer, 0);
+        if(pre.toString() === '') return false;
+      }
+      return true;
+    });
+  }
+  if(!els.length){
+    const el = getParaElUnderCaret();
+    if(el && el.tagName === 'P' && pageEl.contains(el)) els = [el];
+  }
+  if(!els.length && state.ui.selPara && state.ui.selPara.pi === pi){
+    const sp = state.ui.selPara;
+    const el = (sp.el && sp.el.tagName === 'P' && pageEl.contains(sp.el)) ? sp.el : pageEl.querySelector(`.page-editor > p[data-qi="${sp.qi}"]`);
+    if(el) els = [el];
+  }
+  return els.length ? { pi, els } : null;
+}
+function boxAsk(count, cur, centerInit){
+  let s = cur ? cur.s : 'bg', c = cur ? cur.c : BOX_STYLES.bg.c, center = centerInit;
+  const sw = (k, col) => {
+    const st = k === 'none' ? 'border:1px dashed #bbb;color:#aaa'
+      : k === 'bg' ? `background:${col};color:${boxLum(col) < 0.4 ? '#fff' : '#222'}`
+      : k === 'soft' ? `background:${col}29`
+      : k === 'sys' ? `background:${col}1c;border-top:2px solid ${col};border-bottom:2px solid ${col}`
+      : k === 'round' ? `border:2px solid ${col};border-radius:14px`
+      : `border:2px solid ${col}`;
+    return `<div class="bxs-sw" style="${st}">${k === 'none' ? 'なし' : 'あ'}</div>`;
+  };
+  return kzSheet((sh, done) => {
+    const render = () => {
+      const opts = [['none', 'なし'], ...Object.entries(BOX_STYLES).map(([k, v]) => [k, v.l])];
+      sh.innerHTML = `<div class="kzs-grab"></div>
+        <div class="kzs-hd"><div class="kzs-ic">囲</div><div class="kzs-t">囲み</div></div>
+        <div class="kzs-sub">${count > 1 ? `選んだ${count}段落を1つの箱にします` : 'この段落を箱で囲みます（続けて同じ囲みにした段落は、読むときに1つの箱になります）'}</div>
+        <div class="bxs-grid">${opts.map(([k, l]) => `<button class="bxs-opt${s === k ? ' on' : ''}" data-s="${k}">${sw(k, c)}${l}</button>`).join('')}</div>
+        ${s === 'none' ? '' : `<div class="bxs-row">色 ${BOX_COLORS.map(col => `<button class="bxs-dot${col === c ? ' on' : ''}" data-c="${col}" style="background:${col}"></button>`).join('')}
+          <label class="bxs-pick"><i style="background:${c}"></i>自分で選ぶ<input type="color" value="${c}"></label></div>`}
+        <button class="bxs-chk${center && s !== 'none' ? ' on' : ''}" data-a="center"${s === 'none' ? ' disabled' : ''}><span>${center && s !== 'none' ? '✓' : ''}</span>中の文字を中央寄せにする</button>
+        <div class="kzs-btns"><button class="kzs-later" data-a="cancel">やめる</button><button class="kzs-ok" data-a="ok">決定</button></div>`;
+    };
+    render();
+    sh.addEventListener('click', ev => {
+      const b = ev.target.closest('button');
+      if(!b) return;
+      if(b.dataset.s){ if(b.dataset.s !== s && b.dataset.s !== 'none') c = BOX_STYLES[b.dataset.s].c; s = b.dataset.s; render(); return; }
+      if(b.dataset.c){ c = b.dataset.c; render(); return; }
+      if(b.dataset.a === 'center'){ center = !center; render(); return; }
+      if(b.dataset.a === 'cancel') done(null);
+      if(b.dataset.a === 'ok') done({ box: s === 'none' ? null : boxValid({ s, c }), center });
+    });
+    sh.addEventListener('change', ev => {
+      if(ev.target.type === 'color' && /^#[0-9a-f]{6}$/i.test(ev.target.value)){ c = ev.target.value.toLowerCase(); render(); }
+    });
+    sh.parentNode.addEventListener('click', ev => { if(ev.target === sh.parentNode) done(null); });
+  });
+}
+async function openBoxSheet(){
+  if(!state.editMode) return;
+  const t = boxTargets();
+  if(!t){ showToast('囲みたい段落にカーソルを置くか、範囲を選んでください'); return; }
+  const { pi } = t;
+  syncEditorToState(pi); // 段落の番号をそろえてから読む
+  const paras = state.pages[pi] && state.pages[pi].paras;
+  if(!paras) return;
+  const qis = [...new Set(t.els.map(el => parseInt(el.dataset.qi, 10)))]
+    .filter(q => !isNaN(q) && paras[q] && paras[q].type === 'text');
+  if(!qis.length){ showToast('囲みたい段落にカーソルを置くか、範囲を選んでください'); return; }
+  const boxes = qis.map(q => boxValid(paras[q].box));
+  const same = boxes.every(b => (b && boxes[0] && b.s === boxes[0].s && b.c === boxes[0].c));
+  const cur = same ? boxes[0] : null;
+  const allCenter = qis.every(q => paras[q].align === 'center');
+  const res = await boxAsk(qis.length, cur, cur ? allCenter : true);
+  if(!res) return;
+  _undoStack.push(JSON.stringify(state.pages));
+  if(_undoStack.length > _UNDO_MAX) _undoStack.shift();
+  _redoStack.length = 0;
+  qis.forEach(q => {
+    const pa = paras[q];
+    if(res.box){
+      pa.box = res.box;
+      if(res.center) pa.align = 'center';
+      else if(pa.align === 'center') pa.align = 'left';
+    } else {
+      delete pa.box;
+    }
+  });
+  refreshPage(pi);
+  save();
+  showToast(res.box ? (qis.length > 1 ? `${qis.length}段落を囲みました` : '囲みました') : '囲みを外しました');
 }
 
 // ZIPファイルからtxt/htmlを一括インポート
@@ -6285,6 +6490,7 @@ function createPageElBase(pi,pg){
         editor.appendChild(buildParaEl(pi,slice.qiList[k],paras[slice.qiList[k]]));
       }
     }
+    boxJoin(editor);
     setupEditorEvents(editor,pi,g,slice.qiList[0]||0);
     group.appendChild(editor);
     inner.appendChild(group);
@@ -6394,6 +6600,7 @@ function buildParaEl(pi,qi,para){
     p.style.color = (!_c || isNearBlack(_c)) ? 'var(--ink)' : _c;
     if(_c && isNearBlack(_c)) p.dataset.origColor = _c;
     p.style.fontFamily=para.fontFamily||state.settings.fontFamily;
+    if(para.box) boxApplyEl(p, para.box);
     return p;
   }
 }
@@ -6764,6 +6971,8 @@ function syncEditorToState(pi){
         if (orig && Array.isArray(orig.furigana) && orig.furigana.length) {
           builtPara.furigana = orig.furigana;
         }
+        const _bx = boxFromEl(node);
+        if (_bx) builtPara.box = _bx;
         newParas.push(builtPara);
       }
       if(node.dataset){node.dataset.pi=pi; node.dataset.qi=globalQi;}
@@ -6912,6 +7121,7 @@ function splitAtCaret(pi){
   newP.style.textAlign=paraEl.style.textAlign||'left';
   newP.style.fontSize=paraEl.style.fontSize||(state.settings.fontSize+'px');
   newP.style.color=paraEl.style.color||state.settings.color;
+  const _bx=boxFromEl(paraEl); if(_bx) boxApplyEl(newP,_bx);
   newP.appendChild(frag);
   if(newP.textContent===''&&newP.children.length===0){
     // ensure non-empty so caret can land here
