@@ -8128,7 +8128,31 @@ function koFitGloss(rb, gloss, word, rest, fpx){
 }
 function koRerender(){
   if(state.editMode || !state.pages) return;
+  // 意味を保存したときなどに、見ている場所がずれないようにする（上の行に意味が増えても、同じ段落が同じ位置に来るように）
+  const pageEl = document.getElementById('page-' + state.curPage);
+  let anchor = null;
+  if(pageEl){
+    const top = pageEl.getBoundingClientRect().top;
+    const ps = [...pageEl.querySelectorAll('[data-qi]')];
+    let el = null;
+    if(_koCur && _koCur.qi >= 0) el = ps.find(p => String(p.dataset.qi) === String(_koCur.qi) && (_koCur.pi == null || _koCur.pi < 0 || p.dataset.pi == null || String(p.dataset.pi) === String(_koCur.pi)));
+    if(el){ const r = el.getBoundingClientRect(); if(r.bottom < top || r.top > top + pageEl.clientHeight) el = null; }
+    if(!el) el = ps.find(p => p.getBoundingClientRect().bottom > top);
+    if(el) anchor = { pi: el.dataset.pi, qi: el.dataset.qi, off: el.getBoundingClientRect().top - top };
+  }
   state.pages.forEach((_, pi) => refreshPage(pi));
+  if(anchor){
+    const fix = () => {
+      const pe = document.getElementById('page-' + state.curPage);
+      if(!pe) return;
+      const el = [...pe.querySelectorAll('[data-qi]')].find(p => String(p.dataset.qi) === String(anchor.qi) && String(p.dataset.pi) === String(anchor.pi));
+      if(!el) return;
+      const d = (el.getBoundingClientRect().top - pe.getBoundingClientRect().top) - anchor.off;
+      if(Math.abs(d) > 0.5) pe.scrollTop += d;
+    };
+    fix();
+    requestAnimationFrame(fix);
+  }
 }
 
 /* ── 本文の表示：覚えた単語に意味をのせる・文のメモの印 ── */
