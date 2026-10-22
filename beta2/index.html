@@ -8186,6 +8186,7 @@ function koFormOk(run, f, key){
     }
     return true;
   }
+  if(f.length === 1 && _koDict && _koDict[f + '하다'] && /^(하|해|했|한|할|합|함)/.test(rest)) return false;   // 말해보자＝말하다（言葉 ではない）
   if(/^(하|해|했|한|할|합|함|되|돼|됐|된|될|됩|받|당|시키|시켜|스러|스럽|스런|답|롭|로운|들|님|씨|적)/.test(rest)) return true;
   if(f.length === 1) return false;                                // 1文字の語（나・이・그）は、助詞のときだけ
   if(_koDict && _koDict[run] && _koDict[run].some(e => !KO_FUNC_POS.includes(e[0]))) return false;
@@ -9420,6 +9421,7 @@ function koDictLookup0(eojeol, prevTok, nextTok, depth){
           if(ents.length) v = { head: h, ents, n: Math.min(h.replace(/다$/, '').length, eojeol.length), fit: 1, lv: 0, verb: /다$/.test(h) && ents.some(e => /^(動|形)$/.test(e[0])), full: true };
         }
         if(!v) return;
+        v = Object.assign({}, v, { full: true, fit: Math.max(v.fit || 0, 1), picked: true });
         if(pos){ const es = v.ents.slice().sort((a, b) => (a[0] === pos ? 0 : 1) - (b[0] === pos ? 0 : 1) || (pos === '名' && h === '열' ? (/列/.test(a[1][0]) ? 0 : 1) - (/列/.test(b[1][0]) ? 0 : 1) : 0)); v = Object.assign({}, v, { ents: es }); }
         list = [v].concat(list.filter(r => r.head !== h));
       };
@@ -9438,6 +9440,19 @@ function koDictLookup0(eojeol, prevTok, nextTok, depth){
       else if(eojeol === '기가' && /^(막|차|찼|죽|살|꺾|눌|세|센)/.test(nx)) pick('기');           // 기가 막히다（気が）
       else if(eojeol === '중인' || eojeol === '중이던') pick('중', '依名');                                // 대기 중인
       else if(eojeol === '어라') pick('어라');
+      else if(/^마련/.test(eojeol) && /기$/.test(pv)) pick('마련', '依名');
+      // Kiwi（形態素解析）と比べて見つかった読み違い
+      else if(/^(나을|나은|나아|나아서|나아요|나았|나았다)$/.test(eojeol)) pick('낫다');                 // 게 나을 것（ましだ）
+      else if(eojeol === '관할') pick('관할');                                                            // 관할（管轄）
+      else if(/^(마세요|마십시오|마셔요)$/.test(eojeol) && !/^(물|술|차|커피|맥주)/.test(pv)) pick('말다');   // 걱정 마세요
+      else if(/^(들었|들어|들으)/.test(eojeol) && /^(잘못|못|제대로)$/.test(pv)) pick('듣다');            // 잘못 들었나（聞き間違えた）
+      else if(eojeol === '걸어' && (/(로|으로|까지|에서)$/.test(nx) || /^(가|오|왔|갔|나|들어|올라|내려|다니)/.test(nx))) pick('걷다');  // 계단을 걸어 무대로
+      else if(eojeol === '물을' && /^(수|자격|필요|때|것|거|생각|리|이유|만한)/.test(nx)) pick('묻다');  // 물을 자격（尋ねる）
+      else if(eojeol === '산' && /^(아래|위|속|정상|꼭대기|중턱|너머|밑|기슭|길)/.test(nx)) pick('산');  // 산 아래로（山）
+      else if(eojeol === '가' && !koIsNumberWord(pv) && (!nx || /고$/.test(pv) || EO_A.test(pv))) pick('가다');  // 놓고 가（行く）
+      else if(eojeol === '와' && /^(있|서|봐|보|줘|주|버|달|라)/.test(nx)) pick('오다');                // 잔뜩 와 있었다
+      else if(eojeol === '서' && /^(있|서|보|봐|가|오|기다)/.test(nx)) pick('서다');                     // 옆에 서 있던
+      else if(/^(끌|끈|끌어|끌고)$/.test(eojeol) && /^(시선|주의|관심|시간|눈길|이목|인기|발걸음)[을를]$/.test(pv)) pick('끌다');  // 시선을 끌（引く）                       // 〜기 마련이다（〜するものだ）
       else if(eojeol === '맨' && nx && !nxVerb()) pick('맨', '冠');                               // 맨 앞（いちばん前）
     }
     // 틈을 타（隙に乗じて）・버스를 타（乗って）
@@ -9521,7 +9536,7 @@ function koDictLookup0(eojeol, prevTok, nextTok, depth){
   }
   {
     const SOLO = ['은', '는', '을', '를', '에', '의', '도', '과', '와', '로', '으로', '에서', '까지', '부터', '라는', '라고', '에게', '처럼'];
-    if(SOLO.includes(eojeol) && _koDict[eojeol] && (!list[0] || list[0].head !== eojeol || !list[0].ents.some(e => e[0] === '助'))){
+    if(SOLO.includes(eojeol) && _koDict[eojeol] && (!list[0] || !list[0].picked) && (!list[0] || list[0].head !== eojeol || !list[0].ents.some(e => e[0] === '助'))){
       const ents = _koDict[eojeol].map((e, i) => { const x = e.slice(); x.i = i; return x; }).filter(e => e[0] === '助');
       if(ents.length) list = [{ head: eojeol, ents, n: eojeol.length, fit: 2, lv: 0, verb: false, full: true }].concat(list.filter(r => r.head !== eojeol));
     }
@@ -9723,7 +9738,10 @@ function koMustNote(hit, fi){
     const negMsg = '「〜じゃないか」と確認・同意を求める言い方です（否定の意味ではありません）';
     if(/지$/.test(hit.eojeol) && isNegQ(nx)) return `次の「${nx}」と合わせて${negMsg}`;
     if(isNegQ(hit.eojeol) && /지$/.test(pv)) return `前の「${pv}」と合わせて${negMsg}`;
-    return koPatternNotes(hit.eojeol, pv, nx).join('\n');
+    const hand = koPatternNotes(hit.eojeol, pv, nx);
+    let dict = [];
+    try{ const nb = koNeighbors(hit.sentence, hit.eojeol, hit.occ); if(nb.i >= 0) dict = koDictPhraseNotes(nb.toks, nb.i, nb.end, hand.length > 0); }catch(_){}
+    return hand.concat(dict.filter(d => !hand.some(h => h.includes(d.key)))).map(x => typeof x === 'string' ? x : x.text).join('\n');
   }catch(_){}
   return '';
 }
@@ -9735,6 +9753,7 @@ const EO_A = { test: t => { const d = koDec(String(t).slice(-1)); return !!d && 
 const ATTR_L = { test: t => { const d = koDec(String(t).slice(-1)); return !!d && d.T === 8 && !/를$/.test(t); } };
 const ATTR_A = { test: t => { const d = koDec(String(t).slice(-1)); return !!d && (d.T === 4 || d.T === 8 || /[는던]$/.test(t)) && !/[을를]$/.test(t); } };
 const KO_PATTERNS = [
+  { a: /^모르긴$/, b: /^몰라(도|두)$/, ja: () => 'よくは分からないが（たぶん）（모르긴 몰라도）' },
   { a: /^혀를$/, b: /^(차|찼|찬|칠|차며|차고)/, ja: () => '舌打ちする（혀를 차다）' },
     { a: /^마른침을$/, b: /^(삼키|삼켰)/, ja: () => '固唾をのむ（마른침을 삼키다）' },
   { a: /^숨을$/, b: /^(삼키|삼켰|죽이|죽였)/, ja: () => '息をのむ・息を殺す（숨을 삼키다／죽이다）' },
@@ -11674,6 +11693,107 @@ function koAuxGloss(prev, cur){
   ['이오', '이구나', '로구나', '이로구나', '이며', '이었을까', '이자', '이었나', '이네'].forEach(k => { if(!KO_COPULA.includes(k)) KO_COPULA.push(k); });
   ['구나', '로구나', '며', '였을까', '였나', '네'].forEach(k => { if(!KO_COP_V.includes(k)) KO_COP_V.push(k); });
 })();
+
+/* ══════ 辞書（한국어기초사전）に入っている慣用句・ことわざ・文法表現を、本文の並びから見つける ══════
+   例：군침이 흘렀다 → 「군침이 흐르다」、먹기 마련이다 → 「-기 마련이다」 */
+let _koPhIdx = null;
+function koPhVariants(w){
+  // 구들장(을) → 구들장을／구들장、가렵다[간지럽다] → 가렵다／간지럽다
+  let vs = [w.replace(/\[[^\]]*\]/g, '')];
+  const alt = w.match(/\[([^\]]+)\]/);
+  if(alt) alt[1].split(/[\/,]/).forEach(a => vs.push(a.trim()));
+  const out = [];
+  vs.forEach(v => { if(/\(([^)]*)\)/.test(v)){ out.push(v.replace(/\(([^)]*)\)/g, '$1')); out.push(v.replace(/\([^)]*\)/g, '')); } else out.push(v); });
+  return out.filter((x, i, a) => x && a.indexOf(x) === i);
+}
+function koPhIndex(){
+  if(_koPhIdx || !_koDict) return _koPhIdx;
+  const idi = {}, gr = [];
+  Object.keys(_koDict).forEach(k => {
+    if(!/\s/.test(k)) return;
+    const e = (_koDict[k] || [])[0]; if(!e || !e[1] || !e[1][0]) return;
+    const ja = koJaShort(e[1][0]).split('・').slice(0, 2).join('・');
+    if(!ja) return;
+    if(k.startsWith('-')){
+      const ws = k.slice(1).split(/\s+/);
+      if(ws.length < 2 || ws.length > 4) return;
+      const heads = ws[0].split('/').flatMap(koPhVariants);
+      gr.push({ key: k, heads, rest: ws.slice(1).map(koPhVariants), ja });
+    } else {
+      const ws = k.split(/\s+/).filter(w => !/^[…·]+$/.test(w));
+      if(ws.length < 2 || ws.length > 5) return;
+      const vs = ws.map(koPhVariants);
+      vs[0].forEach(f => { (idi[f] = idi[f] || []).push({ key: k, vs, ja }); });
+    }
+  });
+  _koPhIdx = { idi, gr };
+  return _koPhIdx;
+}
+// 最後の語：動詞・形容詞なら活用してもよい（흐르다 → 흘렀다）、名詞なら助詞が付いてもよい
+function koPhLast(tok, vs){
+  return vs.some(w => {
+    if(tok === w) return true;
+    if(/다$/.test(w) && w.length >= 2){
+      try{ return koDictLookup(tok, '', '', 1).some(r => r.head === w && r.verb && r.full); }catch(_){ return false; }
+    }
+    return tok.startsWith(w) && tok.length - w.length <= 3;
+  });
+}
+// 文法の前の部分（-기・-ㄹ・-ㄴ가・-아/어 など）が、語の終わりに合うか
+function koPhTail(tok, x){
+  if(!tok || !x) return false;
+  if(/^[ㄱ-ㅎ]/.test(x)){
+    if(koIsVerbTok(tok, false) !== true) return false;
+    const j = { 'ㄴ': 4, 'ㄹ': 8, 'ㅁ': 16, 'ㅂ': 17 }[x[0]];
+    if(!j) return false;
+    const rest = x.slice(1);
+    if(!tok.endsWith(rest) || tok.length <= rest.length) return false;
+    const d = koDec(tok[tok.length - rest.length - 1]);
+    return !!d && d.T === j && tok.length - rest.length >= 1;
+  }
+  if(x === '아' || x === '어' || x === '여') return EO_A.test(tok) && koIsVerbTok(tok, true) === true;
+  return tok.length > x.length && tok.endsWith(x) && koIsVerbTok(tok, false) === true;
+}
+function koDictPhraseNotes(toks, i, end, hasHand){
+  const ix = koPhIndex();
+  if(!ix || !toks || i < 0) return [];
+  const out = [], seen = new Set();
+  const brk = j => end && end[j];                              // 文の終わりはまたがない
+  // 慣用句・ことわざ・名詞句
+  for(let st = Math.max(0, i - 4); st <= i; st++){
+    let ok = true; for(let j = st; j < i; j++) if(brk(j)) ok = false;
+    if(!ok) continue;
+    (ix.idi[toks[st]] || []).forEach(p => {
+      const n = p.vs.length;
+      if(st + n - 1 < i || st + n > toks.length || seen.has(p.key)) return;
+      for(let j = st; j < st + n - 1; j++) if(brk(j)) return;
+      for(let q = 1; q < n - 1; q++) if(!p.vs[q].includes(toks[st + q])) return;
+      if(!koPhLast(toks[st + n - 1], p.vs[n - 1])) return;
+      seen.add(p.key);
+      if(hasHand && n === 2) return;                            // 同じ2語の説明がもうあるとき
+      out.push({ key: p.key, text: `「${toks.slice(st, st + n).join(' ')}」は「${p.key}」＝${p.ja}（辞書の言い回し）` });
+    });
+  }
+  // 文法表現（-기 마련이다・-나 보다・-는 바람에 …）
+  if(!hasHand){
+    for(let st = Math.max(0, i - 3); st <= i; st++){
+      ix.gr.forEach(g => {
+        if(seen.has(g.key)) return;
+        const n = 1 + g.rest.length;
+        if(st + n - 1 < i || st + n > toks.length) return;
+        for(let j = st; j < st + n - 1; j++) if(brk(j)) return;
+        if(!g.heads.some(h => koPhTail(toks[st], h))) return;
+        for(let q = 0; q < g.rest.length - 1; q++) if(!g.rest[q].includes(toks[st + 1 + q])) return;
+        if(!koPhLast(toks[st + n - 1], g.rest[g.rest.length - 1])) return;
+        seen.add(g.key);
+        const span = st + '|' + n;
+        if(out.some(o => o.ja === g.ja || o.span === span)) return;
+        out.push({ span, ja: g.ja, key: g.key, text: `「${toks.slice(st, st + n).join(' ')}」は「${g.key}」＝${g.ja}（辞書の文法）` });
+      });
+    }
+  }
+  return out.slice(0, 3);
+}
 
 
 function setupDoubleTap(){
