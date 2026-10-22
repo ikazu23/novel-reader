@@ -1895,93 +1895,6 @@ body.theme-dark .pnl{color:#666;}
 body.theme-dark .page-editor [data-dkfix]{color:var(--ink) !important;}
 
 /* ══════ 作品の公開・共有 ══════ */
-/* ══════ 作品をさがす（トップの棚・一覧） ══════ */
-#browse-body{flex:1;padding-bottom:30px;}
-.bh-genres{display:flex;gap:8px;overflow-x:auto;padding:14px 18px 6px;scrollbar-width:none;background:#fff;}
-.bh-genres::-webkit-scrollbar{display:none;}
-.bh-genre{flex-shrink:0;border:none;border-radius:8px;padding:9px 14px;background:color-mix(in srgb, var(--wc) 12%, #fff);color:var(--wc);
-  font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:600;cursor:pointer;}
-.bh-genre:active{transform:translateY(1px);}
-.bh-shelf{padding:18px 0 4px;}
-.bh-head{display:flex;align-items:baseline;justify-content:space-between;padding:0 18px 10px;}
-.bh-head h2{margin:0;font-family:'Shippori Mincho B1','Noto Serif JP','Noto Serif CJK JP',serif;font-size:17px;font-weight:700;color:#222;}
-.bh-head button{border:none;background:none;color:#008080;font-family:'Noto Sans JP',sans-serif;font-size:12px;cursor:pointer;padding:4px 0;}
-.bh-row{display:grid;grid-auto-flow:column;grid-auto-columns:28%;gap:14px;overflow-x:auto;padding:2px 18px 10px;scroll-padding-inline:18px;scroll-snap-type:x proximity;scrollbar-width:none;}
-.bh-row::-webkit-scrollbar{display:none;}
-.bh-row .bw-card{scroll-snap-align:start;}
-.bh-msg{font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#aaa;padding:20px 0;grid-column:1/-1;}
-@media (min-width:900px){ .bh-row{grid-auto-columns:150px;gap:22px;padding-left:64px;padding-right:64px;scroll-padding-inline:64px;} .bh-head,.bh-genres{padding-left:64px;padding-right:64px;} }
-
-/* 一覧の上 */
-.bl-author{background:#fff;padding:16px 18px 4px;}
-.bl-au-name{font-family:'Shippori Mincho B1','Noto Serif JP','Noto Serif CJK JP',serif;font-size:20px;font-weight:700;color:#222;}
-.bl-au-bio{font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#666;line-height:1.8;white-space:pre-wrap;margin-top:4px;}
-.bl-au-bio:empty{display:none;}
-.bl-filter{display:flex;align-items:center;gap:6px;background:#fff;padding:12px 18px 0;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#555;}
-.bl-filter b{color:#008080;}
-.bl-filter button{border:none;background:#e8f4f4;color:#008080;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:11px;margin-left:2px;}
-.bl-sorts{display:flex;padding:8px 18px 0;background:#fff;}
-.bl-periods{display:flex;gap:6px;padding:10px 18px 0;background:#fff;}
-.bl-periods button{flex:1;border:1px solid #e3e3e3;background:#fff;border-radius:6px;padding:6px 0;font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#777;cursor:pointer;}
-.bl-periods button.on{border-color:#008080;color:#008080;font-weight:600;background:#f0f8f8;}
-.bl-filters{display:flex;gap:6px;overflow-x:auto;padding:10px 18px 0;background:#fff;scrollbar-width:none;}
-.bl-filters::-webkit-scrollbar{display:none;}
-.bl-tools{display:flex;align-items:center;gap:6px;padding:8px 18px 10px;background:#fff;border-bottom:1px solid #eee;}
-.bl-sp{flex:1;}
-.browse-genre.small{padding:3px 10px;font-size:11.5px;}
-.bl-lay{border:none;background:none;color:#bbb;padding:4px;cursor:pointer;border-radius:6px;display:flex;}
-.bl-lay.on{color:#008080;background:#e8f4f4;}
-
-/* 表紙で並べる */
-#browse-grid.bl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px 16px;padding:22px 20px 40px;}
-@media (min-width:900px){ #browse-grid.bl-grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:40px 28px;padding:36px 64px 80px;max-width:1100px;margin:0 auto;} }
-/* あらすじ付きで並べる */
-#browse-grid.bl-rows{display:block;padding:0 0 30px;background:#fff;}
-@media (min-width:900px){ #browse-grid.bl-rows{max-width:860px;margin:0 auto;} }
-.br-row{display:flex;gap:14px;padding:16px 18px;border-bottom:1px solid #f0f0f0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
-.br-row:active{background:#fafafa;}
-.br-row:focus-visible{outline:2px solid #008080;outline-offset:-2px;}
-.br-cover{width:76px;flex-shrink:0;}
-.br-body{flex:1;min-width:0;}
-.br-title{font-family:'Shippori Mincho B1','Noto Serif JP','Noto Serif CJK JP',serif;font-size:16px;font-weight:700;color:#222;line-height:1.45;word-break:break-all;}
-.br-author{font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#888;margin-top:2px;}
-.br-badges{display:flex;flex-wrap:wrap;gap:2px 9px;margin-top:6px;font-family:'Noto Sans JP',sans-serif;font-size:11px;color:#888;align-items:center;}
-.br-st{color:#2f7d57;font-weight:600;}
-.br-st.done{color:#8a5a14;}
-.br-syn{margin-top:6px;font-family:'Noto Sans JP',sans-serif;font-size:12.5px;color:#555;line-height:1.7;
-  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all;}
-.br-tags{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:6px;font-family:'Noto Sans JP',sans-serif;font-size:11px;color:#3a6d8c;}
-.br-date{margin-top:5px;font-family:'Noto Sans JP',sans-serif;font-size:10.5px;color:#aaa;}
-
-/* 作品ページ */
-.work-chips{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
-.work-chips .work-genre{margin-bottom:0 !important;}
-.work-chips .br-st{font-family:'Noto Sans JP',sans-serif;font-size:11px;}
-.work-last{padding:0 18px 12px;font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#888;}
-.work-tags{display:flex;flex-wrap:wrap;gap:6px;padding:4px 18px 8px;}
-.work-tags button{border:1px solid #d6e3ea;background:#f5f9fb;color:#3a6d8c;border-radius:14px;padding:3px 11px;font-family:'Noto Sans JP',sans-serif;font-size:12px;cursor:pointer;}
-.work-toc{padding:0 18px;}
-.wt-row{display:flex;align-items:baseline;gap:12px;width:100%;border:none;border-bottom:1px solid #f2f2f2;background:none;padding:12px 2px;text-align:left;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
-.wt-row:active{background:#fafafa;}
-.wt-n{flex-shrink:0;min-width:2.2em;font-size:12px;color:#aaa;}
-.wt-t{flex:1;min-width:0;font-size:14px;color:#222;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.wt-m{flex-shrink:0;font-size:11px;color:#aaa;}
-.wt-more{display:block;width:100%;border:none;background:none;color:#008080;padding:12px 0;font-family:'Noto Sans JP',sans-serif;font-size:13px;cursor:pointer;}
-#work-more{padding-top:4px;}
-@media (min-width:900px){ .work-toc,.work-tags,.work-last{padding-left:64px;padding-right:64px;} }
-
-/* 公開画面 */
-.pub-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#333;}
-.pub-pen{flex:1;min-width:0;}
-.pub-pen b{color:#222;}
-.pub-pen small{display:block;color:#999;font-size:11px;}
-
-/* 暗い画面 */
-body.theme-dark .bh-genres,body.theme-dark .bl-author,body.theme-dark .bl-filter,body.theme-dark .bl-sorts,body.theme-dark .bl-periods,
-body.theme-dark .bl-filters,body.theme-dark .bl-tools,body.theme-dark #browse-grid.bl-rows{background:#1e1e1e;}
-body.theme-dark .bh-head h2,body.theme-dark .br-title,body.theme-dark .bl-au-name,body.theme-dark .wt-t{color:#e6e6e6;}
-body.theme-dark .br-row,body.theme-dark .wt-row{border-color:#2c2c2c;}
-
 /* 表紙 */
 .wc{position:relative;display:block;width:100%;aspect-ratio:2/3;border-radius:3px 6px 6px 3px;background:#e9e9e6 center/cover no-repeat;
   box-shadow:0 1px 2px rgba(0,0,0,.12),0 6px 14px -8px rgba(0,0,0,.35);overflow:hidden;container-type:inline-size;}
@@ -2164,6 +2077,145 @@ body.browse-open #library-fab{display:none !important;}
 .like-btn:active{transform:scale(.95);}
 #toc-stats{align-items:center;flex-wrap:wrap;}
 .work-stats{align-items:center;flex-wrap:wrap;}
+
+/* ══════ 作品をさがす（トップの棚・一覧） ══════ */
+/* 白い面・黒い文字・ゴシック。色はアプリのティールと、ジャンルの点だけ */
+#browse-screen{background:#fff !important;}
+#browse-body{flex:1;padding-bottom:30px;font-family:'Noto Sans JP',sans-serif;}
+#browse-search{padding:8px 16px 0 !important;}
+.bs-pill{height:36px !important;border-radius:8px !important;background:#f3f4f4 !important;}
+.browse-tabs{display:flex;gap:22px;padding:0 16px;background:#fff;border-bottom:1px solid #eee;overflow-x:auto;scrollbar-width:none;flex-shrink:0;position:sticky;top:var(--top-h);z-index:2;}
+.browse-tabs::-webkit-scrollbar{display:none;}
+.browse-tabs button{flex-shrink:0;border:none;background:none;padding:12px 0 10px;font-family:'Noto Sans JP',sans-serif;font-size:14px;color:#888;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.browse-tabs button.on{color:#111;font-weight:700;border-bottom-color:#111;}
+/* ジャンル */
+.bh-genres{display:flex;gap:6px;overflow-x:auto;padding:14px 16px 4px;scrollbar-width:none;}
+.bh-genres::-webkit-scrollbar{display:none;}
+.bh-genres button{flex-shrink:0;display:flex;align-items:center;gap:6px;border:1px solid #e6e6e6;background:#fff;border-radius:16px;padding:6px 12px;font-family:'Noto Sans JP',sans-serif;font-size:12.5px;color:#333;cursor:pointer;}
+.bh-dot{width:7px;height:7px;border-radius:50%;}
+/* 棚 */
+.bh-shelf{padding:22px 0 2px;}
+.bh-shelf + .bh-shelf{border-top:8px solid #f5f5f5;}
+.bh-head{display:flex;align-items:center;justify-content:space-between;padding:0 16px 12px;}
+.bh-head h2{margin:0;font-family:'Noto Sans JP',sans-serif;font-size:17px;font-weight:700;color:#111;letter-spacing:-.01em;}
+.bh-head button{display:flex;align-items:center;gap:1px;border:none;background:none;color:#888;font-family:'Noto Sans JP',sans-serif;font-size:12.5px;cursor:pointer;padding:4px 0;}
+.bh-row{display:grid;grid-auto-flow:column;grid-auto-columns:27%;gap:12px;overflow-x:auto;padding:0 16px 16px;scroll-padding-inline:16px;scroll-snap-type:x proximity;scrollbar-width:none;}
+.bh-row::-webkit-scrollbar{display:none;}
+.bh-row .bw-card{scroll-snap-align:start;}
+.bh-msg{font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#aaa;padding:20px 0;grid-column:1/-1;}
+/* 表紙のカード */
+.bw-card{all:unset;box-sizing:border-box;display:flex;flex-direction:column;min-width:0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.bw-card:focus-visible{outline:2px solid #008080;outline-offset:3px;border-radius:4px;}
+.bw-card .wc{border-radius:4px;box-shadow:0 0 0 1px rgba(0,0,0,.06);}
+.bw-card .wc::after{display:none;}
+.bw-title{margin-top:8px;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:600;color:#1a1a1a;line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all;}
+.bw-author{margin-top:3px;font-family:'Noto Sans JP',sans-serif;font-size:11.5px;color:#8a8a8a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:1.4em;}
+.wc-own{position:absolute;top:0;right:0;z-index:1;font-family:'Noto Sans JP',sans-serif;font-size:8.5cqw;font-weight:700;color:#fff;background:#008080;border-radius:0 0 0 4px;padding:.15em .45em;}
+.wc-rate{top:0 !important;left:0 !important;border-radius:0 0 4px 0 !important;}
+/* ランキング（3作品ずつの列を横にめくる） */
+.rk-cols{display:grid;grid-auto-flow:column;grid-auto-columns:86%;gap:16px;overflow-x:auto;padding:0 16px 16px;scroll-padding-inline:16px;scroll-snap-type:x mandatory;scrollbar-width:none;}
+.rk-cols::-webkit-scrollbar{display:none;}
+.rk-col{display:flex;flex-direction:column;gap:12px;scroll-snap-align:start;min-width:0;}
+.rk-item{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:12px;cursor:pointer;min-width:0;}
+.rk-item:focus-visible{outline:2px solid #008080;outline-offset:2px;border-radius:4px;}
+.rk-cover{width:56px;flex-shrink:0;}
+.rk-cover .wc{border-radius:3px;box-shadow:0 0 0 1px rgba(0,0,0,.06);}
+.rk-cover .wc::after{display:none;}
+.rk-n{flex-shrink:0;width:22px;text-align:center;font-family:'Noto Sans JP',sans-serif;font-size:17px;font-weight:800;color:#222;font-variant-numeric:tabular-nums;}
+.rk-n.top{color:#008080;}
+.rk-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.rk-title{font-size:14px;font-weight:600;color:#1a1a1a;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all;}
+.rk-sub{font-size:11.5px;color:#8a8a8a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rk-meta{font-size:11px;color:#aaa;}
+.rk-meta i,.br-meta i{font-style:normal;}
+.rk-meta i::before,.br-meta i::before{content:'';display:inline-block;width:1px;height:9px;background:#ddd;margin:0 6px;vertical-align:middle;}
+@media (min-width:900px){
+  .bh-row{grid-auto-columns:140px;gap:20px;padding-left:64px;padding-right:64px;scroll-padding-inline:64px;}
+  .rk-cols{grid-auto-columns:340px;padding-left:64px;padding-right:64px;scroll-padding-inline:64px;}
+  .bh-head,.bh-genres{padding-left:64px;padding-right:64px;}
+}
+
+/* 一覧の上 */
+.bl-author{padding:18px 16px 6px;}
+.bl-au-name{font-family:'Noto Sans JP',sans-serif;font-size:20px;font-weight:700;color:#111;}
+.bl-au-bio{font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#666;line-height:1.8;white-space:pre-wrap;margin-top:4px;}
+.bl-au-bio:empty{display:none;}
+.bl-filter{display:flex;align-items:center;gap:6px;padding:14px 16px 0;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#555;}
+.bl-filter b{color:#111;}
+.bl-filter button{border:none;background:#f0f0f0;color:#666;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:11px;margin-left:2px;}
+.bl-bar{padding:12px 0 0;border-bottom:1px solid #f0f0f0;}
+.bl-seg{display:flex;gap:4px;margin:0 16px 10px;padding:3px;background:#f3f4f4;border-radius:8px;}
+.bl-seg button{flex:1;border:none;background:none;border-radius:6px;padding:6px 0;font-family:'Noto Sans JP',sans-serif;font-size:12.5px;color:#777;cursor:pointer;}
+.bl-seg button.on{background:#fff;color:#111;font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.08);}
+.bl-chips{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:0 16px;scrollbar-width:none;}
+.bl-chips::-webkit-scrollbar{display:none;}
+.bl-chip{flex-shrink:0;border:1px solid #e6e6e6;background:#fff;border-radius:16px;padding:5px 12px;font-family:'Noto Sans JP',sans-serif;font-size:12.5px;color:#444;cursor:pointer;}
+.bl-chip.on{background:#111;border-color:#111;color:#fff;}
+.bl-chip.r18.on{background:#c0506a;border-color:#c0506a;}
+.bl-div{flex-shrink:0;width:1px;height:18px;background:#e6e6e6;margin:0 4px;}
+.bl-count{display:flex;align-items:center;justify-content:space-between;padding:8px 16px 8px;font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#999;}
+.bl-lays{display:flex;gap:2px;}
+.bl-lay{border:none;background:none;color:#c4c4c4;padding:4px;cursor:pointer;border-radius:6px;display:flex;}
+.bl-lay.on{color:#111;}
+
+/* 表紙で並べる */
+#browse-grid.bl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px 12px;padding:16px 16px 40px;}
+@media (min-width:900px){ #browse-grid.bl-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:36px 24px;padding:28px 64px 80px;max-width:1100px;margin:0 auto;} }
+/* あらすじ付きで並べる */
+#browse-grid.bl-rows{display:block;padding:0 0 30px;}
+@media (min-width:900px){ #browse-grid.bl-rows{max-width:860px;margin:0 auto;} }
+.br-row{display:flex;align-items:flex-start;gap:12px;padding:16px;border-bottom:1px solid #f2f2f2;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.br-row:active{background:#fafafa;}
+.br-row:focus-visible{outline:2px solid #008080;outline-offset:-2px;}
+.br-n{padding-top:22px;}
+.br-cover{width:72px;flex-shrink:0;}
+.br-cover .wc{border-radius:4px;box-shadow:0 0 0 1px rgba(0,0,0,.06);}
+.br-cover .wc::after{display:none;}
+.br-body{flex:1;min-width:0;}
+.br-title{font-family:'Noto Sans JP',sans-serif;font-size:15px;font-weight:700;color:#111;line-height:1.45;word-break:break-all;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.br-author{font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#8a8a8a;margin-top:2px;}
+.br-meta{display:flex;flex-wrap:wrap;align-items:center;margin-top:6px;font-family:'Noto Sans JP',sans-serif;font-size:11.5px;color:#999;}
+.br-st{color:#2f7d57;font-weight:600;}
+.br-st.done{color:#8a5a14;}
+.br-like{color:#c0506a;}
+.br-syn{margin-top:6px;font-family:'Noto Sans JP',sans-serif;font-size:12.5px;color:#555;line-height:1.7;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all;}
+.br-tags{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:6px;font-family:'Noto Sans JP',sans-serif;font-size:11.5px;color:#3a6d8c;}
+
+/* 作品ページ */
+.work-chips{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.work-chips .work-genre{margin-bottom:0 !important;}
+.work-chips .br-st{font-family:'Noto Sans JP',sans-serif;font-size:11px;}
+.work-last{padding:0 18px 12px;font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#888;}
+.work-tags{display:flex;flex-wrap:wrap;gap:6px;padding:4px 18px 8px;}
+.work-tags button{border:1px solid #d6e3ea;background:#f5f9fb;color:#3a6d8c;border-radius:14px;padding:3px 11px;font-family:'Noto Sans JP',sans-serif;font-size:12px;cursor:pointer;}
+.work-toc{padding:0 18px;}
+.wt-row{display:flex;align-items:baseline;gap:12px;width:100%;border:none;border-bottom:1px solid #f2f2f2;background:none;padding:12px 2px;text-align:left;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+.wt-row:active{background:#fafafa;}
+.wt-n{flex-shrink:0;min-width:2.2em;font-size:12px;color:#aaa;}
+.wt-t{flex:1;min-width:0;font-size:14px;color:#222;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.wt-m{flex-shrink:0;font-size:11px;color:#aaa;}
+.wt-more{display:block;width:100%;border:none;background:none;color:#008080;padding:12px 0;font-family:'Noto Sans JP',sans-serif;font-size:13px;cursor:pointer;}
+#work-more{padding-top:4px;}
+@media (min-width:900px){ .work-toc,.work-tags,.work-last{padding-left:64px;padding-right:64px;} }
+
+/* 公開画面 */
+.pub-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#333;}
+.pub-pen{flex:1;min-width:0;}
+.pub-pen b{color:#222;}
+.pub-pen small{display:block;color:#999;font-size:11px;}
+
+/* 暗い画面 */
+body.theme-dark #browse-screen,body.theme-dark .browse-tabs{background:#1b1b1b !important;}
+body.theme-dark .bh-shelf + .bh-shelf{border-top-color:#111;}
+body.theme-dark .bh-genres button,body.theme-dark .bl-chip{background:#222;border-color:#333;color:#ddd;}
+body.theme-dark .bl-seg{background:#262626;}body.theme-dark .bl-seg button.on{background:#383838;color:#fff;}
+body.theme-dark .bh-head h2,body.theme-dark .br-title,body.theme-dark .bl-au-name,body.theme-dark .wt-t,body.theme-dark .bw-title,body.theme-dark .rk-title,body.theme-dark .rk-n,body.theme-dark .browse-tabs button.on{color:#e6e6e6;}
+body.theme-dark .browse-tabs button.on{border-bottom-color:#e6e6e6;}
+body.theme-dark .bl-chip.on{background:#e6e6e6;color:#111;}
+body.theme-dark .br-row,body.theme-dark .wt-row{border-color:#2c2c2c;}
 
 /* ══════ PC：左右の端クリックでページ移動 ══════ */
 #viewport.edge-hover{cursor:pointer;}
@@ -2736,6 +2788,7 @@ body.theme-dark .ko-name-btn{background:#1f3a37;border-color:#2f5e58;color:#7fd3
     </button>
   </div>
   <div id="browse-search"><label class="bs-pill"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg><input id="browse-q" type="search" placeholder="題名・作者名・タグでさがす" enterkeyhint="search" oninput="onBrowseSearch(this.value)" onkeydown="event.stopPropagation()"></label></div>
+  <div id="browse-tabs" class="browse-tabs"></div>
   <div id="browse-body"></div>
 </div>
 <!-- 作品ページ（共有リンクから開く） -->
@@ -9224,40 +9277,73 @@ async function fetchWorks(o){
 function ownedWork(id){ return state.library.some(n => n.id === 'shared_' + id); }
 
 /* ── 1作品の表示 ── */
-function browseCardHtml(w, rank){
+function coverWithBadges(w){
+  return workCoverHtml(Object.assign({}, w, { epCount: 0 })).replace(/<\/span>$/, (ownedWork(w.id) ? '<span class="wc-own">本棚</span>' : '') + '</span>');
+}
+// 棚の1冊：表紙・題名・作者だけ
+function browseCardHtml(w){
   return `<button class="bw-card" onclick="openWorkDetail('${w.id}')">
-    ${workCoverHtml(w)}
-    <span class="bw-title">${rank ? `<span class="bw-rank${rank <= 3 ? ' top' : ''}">${rank}</span>` : ''}${escapeHtml(w.title || '無題')}</span>
-    ${w.author ? `<span class="bw-author">${escapeHtml(w.author)}</span>` : ''}
-    <span class="bw-meta"><span>${escapeHtml(w.genre || '')}</span><span class="bw-like">♡${w.likes || 0}</span>${ownedWork(w.id) ? '<span class="bw-own">本棚</span>' : ''}</span>
+    ${coverWithBadges(w)}
+    <span class="bw-title">${escapeHtml(w.title || '無題')}</span>
+    <span class="bw-author">${escapeHtml(w.author || '')}</span>
   </button>`;
 }
+// ランキングの1行：順位・小さい表紙・題名・作者・ジャンル
+function browseRankHtml(w, rank){
+  return `<button class="rk-item" onclick="openWorkDetail('${w.id}')">
+    <span class="rk-cover">${coverWithBadges(w)}</span>
+    <span class="rk-n${rank <= 3 ? ' top' : ''}">${rank}</span>
+    <span class="rk-body"><span class="rk-title">${escapeHtml(w.title || '無題')}</span>
+      <span class="rk-sub">${escapeHtml(w.author || '')}</span>
+      <span class="rk-meta">${escapeHtml(w.genre || '')}<i>${w.done ? '完結' : '連載中'}</i><i>${w.epCount || 0}話</i></span></span>
+  </button>`;
+}
+// 一覧の1行：あらすじ付き
 function browseRowHtml(w, rank){
   const tags = (w.tags || []).slice(0, 4);
   return `<div class="br-row" role="button" tabindex="0" onclick="openWorkDetail('${w.id}')" onkeydown="if(event.key==='Enter')openWorkDetail('${w.id}')">
-    <div class="br-cover">${workCoverHtml(w)}</div>
+    ${rank ? `<span class="rk-n br-n${rank <= 3 ? ' top' : ''}">${rank}</span>` : ''}
+    <div class="br-cover">${coverWithBadges(w)}</div>
     <div class="br-body">
-      <div class="br-title">${rank ? `<span class="bw-rank${rank <= 3 ? ' top' : ''}">${rank}</span>` : ''}${escapeHtml(w.title || '無題')}</div>
+      <div class="br-title">${escapeHtml(w.title || '無題')}</div>
       <div class="br-author">${escapeHtml(w.author || '')}</div>
-      <div class="br-badges"><span class="br-st ${w.done ? 'done' : ''}">${w.done ? '完結' : '連載中'}</span><span>${w.epCount || 0}話</span>${w.chars ? `<span>${fmtChars(w.chars)}</span>` : ''}<span>${escapeHtml(w.genre || '')}</span><span class="bw-like">♡${w.likes || 0}</span>${ownedWork(w.id) ? '<span class="bw-own">本棚</span>' : ''}</div>
+      <div class="br-meta"><span class="br-st ${w.done ? 'done' : ''}">${w.done ? '完結' : '連載中'}</span><i>${escapeHtml(w.genre || '')}</i><i>${w.epCount || 0}話</i>${w.chars ? `<i>${fmtChars(w.chars)}</i>` : ''}<i class="br-like">♡ ${w.likes || 0}</i></div>
       ${w.syn ? `<div class="br-syn">${escapeHtml(w.syn)}</div>` : ''}
       ${tags.length ? `<div class="br-tags">${tags.map(t => `<span>#${escapeHtml(t)}</span>`).join('')}</div>` : ''}
-      <div class="br-date">更新 ${fmtDay(w.updatedAt)}</div>
     </div>
   </div>`;
 }
 
 /* ── 描く ── */
+const BROWSE_TABS = [['home', 'ホーム'], ['rank', 'ランキング'], ['new', '新着'], ['updated', '更新'], ['done', '完結']];
+function browseTabKey(){
+  const b = _browse;
+  if(b.view === 'home') return 'home';
+  if(b.ak || b.tag || b.q) return '';
+  if(b.done && b.sort === 'updated') return 'done';
+  return b.sort === 'popular' ? 'rank' : b.sort;
+}
+function browseTab(k){
+  if(k === 'home'){ browseHome(); return; }
+  if(k === 'done'){ browseList({ sort: 'updated', done: true, ak: '', akName: '', tag: '', q: '' }); return; }
+  browseList({ sort: k === 'rank' && _browse.rankOk === false ? 'popular' : k, done: false, ak: '', akName: '', tag: '', q: '' });
+}
 function renderBrowse(){
   const body = document.getElementById('browse-body');
   if(!body) return;
   const tb = document.getElementById('browse-tb-title');
-  if(tb) tb.textContent = _browse.view === 'home' ? '作品をさがす' : _browse.ak ? (_browse.akName || '作者') + 'の作品' : _browse.tag ? '#' + _browse.tag : _browse.q ? '検索' : ({ rank: 'ランキング', popular: '人気', new: '新着', updated: '更新' }[_browse.sort] || '作品');
+  if(tb) tb.textContent = _browse.ak ? (_browse.akName || '作者') + 'の作品' : _browse.tag ? '#' + _browse.tag : _browse.q ? '検索' : '作品をさがす';
+  const tabs = document.getElementById('browse-tabs');
+  if(tabs){
+    const cur = browseTabKey();
+    tabs.innerHTML = BROWSE_TABS.map(([k, l]) => `<button class="${cur === k ? 'on' : ''}" onclick="browseTab('${k}')">${l}</button>`).join('');
+    tabs.hidden = !!(_browse.ak || _browse.tag || _browse.q);
+  }
   if(_browse.view === 'home') renderBrowseHome(body); else renderBrowseList(body);
 }
 const BROWSE_SHELVES = [
-  { key: 'rank', title: '今週よく読まれている', more: { sort: 'rank', period: 'week' }, q: { sort: 'rank', period: 'week' }, ranked: true, needRank: true },
-  { key: 'popular', title: '人気（いいね）', more: { sort: 'popular' }, q: { sort: 'popular' }, ranked: true },
+  { key: 'rank', title: '今週のランキング', more: { sort: 'rank', period: 'week' }, q: { sort: 'rank', period: 'week' }, kind: 'rank', needRank: true },
+  { key: 'popular', title: '人気の作品', more: { sort: 'popular' }, q: { sort: 'popular' }, kind: 'rank' },
   { key: 'new', title: '新着', more: { sort: 'new' }, q: { sort: 'new' } },
   { key: 'updated', title: '最近更新された作品', more: { sort: 'updated' }, q: { sort: 'updated' } },
   { key: 'done', title: '完結した作品', more: { sort: 'updated', done: true }, q: { sort: 'updated', done: true } },
@@ -9265,10 +9351,10 @@ const BROWSE_SHELVES = [
 async function renderBrowseHome(body){
   const seq = window._browseSeq = (window._browseSeq || 0) + 1;
   body.innerHTML = `
-    <div class="bh-genres">${WORK_GENRES.map(g => `<button class="bh-genre" style="--wc:${workGenreColor(g)}" onclick="browseList({genre:'${g}',sort:'popular'})">${g}</button>`).join('')}</div>
+    <div class="bh-genres">${WORK_GENRES.map(g => `<button onclick="browseList({genre:'${g}',sort:'popular'})"><span class="bh-dot" style="background:${workGenreColor(g)}"></span>${g}</button>`).join('')}</div>
     ${BROWSE_SHELVES.map(s => `<section class="bh-shelf" id="bh-${s.key}" ${s.needRank && _browse.rankOk === false ? 'hidden' : ''}>
-      <div class="bh-head"><h2>${s.title}</h2><button onclick='browseList(${JSON.stringify(s.more)})'>もっと見る</button></div>
-      <div class="bh-row"><div class="bh-msg">読み込み中...</div></div></section>`).join('')}
+      <div class="bh-head"><h2>${s.title}</h2><button onclick='browseList(${JSON.stringify(s.more)})' aria-label="${s.title}をもっと見る">すべて<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button></div>
+      <div class="${s.kind === 'rank' ? 'rk-cols' : 'bh-row'}"><div class="bh-msg">読み込み中...</div></div></section>`).join('')}
     <div class="browse-terms"><a href="#" onclick="window.open(TERMS_URL, '_blank', 'noopener');return false;">利用規約・プライバシー</a></div>`;
   let anyWork = false, failed = 0;
   await Promise.all(BROWSE_SHELVES.map(async s => {
@@ -9277,14 +9363,19 @@ async function renderBrowseHome(body){
       const d = await fetchWorks(Object.assign({ r18: _browse.r18 }, s.q));
       if(seq !== window._browseSeq || !sec) return;
       if(s.needRank && !d.rankAvailable){ sec.hidden = true; return; }
-      const ws = (d.works || []).slice(0, 12);
+      const ws = (d.works || []).slice(0, s.kind === 'rank' ? 9 : 12);
       if(!ws.length){ sec.hidden = true; return; }
       anyWork = true;
-      sec.querySelector('.bh-row').innerHTML = ws.map((w, i) => browseCardHtml(w, s.ranked ? i + 1 : 0)).join('');
-    }catch(e){ failed++; if(sec) sec.querySelector('.bh-row').innerHTML = '<div class="bh-msg">読み込めませんでした</div>'; }
+      const box = sec.querySelector('.rk-cols, .bh-row');
+      if(s.kind === 'rank'){
+        // 3作品ずつ縦に並べた列を、横にめくる
+        const cols = [];
+        for(let i = 0; i < ws.length; i += 3) cols.push(`<div class="rk-col">${ws.slice(i, i + 3).map((w, j) => browseRankHtml(w, i + j + 1)).join('')}</div>`);
+        box.innerHTML = cols.join('');
+      }else box.innerHTML = ws.map(w => browseCardHtml(w)).join('');
+    }catch(e){ failed++; if(sec) sec.querySelector('.rk-cols, .bh-row').innerHTML = '<div class="bh-msg">読み込めませんでした</div>'; }
   }));
   if(seq !== window._browseSeq) return;
-  // ランキングの棚があるときは、人気（いいね）の棚はしまう
   const rk = document.getElementById('bh-rank'), pp = document.getElementById('bh-popular');
   if(rk && pp && !rk.hidden) pp.hidden = true;
   if(!anyWork && !failed) body.querySelector('.bh-genres').insertAdjacentHTML('afterend', '<div class="work-msg">まだ作品がありません。<br>本の︙メニューの「作品を公開・更新」から、最初の作品を公開してみてね</div>');
@@ -9292,24 +9383,26 @@ async function renderBrowseHome(body){
 async function renderBrowseList(body){
   const seq = window._browseSeq = (window._browseSeq || 0) + 1;
   const b = _browse;
-  const sorts = [['rank', 'ランキング'], ['popular', 'いいね'], ['new', '新着'], ['updated', '更新']].filter(([v]) => v !== 'rank' || b.rankOk !== false);
+  const tab = browseTabKey();
   const periods = [['day', '日間'], ['week', '週間'], ['month', '月間'], ['all', '累計']];
-  const chip = (on, label, js, cls = '') => `<button class="browse-genre ${cls} ${on ? 'active' : ''}" onclick="${js}">${label}</button>`;
+  const chip = (on, label, js, cls = '') => `<button class="bl-chip ${cls} ${on ? 'on' : ''}" onclick="${js}">${label}</button>`;
+  const showRankOpts = tab === 'rank';
   body.innerHTML = `
     ${b.ak ? `<div class="bl-author" id="bl-author"><div class="bl-au-name">${escapeHtml(b.akName || '作者')}</div><div class="bl-au-bio"></div></div>` : ''}
-    ${b.tag ? `<div class="bl-filter">タグ <b>#${escapeHtml(b.tag)}</b><button onclick="browseList({tag:''})" title="タグのしぼりこみをやめる">✕</button></div>` : ''}
-    ${b.q ? `<div class="bl-filter">「<b>${escapeHtml(b.q)}</b>」の検索結果<button onclick="document.getElementById('browse-q').value='';browseHome()" title="検索をやめる">✕</button></div>` : ''}
-    <div class="bl-sorts">${sorts.map(([v, l]) => `<button class="browse-sort ${b.sort === v ? 'active' : ''}" onclick="browseList({sort:'${v}'})">${l}</button>`).join('')}</div>
-    ${b.sort === 'rank' ? `<div class="bl-periods">${periods.map(([v, l]) => `<button class="${b.period === v ? 'on' : ''}" onclick="browseList({period:'${v}'})">${l}</button>`).join('')}</div>` : ''}
-    <div class="bl-filters">
-      ${chip(!b.genre, 'すべて', "browseList({genre:''})")}${WORK_GENRES.map(g => chip(b.genre === g, g, `browseList({genre:'${g}'})`)).join('')}
-    </div>
-    <div class="bl-tools">
-      ${chip(b.done, '完結のみ', 'browseList({done:!_browse.done})', 'small')}
-      ${chip(b.r18, 'R18も表示', 'toggleBrowseR18()', 'small r18')}
-      <span class="bl-sp"></span>
-      <button class="bl-lay ${b.layout === 'rows' ? 'on' : ''}" onclick="setBrowseLayout('rows')" title="あらすじ付きで並べる" aria-label="あらすじ付きで並べる"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="6" height="7" rx="1"/><line x1="12" y1="6" x2="21" y2="6"/><line x1="12" y1="10" x2="18" y2="10"/><rect x="3" y="13" width="6" height="7" rx="1"/><line x1="12" y1="15" x2="21" y2="15"/><line x1="12" y1="19" x2="18" y2="19"/></svg></button>
-      <button class="bl-lay ${b.layout === 'grid' ? 'on' : ''}" onclick="setBrowseLayout('grid')" title="表紙で並べる" aria-label="表紙で並べる"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="8" rx="1"/><rect x="14" y="3" width="7" height="8" rx="1"/><rect x="3" y="13" width="7" height="8" rx="1"/><rect x="14" y="13" width="7" height="8" rx="1"/></svg></button>
+    ${b.tag ? `<div class="bl-filter">タグ <b>#${escapeHtml(b.tag)}</b><button onclick="browseList({tag:''})" aria-label="タグのしぼりこみをやめる">✕</button></div>` : ''}
+    ${b.q ? `<div class="bl-filter">「<b>${escapeHtml(b.q)}</b>」の検索結果<button onclick="document.getElementById('browse-q').value='';browseHome()" aria-label="検索をやめる">✕</button></div>` : ''}
+    <div class="bl-bar">
+      ${showRankOpts ? `<div class="bl-seg">${(b.rankOk === false ? [['popular', 'いいね']] : [...periods.map(([v, l]) => ['rank:' + v, l]), ['popular', 'いいね']]).map(([v, l]) => {
+        const on = v === 'popular' ? b.sort === 'popular' : b.sort === 'rank' && b.period === v.slice(5);
+        return `<button class="${on ? 'on' : ''}" onclick="${v === 'popular' ? "browseList({sort:'popular'})" : `browseList({sort:'rank',period:'${v.slice(5)}'})`}">${l}</button>`;
+      }).join('')}</div>` : (b.ak || b.tag || b.q) ? `<div class="bl-seg">${[['popular', 'いいね順'], ['new', '新着順'], ['updated', '更新順']].map(([v, l]) => `<button class="${b.sort === v ? 'on' : ''}" onclick="browseList({sort:'${v}'})">${l}</button>`).join('')}</div>` : ''}
+      <div class="bl-chips">
+        ${chip(!b.genre, 'すべて', "browseList({genre:''})")}${WORK_GENRES.map(g => chip(b.genre === g, g, `browseList({genre:'${g}'})`)).join('')}
+        <span class="bl-div"></span>
+        ${tab !== 'done' ? chip(b.done, '完結のみ', 'browseList({done:!_browse.done})') : ''}${chip(b.r18, 'R18', 'toggleBrowseR18()', 'r18')}
+      </div>
+      <div class="bl-count"><span id="bl-total"></span>
+        <span class="bl-lays"><button class="bl-lay ${b.layout === 'rows' ? 'on' : ''}" onclick="setBrowseLayout('rows')" aria-label="あらすじ付きで並べる" title="あらすじ付き"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="6" height="7" rx="1"/><line x1="12" y1="6" x2="21" y2="6"/><line x1="12" y1="10" x2="18" y2="10"/><rect x="3" y="13" width="6" height="7" rx="1"/><line x1="12" y1="15" x2="21" y2="15"/><line x1="12" y1="19" x2="18" y2="19"/></svg></button><button class="bl-lay ${b.layout === 'grid' ? 'on' : ''}" onclick="setBrowseLayout('grid')" aria-label="表紙で並べる" title="表紙"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="8" rx="1"/><rect x="14" y="3" width="7" height="8" rx="1"/><rect x="3" y="13" width="7" height="8" rx="1"/><rect x="14" y="13" width="7" height="8" rx="1"/></svg></button></span></div>
     </div>
     <div id="browse-grid" class="${b.layout === 'grid' ? 'bl-grid' : 'bl-rows'}"><div class="work-msg" style="grid-column:1/-1">読み込み中...</div></div>
     <div class="browse-terms"><a href="#" onclick="window.open(TERMS_URL, '_blank', 'noopener');return false;">利用規約・プライバシー</a></div>`;
@@ -9327,12 +9420,13 @@ async function renderBrowseList(body){
   catch(e){ if(seq === window._browseSeq) grid.innerHTML = '<div class="work-msg" style="grid-column:1/-1">一覧を読み込めませんでした。通信状態を確認して、右上の矢印でもう一度読み込んでね</div>'; return; }
   if(seq !== window._browseSeq) return;
   const works = data.works || [];
+  const tot = document.getElementById('bl-total'); if(tot) tot.textContent = works.length ? `${data.total || works.length}作品` : '';
   if(!works.length){
     grid.innerHTML = `<div class="work-msg" style="grid-column:1/-1">${b.q ? `「${escapeHtml(b.q)}」に合う作品は見つからなかったよ` : b.sort === 'rank' && b.period !== 'all' ? 'この期間に読まれた作品はまだないよ' : 'この条件の作品はまだないよ'}</div>`;
     return;
   }
-  const ranked = b.sort === 'rank' || b.sort === 'popular';
-  grid.innerHTML = works.map((w, i) => b.layout === 'grid' ? browseCardHtml(w, ranked ? i + 1 : 0) : browseRowHtml(w, ranked ? i + 1 : 0)).join('');
+  const ranked = tab === 'rank';
+  grid.innerHTML = works.map((w, i) => b.layout === 'grid' ? browseCardHtml(w) : browseRowHtml(w, ranked ? i + 1 : 0)).join('');
 }
 // 前のバージョンの呼び名（ほかの場所から呼ばれる）
 function loadBrowse(){ renderBrowse(); }
