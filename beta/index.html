@@ -1895,6 +1895,39 @@ body.theme-dark .pnl{color:#666;}
 body.theme-dark .page-editor [data-dkfix]{color:var(--ink) !important;}
 
 /* ══════ 作品の公開・共有 ══════ */
+/* 表紙 */
+.wc{position:relative;display:block;width:100%;aspect-ratio:2/3;border-radius:3px 6px 6px 3px;background:#e9e9e6 center/cover no-repeat;
+  box-shadow:0 1px 2px rgba(0,0,0,.12),0 6px 14px -8px rgba(0,0,0,.35);overflow:hidden;container-type:inline-size;}
+.wc::after{content:'';position:absolute;inset:0 auto 0 0;width:5%;background:linear-gradient(90deg,rgba(0,0,0,.18),rgba(255,255,255,.06) 60%,transparent);}
+.wc-gen{background:var(--wc);}
+.wc-slip{position:absolute;top:9%;right:11%;height:68%;writing-mode:vertical-rl;background:#f7f4ec;color:#2a2a2a;
+  padding:.6em .4em;border:1px solid rgba(0,0,0,.08);box-shadow:inset 0 0 0 2px #f7f4ec,inset 0 0 0 3px rgba(0,0,0,.12);
+  font-family:'Shippori Mincho B1','Noto Serif JP','Noto Serif CJK JP','Hiragino Mincho ProN','Yu Mincho',serif;font-weight:600;line-height:1.3;letter-spacing:.04em;overflow:hidden;}
+.wc-t{display:block;word-break:break-all;}
+.wc-a{display:block;font-size:.6em;font-weight:500;color:#666;letter-spacing:.1em;text-align:end;margin-right:.5em;}
+.wc-eps{position:absolute;left:9%;bottom:5%;font-family:'Noto Sans JP',sans-serif;font-size:9cqw;color:rgba(255,255,255,.85);text-shadow:0 1px 2px rgba(0,0,0,.4);}
+.wc-big{width:112px;flex-shrink:0;}
+/* 作品をさがす */
+#browse-grid{gap:26px 16px;padding:22px 20px 40px;}
+.bw-card{all:unset;box-sizing:border-box;display:flex;flex-direction:column;min-width:0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.bw-card:focus-visible{outline:2px solid #008080;outline-offset:4px;border-radius:4px;}
+.bw-card:active .wc{transform:translateY(1px);}
+.bw-title{margin-top:9px;font-family:'Shippori Mincho B1','Noto Serif JP',serif;font-size:14px;font-weight:600;color:#222;line-height:1.45;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all;}
+.bw-rank{font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;color:#999;margin-right:5px;}
+.bw-rank.top{color:#008080;}
+.bw-author{margin-top:2px;font-family:'Noto Sans JP',sans-serif;font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bw-meta{margin-top:4px;display:flex;flex-wrap:wrap;gap:2px 8px;font-family:'Noto Sans JP',sans-serif;font-size:10.5px;color:#999;}
+.bw-like{color:#c0506a;}
+.bw-own{color:#008080;font-weight:600;}
+/* 作品ページ */
+.work-info{background:color-mix(in srgb, var(--wc, #008080) 9%, #fff);border-bottom:none !important;padding:24px 18px 22px !important;gap:18px !important;}
+.work-title{font-size:21px !important;}
+.work-genre{background:#fff !important;color:var(--wc, #008080) !important;border:1px solid color-mix(in srgb, var(--wc, #008080) 35%, #fff);}
+.work-synopsis{border-left:2px solid #e2e2e2;padding-left:14px !important;margin:0 18px;padding-right:0 !important;}
+.work-sec-title{letter-spacing:.05em !important;color:#999 !important;font-size:12px !important;}
+body.theme-dark .bw-title{color:#e6e6e6;}
+body.theme-dark .work-info{background:color-mix(in srgb, var(--wc, #008080) 22%, #1e1e1e);}
 .browse-terms{text-align:center;padding:18px 0 28px;font-family:'Noto Sans JP',sans-serif;font-size:12px;}
 .browse-terms a{color:#888;}
 body.shared-mode .own-only{display:none !important;}
@@ -8271,7 +8304,30 @@ async function buildEpisodePayload(ep){
   return { id: ep.id, number: ep.number, title: ep.title, pages };
 }
 
+// 公開の記録の控え（本の保存が古い本で上書きされても、同じ作品として更新できるように）
+const PUBLISH_MAP_LS = LS_PREFIX + 'publish-map';
+function publishMap(){ try{ return JSON.parse(localStorage.getItem(PUBLISH_MAP_LS) || '{}') || {}; }catch(_){ return {}; } }
+function publishMapSet(novelId, v){ const m = publishMap(); m[novelId] = v; try{ localStorage.setItem(PUBLISH_MAP_LS, JSON.stringify(m)); }catch(_){} }
+// 公開の記録が無いとき：前に公開した目次ファイル（ikasumi-本のID-index.json）をドライブから探す
+async function findPublishedIndex(novelId, folderId){
+  try{
+    const q = encodeURIComponent(`name='ikasumi-${novelId}-index.json' and '${folderId}' in parents and trashed=false`);
+    const r = await driveApi(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)&spaces=drive`);
+    if(!r.ok) return null;
+    const f = ((await r.json()).files || [])[0];
+    if(!f) return null;
+    const d = await (await driveApi(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`)).json();
+    return { fileId: f.id, data: d };
+  }catch(_){ return null; }
+}
+let _publishBusy = false;
 async function publishCurrentNovel(meta){
+  if(_publishBusy) throw new Error('busy');
+  _publishBusy = true;
+  try{ return await publishCurrentNovel0(meta); }
+  finally{ _publishBusy = false; }
+}
+async function publishCurrentNovel0(meta){
   const novel = state.novel;
   if(!novel || isSharedNovel(novel)) return null;
   if(state.editMode) exitEditMode();
@@ -8279,6 +8335,18 @@ async function publishCurrentNovel(meta){
   const pub = novel.publish ? JSON.parse(JSON.stringify(novel.publish)) : { eps: {} };
   pub.eps = pub.eps || {};
   const folderId = await ensurePublishFolder();
+  if(!pub.workId){
+    const saved = publishMap()[novel.id];
+    if(saved && saved.workId){ pub.workId = saved.workId; if(!pub.indexFileId) pub.indexFileId = saved.indexFileId; }
+    else{
+      const found = await findPublishedIndex(novel.id, folderId);
+      if(found){
+        pub.indexFileId = found.fileId;
+        if(found.data && found.data.workId) pub.workId = found.data.workId;
+        (found.data && found.data.episodes || []).forEach(e => { if(e.id && e.fileId && !pub.eps[e.id]) pub.eps[e.id] = { fileId: e.fileId, hash: '', updatedAt: e.updatedAt }; });
+      }
+    }
+  }
   const eps = [...novel.episodes].sort((a, b) => a.number - b.number);
   if(eps.length === 0) throw new Error('話がありません');
   const now = new Date().toISOString();
@@ -8303,7 +8371,7 @@ async function publishCurrentNovel(meta){
     }
   }
   const index = {
-    v: 1, title: novel.title, author: novel.author || '', genre: meta.genre, synopsis: meta.synopsis, updatedAt: now,
+    v: 1, workId: pub.workId || '', title: novel.title, author: novel.author || '', genre: meta.genre, synopsis: meta.synopsis, updatedAt: now,
     furiganaRules: (novel.furiganaRules || []).filter(r => r.word && r.enabled !== false).map(r => ({ word: r.word, reading: r.reading || '', enabled: true })),
     episodes: eps.map(ep => ({ id: ep.id, number: ep.number, title: ep.title, fileId: pub.eps[ep.id].fileId, updatedAt: pub.eps[ep.id].updatedAt, charCount: ep.charCount || 0 })),
   };
@@ -8321,10 +8389,25 @@ async function publishCurrentNovel(meta){
     if(e.message === 'work_not_found'){ res = await workApi('/publish', { method: 'POST', body: body(null) }); }
     else throw e;
   }
+  const firstTime = !index.workId;
   Object.assign(pub, { workId: res.workId, genre: meta.genre, synopsis: meta.synopsis, publishedAt: now, status: 'public' });
-  novel.publish = pub;
-  save();
+  publishMapSet(novel.id, { workId: res.workId, indexFileId: pub.indexFileId, status: 'public' });
+  // 目次ファイルにも作品IDを書いておく（別の端末でも同じ作品として更新できる）
+  if(firstTime){ try{ index.workId = res.workId; await driveUploadPublicJson(`ikasumi-${novel.id}-index.json`, index, pub.indexFileId, folderId); }catch(_){} }
+  savePublishInfo(novel, pub);
   return { workId: res.workId, changed };
+}
+// 公開の記録を保存：公開中に本棚へ戻ったり別の本を開いたりしても、その本に入れる
+function savePublishInfo(novel, pub){
+  const copy = () => JSON.parse(JSON.stringify(pub));
+  novel.publish = copy();
+  if(state.currentNovelId === novel.id && state.novel){
+    state.novel.publish = copy();
+    save();
+  }else{
+    const li = state.library.findIndex(n => n.id === novel.id);
+    if(li >= 0){ state.library[li].publish = copy(); libDbPut(state.library[li]).catch(e => console.warn('publish save', e)); }
+  }
 }
 
 function publishErrorMessage(e){
@@ -8334,11 +8417,15 @@ function publishErrorMessage(e){
   if(m === 'banned') return 'このアカウントでは作品を公開できません';
   if(m === 'not_work_owner') return 'この作品の作者ではないため更新できません';
   if(m === '話がありません') return '公開する話がありません';
+  if(m === 'busy') return 'いま公開しているところだよ。終わるまで待ってね';
   return '公開に失敗しました：' + (m || '不明なエラー');
 }
 
 function openPublishModal(){
   if(!state.novel || isSharedNovel()) return;
+  if(_publishBusy){ showToast('いま公開しているところだよ。終わるまで待ってね'); return; }
+  if(state.novel.publish && !state.novel.publish.workId) delete state.novel.publish;
+  if(!state.novel.publish && publishMap()[state.novel.id]) state.novel.publish = Object.assign({ eps: {} }, publishMap()[state.novel.id]);
   if(!gdriveIsSignedIn()){
     alert('作品を公開するには、ライブラリ右上の︙から「Googleでログイン」してください。');
     return;
@@ -8409,6 +8496,7 @@ async function unpublishCurrentNovel(){
     await gdriveEnsureToken();
     await workApi('/unpublish', { method: 'POST', body: JSON.stringify({ access_token: _gdriveAccessToken, workId: pub.workId }) });
     pub.status = 'private';
+    publishMapSet(state.novel.id, { workId: pub.workId, indexFileId: pub.indexFileId, status: 'private' });
     save();
     showToast('公開をやめました');
   }catch(e){ alert(publishErrorMessage(e)); }
@@ -8454,6 +8542,7 @@ async function unpublishWorkById(workId, opts = {}){
   }
   state.library.forEach(n => { if(n.publish && n.publish.workId === workId){ n.publish.status = 'private'; libDbPut(n).catch(()=>{}); } });
   if(state.novel && state.novel.publish && state.novel.publish.workId === workId) state.novel.publish.status = 'private';
+  { const pm = publishMap(); Object.keys(pm).forEach(k => { if(pm[k] && pm[k].workId === workId) publishMapSet(k, Object.assign({}, pm[k], { status: 'private' })); }); }
   if(!opts.silent){ showToast('公開をやめました'); renderMyWorks(); }
   return true;
 }
@@ -8505,8 +8594,8 @@ async function openWorkDetail(workId){
   const inLib = state.library.some(n => n.id === 'shared_' + workId);
   const updated = meta.updatedAt ? formatDate(meta.updatedAt) : '';
   body.innerHTML = `
-    <div class="work-info">
-      <div class="work-cover" style="${meta.cover ? `background-image:url('${meta.cover}')` : ''}">${meta.cover ? '' : '<span>表紙なし</span>'}</div>
+    <div class="work-info" style="--wc:${workGenreColor(meta.genre)}">
+      ${workCoverHtml(meta, true)}
       <div class="work-info-text">
         <div class="work-title">${escapeHtml(meta.title)}</div>
         <div class="work-author">${escapeHtml(meta.author || '')}</div>
@@ -8892,6 +8981,16 @@ async function refreshTocLike(){
 
 /* ────────── 作品をさがす（一覧） ────────── */
 let _browse = { sort: 'popular', genre: '' };
+// 表紙：画像がなければ、ジャンルの色の本に題簽（タイトルを書いた細長い紙）をはった表紙を作る
+const WORK_GENRE_COLORS = { 'ファンタジー': '#2f4f73', '恋愛': '#a8506a', '現代': '#55626c', 'SF': '#2d6e78', 'ミステリー': '#34363f', 'ホラー': '#4a3148', '歴史': '#7d6238', 'コメディ': '#b8802a', 'BL': '#3f7c94', 'GL': '#7e6aa0', 'その他': '#5f6f5c' };
+function workGenreColor(g){ return WORK_GENRE_COLORS[g] || WORK_GENRE_COLORS['その他']; }
+function workCoverHtml(w, big){
+  const cls = 'wc' + (big ? ' wc-big' : '');
+  if(w.cover) return `<span class="${cls}" style="background-image:url('${w.cover}')">${w.epCount && !big ? `<span class="wc-eps">${w.epCount}話</span>` : ''}</span>`;
+  const t = String(w.title || '無題').slice(0, 30), n = [...t].length;
+  const fs = n <= 7 ? 11.5 : n <= 9 ? 80 / n : Math.max(7.5, Math.min(10, 150 / n));   // 長い題名は小さく・2〜3行に
+  return `<span class="${cls} wc-gen" style="--wc:${workGenreColor(w.genre)}"><span class="wc-slip" style="font-size:${fs}cqw"><span class="wc-t">${escapeHtml(t)}</span>${w.author ? `<span class="wc-a">${escapeHtml(String(w.author).slice(0, 12))}</span>` : ''}</span>${w.epCount && !big ? `<span class="wc-eps">${w.epCount}話</span>` : ''}</span>`;
+}
 function openBrowse(){
   document.getElementById('browse-screen').classList.add('show');
   document.body.classList.add('browse-open');
@@ -8918,17 +9017,15 @@ async function loadBrowse(){
   const works = data.works || [];
   if(!works.length){ grid.innerHTML = '<div class="work-msg" style="grid-column:1/-1">まだ作品がありません</div>'; return; }
   const ranked = _browse.sort === 'popular';
-  grid.innerHTML = works.map((w, i) => `
-    <div class="lib-card" onclick="openWorkDetail('${w.id}')">
-      <div class="lib-card-cover" style="${w.cover ? `background-image:url('${w.cover}')` : ''}">
-        ${w.cover ? '' : `<div class="lib-card-cover-placeholder"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span>カバーなし</span></div>`}
-        <div class="lib-card-ep-badge">全${w.epCount}話</div>
-        ${ranked ? `<div class="browse-rank${i < 3 ? ' top' + (i + 1) : ''}">${i + 1}</div>` : ''}
-        ${state.library.some(n => n.id === 'shared_' + w.id) ? '<div class="lib-card-flag owned">本棚</div>' : ''}
-      </div>
-      <div class="lib-card-title">${escapeHtml(w.title)}</div>
-      <div class="browse-card-meta"><span>${escapeHtml(w.genre || '')}</span><span>♡ ${w.likes || 0}</span></div>
-    </div>`).join('');
+  grid.innerHTML = works.map((w, i) => {
+    const own = state.library.some(n => n.id === 'shared_' + w.id);
+    return `<button class="bw-card" onclick="openWorkDetail('${w.id}')">
+      ${workCoverHtml(w)}
+      <span class="bw-title">${ranked ? `<span class="bw-rank${i < 3 ? ' top' : ''}">${i + 1}</span>` : ''}${escapeHtml(w.title || '無題')}</span>
+      ${w.author ? `<span class="bw-author">${escapeHtml(w.author)}</span>` : ''}
+      <span class="bw-meta"><span>${escapeHtml(w.genre || '')}</span><span class="bw-like">♡${w.likes || 0}</span>${own ? '<span class="bw-own">本棚</span>' : ''}</span>
+    </button>`;
+  }).join('');
 }
 
 /* ══════ PC：閲覧中に画面の左右の端をクリックでページ移動 ══════ */
