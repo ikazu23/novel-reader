@@ -8190,15 +8190,17 @@ function koDecorateHtml(html, para){
   tmp.innerHTML = html;
   const ph = koHash(plain), senses = (state.novel && state.novel.koSense) || {}, occ = {};
   const fpx = (para && para.size) || (state.settings && state.settings.fontSize) || 15;
-  const mkSpan = (key, text, rest) => {
+  const mkSpan = (key, text, rest, prevRun) => {
     const rb = document.createElement('span');
     const learned = koHideLearned() && koIsLearned(words[key]);
     rb.className = 'kw' + (/\s/.test(key) ? ' phrase' : '') + (learned ? ' learned' : (koFaded(words[key]) ? ' kfade' : ''));
     rb.dataset.kw = key;
     const ni = occ[key] = (occ[key] || 0) + 1;
     const alt = senses[ph + '|' + key + '|' + ni];
-    const full = alt || words[key].m || '…';
+    const aux = !alt && prevRun ? koAuxGloss(prevRun, text + (rest || '')) : '';
+    const full = alt || aux || words[key].m || '…';
     rb.dataset.m = koGlossText(full);
+    if(aux) rb.title = aux + '（' + (words[key].m || '') + '）';
     if(rb.dataset.m !== full) rb.title = full;
     if(alt) rb.classList.add('alt');
     rb.textContent = text;
@@ -8240,9 +8242,11 @@ function koDecorateHtml(html, para){
       const text = node.textContent;
       if(!KO_HANGUL.test(text)) return;
       const frag = document.createDocumentFragment();
-      let last = 0, any = false, m;
+      let last = 0, any = false, m, prevRun = '', prevEnd = -1;
       KO_RUN.lastIndex = 0;
       while((m = KO_RUN.exec(text))){
+        const pr = (prevEnd >= 0 && /^\s+$/.test(text.slice(prevEnd, m.index))) ? prevRun : '';
+        prevRun = m[0]; prevEnd = m.index + m[0].length;
         const fd = koFindForm(m[0]);
         const key = fd && koShowsInText(words[fd.key]) ? fd.key : null;
         if(fd && !key) continue; // 単語帳だけに入れた単語：本文には何も付けない
@@ -8260,7 +8264,7 @@ function koDecorateHtml(html, para){
         any = true;
         if(m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
         // 意味は文字の上に浮かせて出す（ルビだと単語の間が空いてしまうので）
-        frag.appendChild(mkSpan(key, fd.form, m[0].slice(fd.form.length)));
+        frag.appendChild(mkSpan(key, fd.form, m[0].slice(fd.form.length), pr));
         last = m.index + fd.form.length;
       }
       if(!any) return;
@@ -8805,7 +8809,7 @@ function openKoHelp(){
       <p><b>自分の訳</b>は「書く」にすると、韓国語の段落の下に入力欄が出ます。書いた訳は「表示」で原文の下に出て、タップでなおせます。</p>
       <p><b>自分の訳で読む</b>にすると、訳した段落は訳だけで表示されます（段落の位置は原文と同じ）。まだ訳していない段落はうすい原文で出ます。</p>
       <p>意味を「隠す」にすると、点線の単語だけになります。読みながら思い出すテストに。</p>
-      <p><b>復習</b>はAnkiと同じ考え方です。答えたあと「もう一回／難しい／普通／簡単」を選ぶと、覚えている単語ほど次に出るまでの間隔が伸びます（1日→3日→1週間→…）。毎日「今日の復習」をやるだけでOK。「한」ボタンの数字が今日の残りです。</p>
+      <p><b>復習</b>：答えたあと「もう一回／難しい／普通／簡単」を選ぶと、覚えている単語ほど次に出るまでの間隔が伸びます（1日→3日→1週間→…）。毎日「今日の復習」をやるだけでOK。「한」ボタンの数字が今日の残りです。</p>
       <p>次の復習が3週間以上先になった単語は「覚えた」になり、本文では意味が出なくなります（設定で変えられます）。</p>
       <p>Googleドライブにログインしていると、単語帳と学習の記録はほかの端末と自動で同期します。</p>
       <p>辞書の候補は「한국어기초사전」（韓国 国立国語院、CC BY-SA 2.0 KR）の日本語訳です。ウェブ小説の言い回しや固有名詞は載っていないことがあります。</p>
@@ -9099,9 +9103,6 @@ const KO_EXTRA_DICT = {
   '돌아나가다': ['動', '引き返して出ていく'], '끝나가다': ['動', '終わりかける'], '그러다': ['動', 'そうする', 3], '저러다': ['動', 'ああする', 3], '탈모약': ['名', '育毛剤・脱毛症の薬'],
   '영업직': ['名', '営業職'], '휴식기': ['名', '休止期間'], '다음편': ['名', '次の話'], '댓글수': ['名', 'コメント数'], '정보값': ['名', '情報の価値'], '제작품': ['名', '製作品'],
   '야야': ['感', 'おいおい'],
-  '김독자': ['名', 'キム･ドクシャ（人名）'], '유중혁': ['名', 'ユ･ジュンヒョク（人名）'], '한수영': ['名', 'ハン･スヨン（人名）'], '유상아': ['名', 'ユ･サンア（人名）'],
-  '이지혜': ['名', 'イ･ジヘ（人名）'], '이현성': ['名', 'イ･ヒョンソン（人名）'], '신유승': ['名', 'シン･ユスン（人名）'], '이길영': ['名', 'イ･ギリョン（人名）'], '장하영': ['名', 'チャン･ハヨン（人名）'],
-  '한명오': ['名', 'ハン･ミョンオ（人名）'], '비형': ['名', 'ビヒョン（人名）'], '이학현': ['名', 'イ･ハクヒョン（人名）'], '지은유': ['名', 'チ･ウンユ（人名）'], '싱숑': ['名', 'シンション（作者名）'],
   '전독시': ['名', '全知的な読者の視点（略）'], '멸살법': ['名', '滅亡した世界で生き残る三つの方法（略）'], '세계선': ['名', '世界線'], '개연성': ['名', '蓋然性（物語の筋が通ること）'],
   '백스페이스': ['名', 'バックスペース'], '스파크': ['名', 'スパーク'], '콜라보': ['名', 'コラボ'], '브레이커': ['名', 'ブレイカー'], '메소드': ['名', 'メソッド'], '마스터': ['名', 'マスター'],
   '베스트': ['名', 'ベスト'], '커뮤니티': ['名', 'コミュニティ'], '알람': ['名', 'アラーム・通知'], '닉네임': ['名', 'ニックネーム'], '스포일러': ['名', 'ネタバレ'], '로딩': ['名', 'ローディング・読み込み'],
@@ -9128,6 +9129,11 @@ const KO_EXTRA_DICT = {
   '달라고': ['補動', '〜してくれと（＝달다）'], '달라는': ['補動', '〜してくれという（＝달다）'], '달라며': ['補動', '〜してくれと言いながら（＝달다）']
 };
 function koAddExtraDict(d){
+  const POS_FIX = { '그렇게': '副', '이렇게': '副', '저렇게': '副', '누가': '代', '그래도': '副', '그래서': '副', '그것도': '副', '어떻게': '副' };
+  Object.entries(POS_FIX).forEach(([k, p]) => { (d[k] || []).forEach(e => { if(!e[0]) e[0] = p; }); });
+  if(d['크다']) d['크다'].sort((a, b) => (a[0] === '形' ? 0 : 1) - (b[0] === '形' ? 0 : 1));       // 크다＝大きい（育つ より先）
+  [['안', '〜しない（否定）'], ['못', '〜できない']].forEach(([k, ja]) => { if(d[k] && !d[k].some(e => e[0] === '副')) d[k].push(['副', [ja], '', 1]); });
+  ['등가'].forEach(k => (d[k] || []).forEach(e => { if(!e[3]) e[3] = 1; }));
   Object.entries(KO_EXTRA_DICT).forEach(([k, [pos, ja, lv]]) => { if(!d[k]) d[k] = [[pos, [ja], '', lv == null ? 1 : lv]]; }); // 選んで足した語なので、よく使う語として扱う
 }
 // 「たべる【食べる】。くう【食う・喰う】」→「食べる・食う」
@@ -9278,7 +9284,7 @@ function koDictLookup0(eojeol, prevTok, nextTok, depth){
     if(!ents) continue;
     const useful = ents.map((e, i) => { const x = e.slice(); x.i = i; return x; })
       .filter(e => !KO_FUNC_POS.includes(e[0]) || c === eojeol)
-      .filter(e => !(/^(感|冠)$/.test(e[0]) && n < eojeol.length))   // 感動詞・冠形詞には助詞が付かない（아는→알다、세를→勢）
+      .filter(e => !(/^(感|冠)$/.test(e[0]) && n < eojeol.length) && !(e[0] === '副' && (c === '안' || c === '못') && n < eojeol.length))   // 感動詞・冠形詞には助詞が付かない（아는→알다、세를→勢）
       .sort((a, b) => (counter ? (a[0] === '依名' ? 0 : 1) - (b[0] === '依名' ? 0 : 1) : 0)
         || (attr && koAttrOk(c, eojeol, prevTok) ? (a[0] === '依名' ? 0 : 1) - (b[0] === '依名' ? 0 : 1) : 0)
         || (c === eojeol && KO_ADV_FIRST.has(c) ? (a[0] === '副' ? 0 : 1) - (b[0] === '副' ? 0 : 1) : 0)
@@ -9370,7 +9376,7 @@ function koDictLookup0(eojeol, prevTok, nextTok, depth){
   // 마세요＝말다（지 마세요＝〜しないでください）、안다＝알다、한들＝하다、해 줄＝하다
   {
     const pv = String(prevTok || '');
-    const want = /지(는|도|만)?$/.test(pv) && /^(마|말)/.test(eojeol) ? '말다' : /^해(야|서|도)/.test(eojeol) ? '하다' : /^있/.test(eojeol) ? '있다' : ({ '안다': '알다', '한들': '하다', '해': '하다', '빕니다': '빌다', '빌어요': '빌다' })[eojeol];
+    const want = /지(는|도|만)?$/.test(pv) && /^(마|말)/.test(eojeol) ? '말다' : /^해(야|서|도)/.test(eojeol) ? '하다' : (/(려|려고|라고|다고|자고|냐고|고자|기로)$/.test(pv) && /^(한|할|하|해|했|합)/.test(eojeol)) ? '하다' : /^있/.test(eojeol) ? '있다' : ({ '안다': '알다', '한들': '하다', '해': '하다', '빕니다': '빌다', '빌어요': '빌다' })[eojeol];
     if(want){ const v = list.find(r => r.head === want && r.full); if(v && list[0] !== v) list = [v].concat(list.filter(r => r !== v)); }
     // 틈을 타（隙に乗じて）・버스를 타（乗って）
     if(eojeol === '타' && /[을를]$/.test(pv)){ const v = list.find(r => r.head === '타다'); if(v && list[0] !== v) list = [Object.assign({}, v, { full: true, fit: 1 })].concat(list.filter(r => r !== v)); }
@@ -9427,7 +9433,7 @@ function koDictLookup0(eojeol, prevTok, nextTok, depth){
     if(ok) list = [ok].concat(list.filter(r => r !== ok));
   }
   if(!list.length || !formOk(list[0])){
-    const hv = koHadaGuess(eojeol) || koHiGuess(eojeol) || koEoHadaGuess(eojeol) || koCompoundGuess(eojeol) || koCopShortGuess(eojeol);
+    const hv = koHadaGuess(eojeol) || koHiGuess(eojeol) || koEoHadaGuess(eojeol) || koSeureopGuess(eojeol) || koCompoundGuess(eojeol) || koCopShortGuess(eojeol);
     if(hv) list = [hv].concat(list);
   }
   // 개웃기다・핵노잼（めっちゃ〜）
@@ -9526,6 +9532,17 @@ function koCopShortGuess(eojeol){
 }
 // つなげた語の推測：名詞を2〜4個つないだ形として読めるとき
 const KO_SUFFIX_JA = { '증': '証', '팀': 'チーム', '역': '駅', '판': '版', '실': '室', '권': '券', '표': '票', '률': '率', '자': '者', '창': '欄', '글': '文・投稿', '부': '部', '국': '局', '사': '社', '장': '場', '감': '感', '화': '化', '명': '名', '적': '的', '성': '性', '용': '用', '식': '式', '재': '財', '약': '薬', '직': '職', '값': '値', '품': '品', '수': '数', '기': '期', '편': '話・編', '관': '館', '작': '作', '선': '線', '물': 'もの・物', '들': 'たち' };
+function koSeureopGuess(eojeol){
+  if(!_koDict) return null;
+  const m = eojeol.match(/^(.+?)(스러운|스러웠|스럽|스러워|스레|스런)/);
+  if(!m || m[1].length < 2) return null;
+  const es = _koDict[m[1]];
+  if(!es || !es.some(e => /^(名|)$/.test(e[0] || ''))) return null;
+  let mean = koFirstMean(KO_PREF_JA[m[1]] || koJaShort((es.find(e => /^(名|)$/.test(e[0] || '')) || es[0])[1][0]));
+  if(mean.length > 8) mean = m[1];
+  if(m[2] === '스레') return { head: eojeol, ents: [['副', [mean + 'っぽく・' + mean + 'らしく'], '推測：' + m[1] + '＋스레', 0]], n: eojeol.length, fit: 2, lv: 3, verb: false, full: true, guess: true };
+  return { head: m[1] + '스럽다', ents: [['形', [mean + 'っぽい・' + mean + 'らしい'], '推測：' + m[1] + '＋스럽다', 0]], n: eojeol.length, fit: 2, lv: 3, verb: true, full: true, guess: true };
+}
 function koCompoundGuess(eojeol){
   if(!_koDict || eojeol.length < 3) return null;
   const isNoun = w => { const es = _koDict[w]; return !!es && es.some(e => /^(名|依名|代|数|)$/.test(e[0] || '')); };
@@ -9632,7 +9649,7 @@ function koMustNote(hit, fi){
     // 있지 않은가＝あるじゃないか（否定の形で問いかけて「〜だよね」と言う）
     const isNegQ = t => /^않(은가|는가|았는가|았나|나|냐|니|을까|습니까|았습니까|아요|았어|았니|았냐)$/.test(t || '');
     const nx = koNextTok(hit);
-    const negMsg = '「〜じゃないか（〜ではないか）」。否定の形で問いかけて「〜だよね」と言いたいときの言い方で、「〜ない」という意味ではありません';
+    const negMsg = '「〜じゃないか」と確認・同意を求める言い方です（否定の意味ではありません）';
     if(/지$/.test(hit.eojeol) && isNegQ(nx)) return `次の「${nx}」と合わせて${negMsg}`;
     if(isNegQ(hit.eojeol) && /지$/.test(pv)) return `前の「${pv}」と合わせて${negMsg}`;
     return koPatternNotes(hit.eojeol, pv, nx).join('\n');
@@ -9642,6 +9659,9 @@ function koMustNote(hit, fi){
 /* 2つの語で1つの意味になる言い回し（하긴 했는데・시작을 하다・먹고 있다 など）
    A＝前の語の終わり、B＝うしろの語の始まり。ja は B の語を見て決める */
 const KO_DO = /^(하|해|했|한|할|합|함|하겠|했었)/;
+// 〜아/어 の形（먹어・해・써・가져・봐）：最後の字が ㅏㅐㅓㅕㅘㅝㅙ で終わり、받침なし
+const EO_A = { test: t => { const d = koDec(String(t).slice(-1)); return !!d && !d.T && [0, 1, 4, 6, 9, 10, 14].includes(d.V); } };
+const ATTR_L = { test: t => { const d = koDec(String(t).slice(-1)); return !!d && d.T === 8 && !/를$/.test(t); } };
 const ATTR_A = { test: t => { const d = koDec(String(t).slice(-1)); return !!d && (d.T === 4 || d.T === 8 || /[는던]$/.test(t)) && !/[을를]$/.test(t); } };
 const KO_PATTERNS = [
   { a: /^틈을$/, b: /^(타|탄|탔|탈)/, ja: () => '隙に乗じる（틈을 타다）' },
@@ -9693,7 +9713,7 @@ const KO_PATTERNS = [
   { a: /다$/, b: /^(보니|보면|보니까)/, verb: true, ja: () => '〜しているうちに（〜다 보니）' },
   { a: /나$/, b: /^(보|봐|봅|본다)/, verb: true, ja: () => '〜らしい・〜みたいだ（〜나 보다）' },
   { a: /(까)$/, b: /^(봐|봐서)$/, verb: true, ja: () => '〜するかと思って・〜しそうで（〜ㄹ까 봐）' },
-  { a: /지도$/, b: /^(모르|몰라|몰랐|모릅)/, verb: true, ja: () => '〜かもしれない（〜ㄹ지도 모르다）' },
+  { a: /지도$/, b: /^(모르|모른|모를|몰라|몰랐|모릅)/, ja: () => '〜かもしれない（〜ㄹ지도 모르다）' },
   { a: /기로$/, b: KO_DO, ja: () => '〜することにする（〜기로 하다）' },
   { a: /도록$/, b: KO_DO, ja: () => '〜するようにする（〜도록 하다）' },
   { a: /고자$/, b: KO_DO, ja: () => '〜しようと思う（〜고자 하다・かたい）' },
@@ -9702,7 +9722,7 @@ const KO_PATTERNS = [
   { a: /에$/, b: /^(의해|의한|의하면|의하여)/, ja: b => /^의하면/.test(b) ? '〜によると（〜에 의하면）' : '〜によって（〜에 의해）' },
   { a: /에$/, b: /^(관해|관한|관하여|관해서)/, ja: b => /^관한/.test(b) ? '〜に関する（〜에 관한）' : '〜に関して（〜에 관해）' },
   { a: /(로|으로)$/, b: /^(인해|인한|인하여)/, ja: () => '〜によって・〜のせいで（〜로 인해）' },
-  { a: /[어아여와워해돼져러려쳐켜]$/, b: /^죽겠/, verb: true, eo: true, ja: () => '〜で死にそう・ものすごく〜（〜어 죽겠다）' },
+  { a: EO_A, b: /^죽겠/, verb: true, eo: true, ja: () => '〜で死にそう・ものすごく〜（〜어 죽겠다）' },
   // 名詞の前の形（〜する・〜した）のあと
   { a: ATTR_A, b: /^(때|때는|때도|때에|때마다)$/, verb: true, ja: () => '〜するとき・〜したとき（〜ㄹ 때）' },
   { a: ATTR_A, b: /^(후|후에|다음|다음에|뒤|뒤에)$/, verb: true, ja: () => '〜したあとで（〜ㄴ 후에）' },
@@ -9730,11 +9750,26 @@ const KO_PATTERNS = [
   { a: /(려고|으려고)$/, b: KO_DO, ja: () => '〜しようとする（〜려고 하다）' },
   { a: /고$/, b: /^(있|계)/, verb: true, ja: b => /^계/.test(b) ? '〜していらっしゃる（〜고 계시다）' : '〜している（〜고 있다）' },
   { a: /고$/, b: /^싶/, verb: true, ja: () => '〜したい（〜고 싶다）' },
-  { a: /[어아여와워해돼져러려쳐켜]$/, b: /^있/, verb: true, eo: true, ja: () => '〜している（状態）（〜어 있다）' },
-  { a: /[어아여와워해돼져러려쳐켜]$/, b: /^(주|줘|줬|준|줄|드리|드려|드렸|드린|드릴)/, verb: true, eo: true, ja: b => /^드/.test(b) ? '〜して差し上げる（〜어 드리다）' : '〜してくれる・〜してあげる（〜어 주다）' },
-  { a: /[어아여와워해돼져러려쳐켜]$/, b: /^(버리|버려|버렸|버린|버릴)/, verb: true, eo: true, ja: () => '〜してしまう（〜어 버리다）' },
-  { a: /[어아여와워해돼져러려쳐켜]$/, b: /^(보|봐|봤|본|볼|봅)/, verb: true, eo: true, ja: () => '〜してみる（〜어 보다）' },
-  { a: /[어아여와워해돼져러려쳐켜]$/, b: /^(놓|놨|둬|두|뒀|둔|둘)/, verb: true, eo: true, ja: () => '〜しておく（〜어 놓다／두다）' },
+  { a: EO_A, b: /^있/, verb: true, eo: true, ja: () => '〜している（状態）（〜어 있다）' },
+  { a: EO_A, b: /^(주|줘|줬|준|줄|드리|드려|드렸|드린|드릴)/, verb: true, eo: true, ja: b => /^드/.test(b) ? '〜して差し上げる（〜어 드리다）' : '〜してくれる・〜してあげる（〜어 주다）' },
+  { a: EO_A, b: /^(버리|버려|버렸|버린|버릴)/, verb: true, eo: true, ja: () => '〜してしまう（〜어 버리다）' },
+  { a: EO_A, b: /^(보|봐|봤|본|볼|봅)/, verb: true, eo: true, ja: () => '〜してみる（〜어 보다）' },
+  { a: EO_A, b: /^(놓|놨|둬|두|뒀|둔|둘)/, verb: true, eo: true, ja: () => '〜しておく（〜어 놓다／두다）' },
+  { a: EO_A, b: /^(오(?!르)|와|왔|온|올|옵|가(?!지|져|졌)|갔|간|갈|갑)/, verb: true, eo: true, ja: b => /^(가|갔|간|갈|갑)/.test(b) ? '〜していく（〜어 가다）' : '〜してくる・〜してきた（〜어 오다）' },
+  { a: /야$/, b: /^(하|해|했|한|할|합|되|돼|됐|된|될|됩)/, verb: true, ja: () => '〜しなければならない（〜어야 하다）' },
+  { a: /지도$/, b: /^(모르|모른|모를|몰라|몰랐|모릅)/, ja: () => '〜かもしれない（〜ㄹ지도 모르다）' },
+  { a: /지$/, b: /^(모르|모른|모를|몰라|몰랐|모릅)/, verb: true, ja: () => '〜するかわからない・〜かもしれない（〜ㄹ지 모르다）' },
+  { a: /까$/, b: /^(하|해|했|한|합)/, verb: true, ja: () => '〜しようかと思う（〜ㄹ까 하다）' },
+  { a: ATTR_L, b: /^(것이다|것입니다|것이었다|거다|겁니다|거야|거예요|거에요|것이야|거였다|것이고|거고)$/, verb: true, ja: () => '〜するだろう・〜するつもりだ（〜ㄹ 것이다）' },
+  { a: ATTR_L, b: /^뻔/, verb: true, ja: () => '危うく〜するところだった（〜ㄹ 뻔하다）' },
+  { a: ATTR_L, b: /^(만하|만해|만했|만한|만할|만합)/, verb: true, ja: () => '〜する価値がある・〜するに値する（〜ㄹ 만하다）' },
+  { a: ATTR_A, b: /^편/, verb: true, ja: () => '〜するほうだ（〜는 편이다）' },
+  { a: /기$/, b: /^위(해|한|하여|해서|하여서)$/, verb: true, ja: () => '〜するために（〜기 위해）' },
+  { a: /면$/, b: /^좋겠/, ja: () => '〜したらいいな・〜だといいな（〜으면 좋겠다）' },
+  { a: /[을를]$/, b: /^따라(서)?$/, noun: true, ja: () => '〜について・〜に沿って（〜를 따라）', note: () => 'この 을／를 は「を」ではなく「に」になります' },
+  { a: /[을를]$/, b: /^향(해|하여|한|하는|했|해서)/, noun: true, ja: () => '〜に向かって（〜를 향해）', note: () => 'この 을／를 は「を」ではなく「に」になります' },
+  { a: /[과와]$/, b: /^달리$/, noun: true, ja: () => '〜と違って（〜와 달리）' },
+  { a: /^선을$/, b: /^(넘|넘어|넘었|넘은|넘는|넘지)/, ja: () => '一線を越える（선을 넘다）' },
   { a: /게$/, b: /^(되|돼|됐|된|될|됩)/, verb: true, ja: () => '〜することになる・〜するようになる（〜게 되다）' },
   { a: /지$/, b: /^않/, verb: true, ja: () => '〜しない（〜지 않다）' },
   { a: /지$/, b: /^못/, verb: true, ja: () => '〜できない（〜지 못하다）' },
@@ -11086,7 +11121,7 @@ function koGrammarInfo(tok, prev){
   const plT = prev ? koDec(prev[prev.length - 1]) : null;
   if(KO_TEO[tok] && plT && plT.T === 8){
     const [orig, ja] = KO_TEO[tok];
-    return { head: '터', rest: tok, ja, parts: [{ k: '터', d: '（はず・つもり）' }, { k: tok + '＝' + orig, d: ja }], note: `${tok} は ${orig} の縮まった形です`, mean: 'はず', msg: '터（はず・つもり）を使った言い回しです。辞書には載っていないので、アプリで分けて出しています' };
+    return { head: '터', rest: tok, ja, parts: [{ k: '터', d: '（はず・つもり）' }, { k: tok + '＝' + orig, d: ja }], note: `${tok} は ${orig} の縮まった形です`, mean: 'はず', msg: '터（はず・つもり）を使った言い回しです。辞書には載っていない形です' };
   }
   const pl = prev ? koDec(prev[prev.length - 1]) : null;
   const attOk = !prev || !_koDict || koIsAttr(prev);       // 전화를 건（걸다）の 를 は名詞の前の形ではない
@@ -11101,7 +11136,7 @@ function koGrammarInfo(tok, prev){
     if(rest) parts.push({ k: rest, d: r[0] });
     const note = fut ? `前の「${prev}」が「〜する（これから・名詞の前）」の形なので「〜しそう」になります`
                : `前の「${prev}」が名詞の前の形なので「〜かのよう」になります`;
-    return { head: '듯', rest, ja: fut ? r[1] : r[2], parts, note, fut, mean: '〜よう', msg: '듯（〜よう）を使った言い回しです。辞書には「様」とだけ載っているので、アプリで分けて出しています' };
+    return { head: '듯', rest, ja: fut ? r[1] : r[2], parts, note, fut, mean: '〜よう', msg: '듯（〜よう）を使った言い回しです' };
   }
   let head, rest;
   if(KO_GEO_SHORT[tok]){ if(!att) return null; head = '거'; rest = KO_GEO_SHORT[tok]; }
@@ -11117,7 +11152,7 @@ function koGrammarInfo(tok, prev){
   if(rest) parts.push({ k: KO_GEO_SHORT[tok] ? tok + '＝것' + rest : rest, d: r[0] });
   const note = fut ? `前の「${prev}」が「〜する（これから・名詞の前）」の形なので「〜だろう」になります`
              : att ? `前の「${prev}」が名詞の前の形なので「〜の・〜こと」になります` : '';
-  return { head, rest, ja, parts, note, fut, mean: 'こと・の', msg: '거（것＝こと・の）を使った言い回しです。辞書には載っていないので、アプリで分けて出しています' };
+  return { head, rest, ja, parts, note, fut, mean: 'こと・の', msg: '거（것＝こと・の）を使った言い回しです。辞書には載っていない形です' };
 }
 function koFillGrammar(hit, gi, addMode){
   const box = document.getElementById('ko-dict');
@@ -11201,13 +11236,13 @@ const KO_SHORT = {
 };
 function koShortInfo(tok){
   let key = KO_SHORT[tok] ? tok : null, pt = '';
-  if(!key){ key = ['누군가', '어딘가', '언젠가', '무언가', '내게', '네게', '제게', '니들'].find(k => tok.length > k.length && tok.startsWith(k) && KO_PART_TABLE[tok.slice(k.length)]); if(key) pt = tok.slice(key.length); }
+  if(!key){ key = ['누군가', '어딘가', '언젠가', '무언가', '내게', '네게', '제게', '니들', '저들', '언제부턴가'].find(k => tok.length > k.length && tok.startsWith(k) && KO_PART_TABLE[tok.slice(k.length)]); if(key) pt = tok.slice(key.length); }
   if(!key) return null;
   const [orig, ja, base] = KO_SHORT[key];
   const parts = [{ k: base, d: '' }, { k: key + '＝' + orig, d: ja }];
   let jj = ja;
   if(pt){ const pj = KO_PART_TABLE[pt]; parts.push({ k: pt, d: pj[0] }); jj = ja.split('・')[0] + (pj[1] || ''); }
-  return { head: base, rest: tok, ja: jj, parts, note: `${key} は ${orig} の縮まった形です`, mean: ja, msg: '会話でよく使う縮まった形です。辞書には載っていないので、アプリで分けて出しています' };
+  return { head: base, rest: tok, ja: jj, parts, note: `${key} は ${orig} の縮まった形です`, mean: ja, msg: '会話でよく使う縮まった形です。辞書には載っていない形です' };
 }
 function koDemoInfo(tok){
   const si = koShortInfo(tok);
@@ -11218,12 +11253,12 @@ function koDemoInfo(tok){
     if(wk){
       const [orig, ja] = KO_WHAT[wk], pt = tok.slice(wk.length), pj = KO_PART_TABLE[pt];
       const jj = ja.split('・')[0] + (pj[1] || '');
-      return { head: '뭐', rest: tok, ja: jj, parts: [{ k: '뭐', d: '（＝무엇、何）' }, { k: wk + '＝' + orig, d: ja }, { k: pt, d: pj[0] }], note: `${wk} は ${orig} の縮まった形です`, mean: '何', msg: '会話でよく使う縮まった形です。辞書には載っていないので、アプリで分けて出しています' };
+      return { head: '뭐', rest: tok, ja: jj, parts: [{ k: '뭐', d: '（＝무엇、何）' }, { k: wk + '＝' + orig, d: ja }, { k: pt, d: pj[0] }], note: `${wk} は ${orig} の縮まった形です`, mean: '何', msg: '会話でよく使う縮まった形です。辞書には載っていない形です' };
     }
   }
   if(KO_WHAT[tok]){
     const [orig, ja] = KO_WHAT[tok];
-    return { head: '뭐', rest: tok, ja, parts: [{ k: '뭐', d: '（＝무엇、何）' }, { k: tok + '＝' + orig, d: ja }], note: `${tok} は ${orig} の縮まった形です`, mean: '何', msg: '会話でよく使う縮まった形です。辞書には載っていないので、アプリで分けて出しています' };
+    return { head: '뭐', rest: tok, ja, parts: [{ k: '뭐', d: '（＝무엇、何）' }, { k: tok + '＝' + orig, d: ja }], note: `${tok} は ${orig} の縮まった形です`, mean: '何', msg: '会話でよく使う縮まった形です。辞書には載っていない形です' };
   }
   const b = KO_DEMO_BASE[tok[0]], end = tok.slice(1);
   if(!b || !(end in KO_DEMO_END)) return null;
@@ -11232,7 +11267,7 @@ function koDemoInfo(tok){
   const ja = b[1] + j;
   const parts = [{ k: b[0], d: '（' + b[1] + '）' }];
   if(orig) parts.push({ k: tok + '＝' + full, d });
-  return { head: b[0], rest: end, ja, parts, note: orig ? `${tok} は ${full} の縮まった形です` : `${tok} は ${b[0]} の話し言葉です`, mean: b[1], msg: 'これ・それ・あれ（이것・그것・저것）が縮まった形です。辞書には載っていないので、アプリで分けて出しています' };
+  return { head: b[0], rest: end, ja, parts, note: orig ? `${tok} は ${full} の縮まった形です` : `${tok} は ${b[0]} の話し言葉です`, mean: b[1], msg: 'これ・それ・あれ（이것・그것・저것）が縮まった形です。辞書には載っていない形です' };
 }
 
 // 辞書に無い語（名前など）が、はっきりした助詞で終わっているとき、その前を名詞とみなす
@@ -11292,6 +11327,53 @@ function koNounGuess(eojeol){
   ['분간', '년간', '일간', '주간'].forEach(k => KO_COUNTER_ANY.add(k));
   addMissing(KO_GEO_REST, { '라': ['＝라고（〜と）', '〜だろうと', '〜ということだと'], '라면': ['〜なら', '〜するのなら', '〜ということなら'] });
   addMissing(KO_END_TABLE, { '어줍시다': ['〜してあげましょう・（みんなで）〜しましょう', null] });
+})();
+
+/* 本文の上の意味：前の語とセットのときは、補助の意味を出す（쓰고 있는＝ている、써 봐야＝みる） */
+function koAuxGloss(prev, cur){
+  prev = String(prev || ''); cur = String(cur || '');
+  if(!prev || !cur) return '';
+  if(/고$/.test(prev)){ if(/^계/.test(cur)) return 'ていらっしゃる'; if(/^있/.test(cur)) return 'ている'; if(/^싶/.test(cur)) return 'たい'; }
+  if(/[^이]야$/.test(prev) && /^(하|해|했|한|할|합|되|돼|됐|된|될|됩)/.test(cur)) return 'ならない';
+  if(/게$/.test(prev) && /^(되|돼|됐|된|될|됩)/.test(cur)) return 'ようになる';
+  if(/지$/.test(prev)){ if(/^(않|안)/.test(cur)) return 'ない'; if(/^못/.test(cur)) return 'できない'; if(/^(말|마)/.test(cur)) return 'ないで'; }
+  if(EO_A.test(prev) && _koDict && koIsVerbTok(prev, true)){
+    if(/^(보|봐|봤|본|볼|봅)/.test(cur)) return 'みる';
+    if(/^(드리|드려|드렸|드린|드릴|드립)/.test(cur)) return '差し上げる';
+    if(/^(주|줘|줬|준|줄|줍)/.test(cur)) return 'くれる・あげる';
+    if(/^(버리|버려|버렸|버린|버릴)/.test(cur)) return 'しまう';
+    if(/^(놓|놨|둬|두|뒀|둔|둘)/.test(cur)) return 'おく';
+    if(/^있/.test(cur)) return 'ている（状態）';
+  }
+  return '';
+}
+(function(){
+  const addMissing = (o, add) => Object.keys(add).forEach(k => { if(!(k in o)) o[k] = add[k]; });
+  Object.assign(KO_PREF_JA, {
+    '일단': 'とりあえず・ひとまず・一旦', '잠시': 'しばらく・少しの間', '머릿속': '頭の中', '아저씨': 'おじさん', '이곳': 'ここ', '저곳': 'あそこ', '그곳': 'そこ',
+    '이대로': 'このまま', '그대로': 'そのまま', '저렇게': 'あんなに・あのように', '때문': '〜のせい・〜ため', '모습': '姿・様子', '모양': '様子・形・模様',
+    '이상하다': '変だ・おかしい', '눈앞': '目の前', '하마터면': '危うく', '은근슬쩍': 'こっそり・さりげなく', '몇': 'いくつ・何〜・いくつか',
+    '방금': 'さっき・今しがた', '그냥': 'ただ・なんとなく・そのまま', '딱히': '別に・特に', '이벤트': 'イベント', '이분': 'この方', '그분': 'その方・あの方',
+    '이래저래': 'あれこれ', '이미': 'もう・すでに', '크다': '大きい・育つ', '메뚜기': 'バッタ', '바퀴벌레': 'ゴキブリ'
+  });
+  Object.assign(KO_PREF_EXACT, { '한': '一つの・ある〜・一', '시': '〜時（とき）・市', '의': '〜の' });
+  addMissing(KO_EXTRA_DICT, {
+    '등가': ['名', '等価'], '환풍구': ['名', '換気口'], '턱짓': ['名', 'あごで示すこと'], '극초반': ['名', '序盤・最初のほう'], '첫번째': ['名', '1番目・最初'],
+    '이번에야말로': ['副', '今度こそ'], '한테는': ['助', '〜には（人）'], '라든가': ['助', '〜とか'], '장난스레': ['副', 'いたずらっぽく'],
+    '보송하다': ['形', 'さらっとした・ふわふわの'], '서글서글하다': ['形', '人当たりがいい・気さくだ'], '서글서글': ['副', '人当たりよく・気さくに'],
+    '해대다': ['動', '〜しまくる・やたらとする'], '만져지다': ['動', '触れる・手に触れる'], '행성계': ['名', '惑星系'], '채집통': ['名', '採集容器'],
+    '메뚜기알': ['名', 'バッタの卵'], '모음집': ['名', '作品集・まとめ集'], '백여': ['数', '百余り'], '이젠': ['副', '今は・もう（＝이제는）'],
+    '금호': ['名', 'クムホ（地名）'], '금호역': ['名', 'クムホ駅（地名）'], '위튜브': ['名', 'ウィーチューブ（YouTubeのもじり）'], '난수': ['名', '乱数'],
+    '스타팅': ['名', 'スターティング・開始時の'], '괴물놈': ['名', '化け物野郎'], '탐사자': ['名', '探査者']
+  });
+  addMissing(KO_SHORT, {
+    '저들': ['저 사람들', 'あいつら・彼ら', '저'], '언제부턴가': ['언제부터인가', 'いつからか', '언제'], '뭔진': ['무엇인지는', '何なのかは', '뭐']
+  });
+  addMissing(KO_WHAT, { '뭘까': ['무엇일까', '何だろう'], '뭘까요': ['무엇일까요', '何でしょう'] });
+  addMissing(KO_PART_TABLE, { '이었기': ['〜だったこと（〜기）', 'だったこと'], '였기': ['〜だったこと（〜기）', 'だったこと'], '한테는': ['〜には（人）', 'には'], '이여': ['〜よ（呼びかけ）', 'よ'] });
+  ['이었기', '일'].forEach(k => { if(!KO_COPULA.includes(k)) KO_COPULA.push(k); });
+  ['였기'].forEach(k => { if(!KO_COP_V.includes(k)) KO_COP_V.push(k); });
+  ['한테는'].forEach(k => { if(!KO_PARTICLES.includes(k)) KO_PARTICLES.push(k); });
 })();
 
 
