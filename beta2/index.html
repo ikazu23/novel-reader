@@ -3473,10 +3473,14 @@ function backupGetAllNovels(){
 async function autoBackup(novel, force, manual){
   if(!novel || !novel.id) return;
   try{
+    const _bkKey = LS_PREFIX + 'bk-last';
+    let _bk = {}; try{ _bk = JSON.parse(localStorage.getItem(_bkKey) || '{}') || {}; }catch(_){}
+    if(!force && _bk[novel.id] && (Date.now() - _bk[novel.id]) < BACKUP_INTERVAL_MS && _bk[novel.id] <= Date.now()) return;
     const data = await backupGetAll(novel.id);
     const now = Date.now();
     const lastTs = (data.generations[0] && data.generations[0].ts) || 0;
-    if(!force && (now - lastTs) < BACKUP_INTERVAL_MS) return;
+    const _bkSet = (t) => { _bk[novel.id] = t; try{ localStorage.setItem(_bkKey, JSON.stringify(_bk)); }catch(_){} };
+    if(!force && (now - lastTs) < BACKUP_INTERVAL_MS){ if(lastTs) _bkSet(lastTs); return; }
     const snapshot = {
       ts: now,
       iso: new Date(now).toISOString(),
@@ -3489,6 +3493,7 @@ async function autoBackup(novel, force, manual){
       data.generations = data.generations.slice(0, BACKUP_MAX_GENERATIONS);
     }
     await backupPutAll(novel.id, data);
+    _bkSet(now);
   }catch(e){ console.warn('autoBackup failed:', e); }
 }
 async function autoBackupAllNovels(){
@@ -8182,8 +8187,41 @@ function koFitGloss(rb, gloss, word, rest, fpx){
   rb.style.setProperty('--kfs', (g * sc).toFixed(1) + 'px');
   rb.style.setProperty('--kmw', Math.max(room, g * sc * 2).toFixed(1) + 'px');
 }
+// 意味の付け直し：今見ているページだけすぐ描き直して、ほかのページはあとで少しずつ（全ページ一気だと画面が止まるので）
+let _koDirty = null, _koDirtyTimer = null, _koRerenderWait = null;
+function koRerenderLater(){
+  if(_koDirtyTimer) return;
+  const run = () => {
+    _koDirtyTimer = null;
+    const d = _koDirty;
+    if(!d || d.pages !== state.pages || state.editMode){ _koDirty = null; return; }
+    if(state.ui && state.ui.transitioning){ _koDirtyTimer = setTimeout(run, 150); return; }   // めくっている最中は待つ
+    const pi = [...d.set][0];
+    if(pi == null){ _koDirty = null; return; }
+    d.set.delete(pi);
+    try{ if(state.pages[pi] && pi !== state.curPage) refreshPage(pi); }catch(_){}
+    if(d.set.size) koRerenderLater(); else _koDirty = null;
+  };
+  const go = () => { _koDirtyTimer = (window.requestIdleCallback ? requestIdleCallback(run, { timeout: 800 }) : setTimeout(run, 60)) || 1; };
+  _koDirtyTimer = setTimeout(go, 120);
+}
+// めくる直前に、まだ描き直していないページなら描き直す
+function koFlushDirtyPage(pi){
+  const d = _koDirty;
+  if(!d || d.pages !== state.pages || !d.set.has(pi)) return;
+  d.set.delete(pi);
+  try{ refreshPage(pi); }catch(_){}
+}
+if(typeof slideToPage === 'function'){
+  const _koOrigSlide = slideToPage;
+  slideToPage = function(next){ if(!state.ui.transitioning) koFlushDirtyPage(next); return _koOrigSlide.apply(this, arguments); };
+}
 function koRerender(){
   if(state.editMode || !state.pages) return;
+  if(state.ui && state.ui.transitioning){   // めくっている途中なら、終わってから
+    if(!_koRerenderWait) _koRerenderWait = setTimeout(() => { _koRerenderWait = null; koRerender(); }, 200);
+    return;
+  }
   // 意味を保存したときなどに、見ている場所がずれないようにする（上の行に意味が増えても、同じ段落が同じ位置に来るように）
   const pageEl = document.getElementById('page-' + state.curPage);
   let anchor = null;
@@ -8196,7 +8234,11 @@ function koRerender(){
     if(!el) el = ps.find(p => p.getBoundingClientRect().bottom > top);
     if(el) anchor = { pi: el.dataset.pi, qi: el.dataset.qi, off: el.getBoundingClientRect().top - top };
   }
-  state.pages.forEach((_, pi) => refreshPage(pi));
+  if(state.pages[state.curPage]) refreshPage(state.curPage); else state.pages.forEach((_, pi) => refreshPage(pi));
+  const rest = new Set(state.pages.map((_, pi) => pi).filter(pi => pi !== state.curPage));
+  if(_koDirty && _koDirty.pages === state.pages) _koDirty.set.forEach(pi => rest.add(pi));
+  _koDirty = rest.size ? { pages: state.pages, set: rest } : null;
+  if(_koDirty) koRerenderLater();
   if(anchor){
     const fix = () => {
       const pe = document.getElementById('page-' + state.curPage);
