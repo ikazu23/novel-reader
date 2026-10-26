@@ -188,22 +188,22 @@ mark.sh.current{background:#ff8f00;color:#fff;}
 .page.hidden{ display:none; }
 /* ── 縦スライド (スクロール方向) ── */
 .page.slide-in-below { z-index:11; transform:translateY(100%); transition:none; }
-.page.slide-in-below.go { transform:translateY(0); transition:transform .42s cubic-bezier(.25,.46,.45,.94); }
+.page.slide-in-below.go { transform:translateY(0); transition:transform .3s cubic-bezier(.25,.46,.45,.94); }
 .page.slide-in-above { z-index:11; transform:translateY(-100%); transition:none; }
-.page.slide-in-above.go { transform:translateY(0); transition:transform .42s cubic-bezier(.25,.46,.45,.94); }
+.page.slide-in-above.go { transform:translateY(0); transition:transform .3s cubic-bezier(.25,.46,.45,.94); }
 .page.slide-out-down { z-index:10; transform:translateY(0); transition:none; }
-.page.slide-out-down.go { transform:translateY(100%); transition:transform .42s cubic-bezier(.25,.46,.45,.94); }
+.page.slide-out-down.go { transform:translateY(100%); transition:transform .3s cubic-bezier(.25,.46,.45,.94); }
 .page.slide-out-up { z-index:10; transform:translateY(0); transition:none; }
-.page.slide-out-up.go { transform:translateY(-100%); transition:transform .42s cubic-bezier(.25,.46,.45,.94); }
+.page.slide-out-up.go { transform:translateY(-100%); transition:transform .3s cubic-bezier(.25,.46,.45,.94); }
 /* ── 横スライド (左右スワイプ) ── */
 .page.slide-in-right { z-index:11; transform:translateX(100%); transition:none; }
-.page.slide-in-right.go { transform:translateX(0); transition:transform .38s cubic-bezier(.25,.46,.45,.94); }
+.page.slide-in-right.go { transform:translateX(0); transition:transform .3s cubic-bezier(.25,.46,.45,.94); }
 .page.slide-in-left  { z-index:11; transform:translateX(-100%); transition:none; }
-.page.slide-in-left.go  { transform:translateX(0); transition:transform .38s cubic-bezier(.25,.46,.45,.94); }
+.page.slide-in-left.go  { transform:translateX(0); transition:transform .3s cubic-bezier(.25,.46,.45,.94); }
 .page.slide-out-left  { z-index:10; transform:translateX(0); transition:none; }
-.page.slide-out-left.go  { transform:translateX(-100%); transition:transform .38s cubic-bezier(.25,.46,.45,.94); }
+.page.slide-out-left.go  { transform:translateX(-100%); transition:transform .3s cubic-bezier(.25,.46,.45,.94); }
 .page.slide-out-right { z-index:10; transform:translateX(0); transition:none; }
-.page.slide-out-right.go { transform:translateX(100%); transition:transform .38s cubic-bezier(.25,.46,.45,.94); }
+.page.slide-out-right.go { transform:translateX(100%); transition:transform .3s cubic-bezier(.25,.46,.45,.94); }
 
 /* page-turn hint overlay at scroll edges */
 .page-hint{ display:none !important; }
@@ -2696,6 +2696,31 @@ p.ko-use-flash{background:rgba(0,128,128,.14);transition:background .4s;border-r
 body.theme-dark .ko-use{border-color:#333;}
 body.theme-dark .ko-use-s{color:#ddd;}
 body.theme-dark .ko-use-tr{color:#aaa;}
+.ko-use{position:relative;padding-right:30px;}
+.ko-use-star{position:absolute;right:0;top:6px;border:none;background:none;font-size:18px;color:#c8c8c8;cursor:pointer;padding:2px 4px;line-height:1;}
+.ko-use-star.on{color:#f0a020;}
+.ko-use.fav .ko-use-s{color:#222;}
+.ko-use-help{font-weight:normal;font-size:11px;color:#aaa;margin-left:8px;}
+.ko-cz-s{font-size:18px;line-height:1.9;color:#222;margin:14px 2px 6px;word-break:break-all;}
+.ko-cz-s b{color:#008080;}
+.ko-cz-blank{display:inline-block;color:#008080;border-bottom:2px solid #008080;padding:0 4px;margin:0 2px;letter-spacing:-2px;}
+.ko-cz-tr{margin:0 2px 8px;}
+.ko-cz-hint{border:none;background:none;color:#3a6d8c;font-size:12.5px;padding:4px 2px;cursor:pointer;font-family:inherit;}
+.ko-cz-hintv{font-size:13px;color:#666;padding:4px 2px;}
+.ko-cz-choices{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 6px;}
+.ko-cz-c{border:1.5px solid #dde5e5;background:#fff;border-radius:12px;padding:12px 6px;font-size:16px;color:#333;cursor:pointer;font-family:inherit;}
+.ko-cz-c.ok{border-color:#2a9d8f;background:#e7f6f3;color:#126b60;font-weight:bold;}
+.ko-cz-c.ng{border-color:#e07a7a;background:#fdeeee;color:#a33;}
+.ko-cz-c:disabled{cursor:default;}
+.ko-cz-res{font-size:16px;font-weight:bold;margin:10px 2px 2px;}
+.ko-cz-res.ok{color:#2a9d8f;} .ko-cz-res.ng{color:#d06060;}
+.ko-cz-mean{font-size:14px;color:#444;margin:2px 2px 4px;}
+body.theme-dark .ko-cz-s,body.theme-dark .ko-use.fav .ko-use-s{color:#eee;}
+body.theme-dark .ko-cz-c{background:#222;border-color:#444;color:#ddd;}
+body.theme-dark .ko-cz-c.ok{background:#16352f;color:#8fe0d0;}
+body.theme-dark .ko-cz-c.ng{background:#3a2020;color:#f0a0a0;}
+body.theme-dark .ko-cz-mean{color:#ccc;}
+body:has(#ko-sheet.show) #library-fab{visibility:hidden;}
 
 </style>
 </head>
@@ -8225,7 +8250,7 @@ function slideToPage(next,dir,axis='v'){
         if(newGroupCount<=1) $.subpage_dots.classList.remove('show');
         updatePageIndicator();
         state.ui.transitioning=false;
-      },440);
+      },330);
     });
   });
 }
@@ -10598,6 +10623,7 @@ function openKoMenu(){
     <button class="ko-menu-item" onclick="openKoWordList()">単語帳<span class="ko-mi-sub">${cnt}語</span></button>
     ${inBook ? `<button class="ko-menu-item" onclick="openKoEpWords()">この話の単語<span class="ko-mi-sub">${koEpWordList().length}語</span></button>` : ''}
     ${(() => { const n = koWeakKeys().length; return n ? `<button class="ko-menu-item" onclick="openKoWeak()">苦手な単語<span class="ko-mi-sub">${n}語</span></button>` : ''; })()}
+    ${cnt >= 2 ? '<button class="ko-menu-item" onclick="openKoCloze()">穴埋めクイズ<span class="ko-mi-sub">本の文で練習</span></button>' : ''}
     <button class="ko-menu-item" onclick="openKoGram()">文法帳<span class="ko-mi-sub">${koGramList().length}個</span></button>
     ${inBook ? `<button class="ko-menu-item" onclick="koListenStart()">この話を聞き流す<span class="ko-mi-sub">原文 → 自分の訳</span></button>` : ''}
     <button class="ko-menu-item" onclick="openKoStats()">学習の記録</button>
@@ -12453,7 +12479,8 @@ function koHi(sentence, key){
 }
 function koQuizBack(k, e, noMeans){
   const ms = koMs(e);
-  const ctx = ms.find(x => x.c);
+  const fav = Array.isArray(e.fav) && e.fav[0];
+  const ctx = fav ? { c: fav.s } : ms.find(x => x.c);
   return (noMeans ? '' : `<div class="ko-quiz-ms">${ms.map(x => escapeHtml(x.m)).join('<span class="ko-dict-sep">／</span>')}</div>`)
     + (e.n ? `<div class="ko-quiz-n">${escapeHtml(e.n)}</div>` : '')
     + (ctx ? `<div class="ko-quiz-ctx" onclick="koSpeak(${JSON.stringify(ctx.c).replace(/"/g, '&quot;')})">${koHi(ctx.c, k)}</div>` : '<div class="ko-quiz-ctx" id="ko-quiz-use" hidden></div>');
@@ -14419,22 +14446,35 @@ async function koShowUses(k, shown){
   let r;
   try{ r = await koUsesSearch(k, 40); }catch(_){ return; }
   if(document.getElementById('ko-uses') !== box) return;
-  const regs = koMs(koLoad()[k] || {}).map(x => x.c).filter(Boolean);
-  if(!r.list.length && !regs.length){ box.innerHTML = ''; return; }
-  window._koUses = r.list;
+  const we = koLoad()[k] || {};
+  const favs = Array.isArray(we.fav) ? we.fav : [];
+  const regs = koMs(we).map(x => x.c).filter(Boolean).filter(c => !favs.some(f => c.includes(f.s.replace(/^…|…$/g, ''))));
+  if(!r.list.length && !regs.length && !favs.length){ box.innerHTML = ''; return; }
+  window._koUses = r.list.filter(u => !favs.some(f => f.s === u.s));
+  window._koFavK = k;
+  const favRows = favs.map((u, j) => `
+    <div class="ko-use fav">
+      <button class="ko-use-star on" onclick="koUseFavDel(${j})" aria-label="お気に入りから外す">★</button>
+      <div class="ko-use-s" onclick="koSpeak(koLoad()[window._koFavK].fav[${j}].s)">${koUseHi(u.s, koUseForms(k))}</div>
+      ${u.tr ? `<div class="ko-use-tr">${escapeHtml(u.tr.length > 120 ? u.tr.slice(0, 120) + '…' : u.tr)}</div>` : ''}
+      ${u.nid ? `<button class="ko-use-w" onclick="koUseJumpTo(koLoad()[window._koFavK].fav[${j}])">${escapeHtml(u.w || '')} ›</button>` : ''}
+    </div>`).join('');
   const regRows = regs.filter(c => !r.list.some(u => u.s && c.includes(u.s.replace(/^…|…$/g, '')))).slice(0, 2).map(c =>
     `<div class="ko-use"><div class="ko-use-s" onclick="koSpeak(this.textContent)">${koUseHi(c, koUseForms(k))}</div><div class="ko-use-w">登録したときの文</div></div>`).join('');
-  box.innerHTML = '<div class="ko-label">本の中の文</div>' + regRows + r.list.slice(0, shown).map((u, i) => `
+  box.innerHTML = '<div class="ko-label">本の中の文<span class="ko-use-help">☆でお気に入り</span></div>' + favRows + regRows + window._koUses.slice(0, shown).map((u, i) => `
     <div class="ko-use">
+      <button class="ko-use-star" onclick="koUseFavAdd(${i})" aria-label="お気に入りにする">☆</button>
       <div class="ko-use-s" onclick="koSpeak(window._koUses[${i}].s)">${koUseHi(u.s, u.forms)}</div>
       ${u.tr ? `<div class="ko-use-tr">${escapeHtml(u.tr.length > 120 ? u.tr.slice(0, 120) + '…' : u.tr)}</div>` : ''}
       <button class="ko-use-w" onclick="koUseJump(${i})">${escapeHtml(u.where)} ›</button>
     </div>`).join('') +
-    (r.list.length > shown ? `<button class="ko-uses-more" onclick="koShowUses(${escapeHtml(JSON.stringify(k))}, ${shown + 5})">もっと見る</button>` : '');
+    (window._koUses.length > shown ? `<button class="ko-uses-more" onclick="koShowUses(${escapeHtml(JSON.stringify(k))}, ${shown + 5})">もっと見る</button>` : '');
 }
 // 文をタップ → その本・その話のそのページへ
-async function koUseJump(i){
-  const u = (window._koUses || [])[i]; if(!u) return;
+function koUseJump(i){ koUseJumpTo((window._koUses || [])[i]); }
+async function koUseJumpTo(u){
+  if(!u) return;
+  if(!(state.library || []).some(n => n.id === u.nid)){ showToast('その本は本棚にありません'); return; }
   koCloseSheet();
   try{ closeKoWordList(); }catch(_){}
   try{
@@ -14448,6 +14488,140 @@ async function koUseJump(i){
       }, 500);
     }, 350);
   }catch(e){ showToast('その場所を開けませんでした'); }
+}
+
+// ===== 例文のお気に入り（単語ごとに10文まで・同期される） =====
+function koUseFavAdd(i){
+  const k = window._koFavK, u = (window._koUses || [])[i];
+  const e = koLoad()[k]; if(!e || !u) return;
+  e.fav = Array.isArray(e.fav) ? e.fav : [];
+  if(e.fav.some(f => f.s === u.s)) return;
+  if(e.fav.length >= 10){ showToast('お気に入りは10文までです'); return; }
+  e.fav.push({ s: u.s, tr: (u.tr || '').slice(0, 200), w: u.where, nid: u.nid, eid: u.eid, pi: u.pi, qi: u.qi });
+  e.u = new Date().toISOString();
+  koSaveWords();
+  const box = document.getElementById('ko-uses'); if(box){ delete box.dataset.k; }
+  koShowUses(k);
+  showToast('お気に入りにしたよ');
+}
+function koUseFavDel(j){
+  const k = window._koFavK, e = koLoad()[k];
+  if(!e || !Array.isArray(e.fav)) return;
+  e.fav.splice(j, 1);
+  if(!e.fav.length) delete e.fav;
+  e.u = new Date().toISOString();
+  koSaveWords();
+  koShowUses(k);
+}
+
+// ===== 穴埋めクイズ（本の文で、どの単語が入るか選ぶ。復習の間隔は変えない練習） =====
+let _koCz = null;
+function koShuffle(a){ a = a.slice(); for(let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+async function koClozeSentence(k){
+  const e = koLoad()[k] || {}, forms = koUseForms(k);
+  const has = t => t && forms.some(f => t.includes(f));
+  const fav = (Array.isArray(e.fav) ? koShuffle(e.fav) : []).find(f => has(f.s));
+  if(fav) return { s: fav.s, tr: fav.tr || '', where: fav.w || '' };
+  const c = koMs(e).map(x => x.c).find(has);
+  if(c) return { s: c, tr: '', where: '登録したときの文' };
+  try{ const r = await koUsesSearch(k, 1); if(r.list[0]) return { s: r.list[0].s, tr: r.list[0].tr, where: r.list[0].where }; }catch(_){}
+  return null;
+}
+async function openKoCloze(keysIn){
+  const w = koLoad();
+  const all = Object.keys(w).filter(k => !/\s/.test(k));
+  if(all.length < 2){ showToast('単語を2つ以上登録してね'); return; }
+  koCloseSheet(); try{ closeKoWordList(); }catch(_){}
+  const body = document.getElementById('ko-sheet-body');
+  body.innerHTML = '<div class="ko-title">穴埋めクイズ</div><div class="ko-uses-msg" id="ko-cz-loading">本の中から問題を作っています…</div>';
+  document.getElementById('ko-sheet').classList.add('show');
+  document.getElementById('ko-sheet-ov').classList.add('show');
+  const due = new Set(koDueKeys()), weak = new Set(koWeakKeys());
+  const cand = keysIn ? koShuffle(keysIn.filter(k => w[k])) : koShuffle(all).sort((a, b) => (weak.has(b) + due.has(b)) - (weak.has(a) + due.has(a)));
+  const qs = [];
+  const token = {};
+  _koCz = { token };
+  for(const k of cand.slice(0, 40)){
+    if(qs.length >= 10 || _koCz.token !== token || !document.getElementById('ko-cz-loading')) break;
+    const sen = await koClozeSentence(k);
+    if(!sen) continue;
+    qs.push(Object.assign({ k }, sen));
+  }
+  if(_koCz.token !== token || !document.getElementById('ko-sheet').classList.contains('show') || !document.getElementById('ko-cz-loading')) return;
+  if(!qs.length){
+    body.innerHTML = `<div class="ko-title">穴埋めクイズ</div><div class="ko-note">本の中に、登録した単語が出てくる文が見つからなかったよ。韓国語の本を読みながら単語を登録してね。</div>
+      <div class="ko-actions"><button class="ko-save" onclick="koCloseSheet()">閉じる</button></div>`;
+    return;
+  }
+  _koCz = { token, qs, i: 0, ok: 0, wrong: [] };
+  koClozeShow();
+}
+function koClozeChoices(k){
+  const w = koLoad(), head = koHead(k, w[k]);
+  const verb = /다$/.test(head);
+  const others = koShuffle(Object.keys(w).filter(x => x !== k && !/\s/.test(x)));
+  const labels = [head];
+  const pick = list => { for(const x of list){ if(labels.length >= 4) break; const h = koHead(x, w[x]); if(h && !labels.includes(h)) labels.push(h); } };
+  pick(others.filter(x => /다$/.test(koHead(x, w[x])) === verb));
+  pick(others);
+  return koShuffle(labels);
+}
+function koClozeShow(){
+  const q = _koCz, body = document.getElementById('ko-sheet-body');
+  if(!q || !q.qs) return;
+  if(q.i >= q.qs.length){ koClozeDone(); return; }
+  const it = q.qs[q.i], forms = koUseForms(it.k);
+  const f = forms.find(x => it.s.includes(x)) || it.k;
+  const at = it.s.indexOf(f);
+  it.choices = it.choices || koClozeChoices(it.k);
+  const e = koLoad()[it.k] || {};
+  body.innerHTML = `
+    <div class="ko-quiz-top"><span class="ko-tag">穴埋め</span><span>${q.i + 1} / ${q.qs.length}</span></div>
+    <div class="ko-cz-s" id="ko-cz-s">${escapeHtml(it.s.slice(0, at))}<span class="ko-cz-blank">${'＿'.repeat(Math.min(4, Math.max(2, f.length)))}</span>${escapeHtml(it.s.slice(at + f.length))}</div>
+    ${it.tr ? `<div class="ko-use-tr ko-cz-tr">${escapeHtml(it.tr.length > 140 ? it.tr.slice(0, 140) + '…' : it.tr)}</div>` : ''}
+    <button class="ko-cz-hint" id="ko-cz-hint" onclick="koClozeHint()">ヒント（意味を見る）</button>
+    <div class="ko-cz-choices">${it.choices.map((c, j) => `<button class="ko-cz-c" data-j="${j}" onclick="koClozeAnswer(${j})">${escapeHtml(c)}</button>`).join('')}</div>
+    <div id="ko-cz-after"></div>`;
+}
+function koClozeHint(){
+  const q = _koCz; if(!q || !q.qs) return;
+  const it = q.qs[q.i], e = koLoad()[it.k] || {};
+  const h = document.getElementById('ko-cz-hint');
+  if(h) h.outerHTML = `<div class="ko-cz-hintv">意味：${escapeHtml(koMs(e).map(x => x.m).join('／'))}</div>`;
+}
+function koClozeAnswer(j){
+  const q = _koCz; if(!q || !q.qs) return;
+  const it = q.qs[q.i];
+  if(it.answered) return;
+  it.answered = true;
+  const e = koLoad()[it.k] || {};
+  const right = it.choices[j] === koHead(it.k, e);
+  if(right) q.ok++; else q.wrong.push(it.k);
+  document.querySelectorAll('.ko-cz-c').forEach(b => {
+    const c = it.choices[+b.dataset.j];
+    b.disabled = true;
+    if(c === koHead(it.k, e)) b.classList.add('ok'); else if(+b.dataset.j === j) b.classList.add('ng');
+  });
+  const s = document.getElementById('ko-cz-s');
+  if(s) s.innerHTML = koUseHi(it.s, koUseForms(it.k));
+  const h = document.getElementById('ko-cz-hint'); if(h) h.remove();
+  document.getElementById('ko-cz-after').innerHTML = `
+    <div class="ko-cz-res ${right ? 'ok' : 'ng'}">${right ? 'せいかい！' : 'ざんねん…'}</div>
+    <div class="ko-cz-mean"><b>${escapeHtml(koHead(it.k, e))}</b>　${escapeHtml(koMs(e).map(x => x.m).join('／'))}</div>
+    ${it.where ? `<div class="ko-use-w">${escapeHtml(it.where)}</div>` : ''}
+    <div class="ko-actions"><button class="ko-cancel" onclick="koSpeak(_koCz.qs[_koCz.i].s)">🔊 文を聞く</button><button class="ko-save" onclick="_koCz.i++;koClozeShow()">${q.i + 1 >= q.qs.length ? '結果を見る' : '次へ'}</button></div>`;
+  koSpeak(it.s, true);
+}
+function koClozeDone(){
+  const q = _koCz, body = document.getElementById('ko-sheet-body');
+  window._koCzWrong = q.wrong.slice();
+  body.innerHTML = `<div class="ko-title">おつかれさま！</div>
+    <div class="ko-quiz-res">${q.qs.length}問中 ${q.ok}問 せいかい</div>
+    ${q.wrong.length ? `<div class="ko-quiz-sub">まちがえた単語：${q.wrong.map(k => escapeHtml(koHead(k, koLoad()[k] || {}))).join('、')}</div>` : '<div class="ko-quiz-sub">全問せいかい！すごい！</div>'}
+    <div class="ko-actions">
+      ${q.wrong.length ? '<button class="ko-cancel" onclick="openKoCloze(window._koCzWrong)" style="background:none;color:#007070;padding-left:0">まちがえた単語をもう一回</button>' : '<button class="ko-cancel" onclick="openKoCloze()" style="background:none;color:#007070;padding-left:0">もう一回</button>'}
+      <button class="ko-save" onclick="koCloseSheet()">閉じる</button>
+    </div>`;
 }
 
 
