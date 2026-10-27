@@ -1,0 +1,6 @@
+/* ══════ 読み上げ音声の保存 ══════ */
+.ttsc-line{display:flex;align-items:center;justify-content:space-between;gap:10px;font-family:'Noto Sans JP',sans-serif;}
+#ttsc-size{font-size:14px;color:#444;}
+.ttsc-clear{border:1px solid #d9a0a0;background:none;color:#c54040;border-radius:16px;padding:5px 14px;font-size:12.5px;cursor:pointer;font-family:inherit;}
+body.theme-dark #ttsc-size{color:#ccc;}
+/* ══════ 読み上げ音声の保存ここまで ══════ */
