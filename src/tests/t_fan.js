@@ -1,0 +1,24 @@
+const {chromium}=require('playwright');
+(async()=>{const b=await chromium.launch();const pg=await b.newPage({viewport:{width:390,height:800}});
+const errs=[];pg.on('pageerror',e=>errs.push(e.message));pg.on('dialog',d=>{errs.push('dialog:'+d.message().slice(0,40));d.dismiss();});
+const now=new Date().toISOString();
+const w={id:'w1',title:'残業の怪談',author:'いかすみ',ak:'ak1',genre:'ホラー',epCount:2,chars:5000,likes:3,updatedAt:now,tags:['二次創作','怪談出勤','オリキャラ'],synopsis:'あらすじ',status:'public'};
+await pg.route(/workers\.dev/,async r=>{const p=new URL(r.request().url()).pathname;let body={ok:true};if(p==='/works')body={works:[w],rankAvailable:true};else if(p==='/w/w1')body=w;else if(p==='/w/w1/index')body={episodes:[]};await r.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});});
+await pg.goto('http://localhost:8765/'+(process.argv[2]||'index.html'));await pg.waitForTimeout(2500);
+await pg.evaluate(async()=>{const n=makeNovel('残業の怪談');n.episodes=[makeEpisode(1,'第1話',[{paras:[{type:'text',text:'本文',align:'left',size:15,color:'#222'}]}])];n.episodes[0].charCount=2;await libDbPut(n);state.library.push(n);await openNovel(n.id);
+ gdriveIsSignedIn=()=>true; publishCurrentNovel=async(m)=>{window._meta=m;return null;}; openPublishModal();});
+await pg.waitForTimeout(600);
+await pg.check('#pub-fan');await pg.fill('#pub-tags','オリキャラ ホラー');
+await pg.screenshot({path:'/tmp/claude-0/fan_modal.png'});
+await pg.check('#pub-self');
+await pg.click('#modal-ok');await pg.waitForTimeout(400);
+const noOrig=await pg.evaluate(()=>window._meta||null);
+await pg.fill('#pub-orig','怪談出勤');await pg.click('#modal-ok');await pg.waitForTimeout(600);
+const meta=await pg.evaluate(()=>window._meta);
+// reopen with saved tags
+const re=await pg.evaluate(()=>{state.novel.publish={workId:'w1',status:'public',tags:window._meta.tags,eps:{}};openPublishModal();return {fan:document.getElementById('pub-fan').checked,orig:document.getElementById('pub-orig').value,tags:document.getElementById('pub-tags').value};});
+await pg.evaluate(()=>closeModal());
+await pg.evaluate(()=>{showLibrary();openWorkDetail('w1');});await pg.waitForTimeout(1200);
+await pg.screenshot({path:'/tmp/claude-0/fan_work.png'});
+const work=await pg.evaluate(()=>(document.querySelector('.work-fan')||{}).innerText);
+console.log({noOrig,tags:meta&&meta.tags,keepTags:meta&&meta.keepTags,re,work},errs);await b.close();})();
