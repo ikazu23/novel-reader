@@ -1899,6 +1899,18 @@ async function koFillDict(hit, addMode){
       <span class="ko-dict-ja">${e[1].map(s => escapeHtml(koJaShort(s))).filter(Boolean).slice(0, 3).join('<span class="ko-dict-sep">／</span>')}</span>
     </button>`;
   }).join('')).join('');
+  // 人名かも：辞書に意味があっても、名前のことがある（하늘・유진 など）。推測だけのときは目立つように
+  try{
+    const nb = koNameBase(hit.eojeol), kana = koToKana(nb);
+    const onlyGuess = !!(shownFound[0] && shownFound[0].guess);   // いちばん上の候補が推測だけ
+    const verbish = shownFound[0] && shownFound[0].verb && !shownFound[0].guess;
+    if(!addMode && kana && /^[가-힣]{2,5}$/.test(nb) && !verbish){
+      window._koNameNow = [nb, kana];
+      box.innerHTML += onlyGuess
+        ? `<button class="ko-name-btn" onclick="koNameFill(window._koNameNow[0],window._koNameNow[1])">人名なら → <b>${escapeHtml(nb)}</b>＝${escapeHtml(kana)}</button>`
+        : `<button class="ko-name-link" onclick="koNameFill(window._koNameNow[0],window._koNameNow[1])">人名として入れる（${escapeHtml(nb)}＝${escapeHtml(kana)}）</button>`;
+    }
+  }catch(_){}
   // まだ意味が空なら、いちばん上の候補を入れておく
   if(!addMode && !_koEdit.ms.length && window._koDictRows[0]){
     const r = window._koDictRows[0];
@@ -4393,6 +4405,8 @@ function koNameFill(b, kana){
   koSetKey(b); koSetHead(b); _koHeadAuto = false;
   _koEdit.ms = []; koAddMeaning(kana); _koEdit._auto = false;
   const memo = document.getElementById('ko-memo'); if(memo && !memo.value) memo.value = '人名';
+  try{ if(_koCur && _koCur.eojeol){ const fi = koFormInfo(_koCur.eojeol, b, '名', kana); if(fi){ const m1 = koFirstMean(kana); fi.ja = fi.ja && fi.ja.startsWith(m1) ? kana + fi.ja.slice(m1.length) : kana; fi.mean = kana; } koRenderFormInfo(fi); } }catch(_){}
+  document.querySelectorAll('#ko-sheet .ko-dict-row.on').forEach(x => x.classList.remove('on'));
   showToast('人名として入れたよ。読みは直せるよ');
 }
 

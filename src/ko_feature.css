@@ -374,3 +374,4 @@ body.theme-dark .ko-cz-c.ok{background:#16352f;color:#8fe0d0;}
 body.theme-dark .ko-cz-c.ng{background:#3a2020;color:#f0a0a0;}
 body.theme-dark .ko-cz-mean{color:#ccc;}
 body:has(#ko-sheet.show) #library-fab{visibility:hidden;}
+.ko-name-link{display:block;border:none;background:none;color:#3a6d8c;font-size:12px;padding:6px 2px 2px;cursor:pointer;font-family:inherit;text-align:left;text-decoration:underline;text-decoration-color:#c5d5df;}
