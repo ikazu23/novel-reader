@@ -14017,6 +14017,28 @@ if(typeof coverWithBadges === 'function'){
     return w && fanSplit(w.tags).fan ? h.replace(/<\/span>$/, '<span class="wc-fan">二次創作</span></span>') : h;
   };
 }
+// 作品をさがす：ジャンルなどのボタンを押しても、横のスクロール位置を保つ（押したボタンが見える位置に）
+if(typeof renderBrowseList === 'function'){
+  const _uxOrigRBL = renderBrowseList;
+  renderBrowseList = function(body){
+    const keep = {};
+    ['.bl-chips', '.bl-seg', '.bl-fan'].forEach(s => { const e = body && body.querySelector(s); if(e) keep[s] = e.scrollLeft; });
+    const r = _uxOrigRBL.apply(this, arguments);
+    try{
+      ['.bl-chips', '.bl-seg', '.bl-fan'].forEach(s => {
+        const e = body.querySelector(s); if(!e) return;
+        if(keep[s] != null) e.scrollLeft = keep[s];
+        const on = e.querySelector('button.on:not(.r18)');
+        if(on){
+          const a = on.offsetLeft, b = a + on.offsetWidth;
+          if(a < e.scrollLeft) e.scrollLeft = Math.max(0, a - 16);
+          else if(b > e.scrollLeft + e.clientWidth) e.scrollLeft = b - e.clientWidth + 16;
+        }
+      });
+    }catch(_){}
+    return r;
+  };
+}
 
 function setupDoubleTap(){
   let lastTap=0;
