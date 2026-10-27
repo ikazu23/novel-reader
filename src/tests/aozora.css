@@ -1,0 +1,76 @@
+/* ══════ 青空文庫 ══════ */
+#az-ov{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:850;opacity:0;pointer-events:none;transition:opacity .2s;}
+#az-ov.show{opacity:1;pointer-events:auto;}
+#az-sheet{position:fixed;left:0;right:0;bottom:0;z-index:851;max-width:560px;margin:0 auto;background:#fff;color:#222;border-radius:16px 16px 0 0;
+  box-shadow:0 -4px 24px rgba(0,0,0,.18);padding:16px 18px calc(16px + env(safe-area-inset-bottom));max-height:82dvh;overflow-y:auto;
+  transform:translateY(105%);transition:transform .22s ease;font-family:'Noto Sans JP',sans-serif;}
+#az-sheet.show{transform:translateY(0);}
+.az-title{font-size:17px;font-weight:700;margin:2px 2px 12px;}
+.az-title small{font-size:11px;font-weight:400;color:#999;margin-left:8px;}
+.az-item{display:flex;align-items:center;gap:12px;width:100%;border:1px solid #e8eeee;background:#fafcfc;border-radius:12px;padding:12px;margin-bottom:8px;text-align:left;cursor:pointer;font-family:inherit;color:#222;}
+.az-item b{display:block;font-size:14.5px;}
+.az-item small{display:block;font-size:12px;color:#888;margin-top:2px;}
+.az-ic{width:34px;height:34px;border-radius:10px;background:#e6f4f4;color:#007070;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.az-note{font-size:11.5px;color:#999;line-height:1.6;margin:10px 2px 4px;}
+.az-msg{font-size:13px;color:#888;padding:16px 2px;}
+.az-close{display:block;margin:10px 0 0 auto;border:none;background:#f0f0f0;border-radius:18px;padding:9px 20px;font-size:13px;cursor:pointer;font-family:inherit;color:#444;}
+.az-list{display:flex;flex-direction:column;}
+.az-work{display:flex;align-items:center;gap:10px;padding:11px 2px;border-bottom:1px solid #f0f0f0;}
+.az-w-main{flex:1;min-width:0;}
+.az-w-t{font-family:'Shippori Mincho B1','Noto Serif JP','Noto Serif CJK JP',serif;font-size:16px;font-weight:700;color:#222;}
+.az-w-a{font-size:12px;color:#777;margin-top:1px;}
+.az-w-a span{color:#aaa;}
+.az-w-b{font-size:12px;color:#888;margin-top:3px;line-height:1.5;}
+.az-w-btn{flex-shrink:0;border:1.5px solid #008080;background:#fff;color:#008080;border-radius:16px;padding:6px 14px;font-size:12.5px;cursor:pointer;font-family:inherit;}
+.az-w-btn.read{background:#008080;color:#fff;}
+.az-w-btn:disabled{opacity:.6;}
+.az-flag{position:absolute;left:6px;top:6px;background:rgba(0,90,90,.82);color:#fff;font-size:9.5px;padding:2px 6px;border-radius:8px;font-family:'Noto Sans JP',sans-serif;pointer-events:none;}
+.az-author{font-family:"Noto Sans JP",sans-serif;font-size:10px;color:#999;text-align:left;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 1px;}
+#az-banner{display:flex;align-items:center;gap:10px;margin:10px 14px 4px;padding:12px 12px 12px 16px;border-radius:14px;background:linear-gradient(120deg,#0f6e6c,#2f9a8f);color:#fff;font-family:'Noto Sans JP',sans-serif;box-shadow:0 4px 14px rgba(0,110,108,.18);}
+.az-b-txt{flex:1;min-width:0;}
+.az-b-txt b{display:block;font-size:14px;color:#fff;font-family:'Shippori Mincho B1','Noto Serif JP','Noto Serif CJK JP',serif;letter-spacing:.03em;}
+.az-b-txt span{display:block;font-size:11.5px;color:rgba(255,255,255,.82);margin-top:2px;}
+.az-b-go{border:none;background:#fff;color:#0f6e6c;border-radius:16px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;}
+.az-b-x{border:none;background:none;color:rgba(255,255,255,.7);font-size:18px;cursor:pointer;padding:0 2px;flex-shrink:0;}
+body.theme-dark #az-sheet{background:#222;color:#ddd;}
+body.theme-dark .az-item{background:#2a2a2a;border-color:#3a3a3a;color:#ddd;}
+body.theme-dark .az-w-t{color:#eee;}
+body.theme-dark .az-work{border-color:#333;}
+body.theme-dark .az-w-btn{background:#222;}
+body.theme-dark .az-w-btn.read{background:#008080;}
+body.theme-dark .az-close{background:#333;color:#ddd;}
+body:has(#az-sheet.show) #library-fab{visibility:hidden;}
+body.az-book .page-editor rt{line-height:1;}
+body.az-book .page-editor ruby{line-height:inherit;}
+/* 本を追加 */
+.az-grab{width:36px;height:4px;border-radius:2px;background:#ddd;margin:-6px auto 10px;}
+.az-head{display:flex;align-items:center;justify-content:space-between;margin:0 0 14px;}
+.az-head span{font-size:17px;font-weight:700;letter-spacing:.02em;}
+.az-x{border:none;background:#f2f2f2;color:#666;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.az-feature{position:relative;display:flex;align-items:center;width:100%;min-height:118px;border:none;border-radius:16px;padding:16px 16px 16px 18px;margin-bottom:14px;cursor:pointer;text-align:left;overflow:hidden;
+  background:linear-gradient(120deg,#0f6e6c 0%,#14857f 55%,#2f9a8f 100%);color:#fff;font-family:inherit;box-shadow:0 6px 18px rgba(0,110,108,.22);}
+.az-f-txt{position:relative;z-index:1;flex:1;min-width:0;}
+.az-f-txt small{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.12em;background:rgba(255,255,255,.18);border-radius:10px;padding:2px 8px;}
+.az-f-txt b{display:block;font-size:19px;margin:6px 0 2px;font-family:'Shippori Mincho B1','Noto Serif JP','Noto Serif CJK JP',serif;letter-spacing:.04em;}
+.az-f-txt span{display:block;font-size:12px;opacity:.85;}
+.az-f-covers{position:relative;width:122px;height:92px;flex-shrink:0;}
+.az-mini{position:absolute;top:calc(6px + var(--i) * 3px);left:calc(var(--i) * 22px);width:50px;height:70px;border-radius:3px;background:#eee center/cover no-repeat;
+  box-shadow:0 3px 8px rgba(0,0,0,.28);transform:rotate(calc((var(--i) - 1.5) * 4deg));z-index:calc(4 - var(--i));}
+.az-rows{display:flex;flex-direction:column;border-radius:14px;background:#f6f8f8;overflow:hidden;}
+.az-row{display:flex;align-items:center;gap:12px;width:100%;border:none;background:none;padding:13px 14px;cursor:pointer;text-align:left;font-family:inherit;color:#222;}
+.az-row + .az-row{border-top:1px solid #e9eded;}
+.az-row:active,.az-feature:active{opacity:.75;}
+.az-r-ic{width:38px;height:38px;border-radius:12px;background:#fff;color:#008080;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.az-r-t{flex:1;min-width:0;}
+.az-r-t b{display:block;font-size:14.5px;font-weight:600;}
+.az-r-t small{display:block;font-size:11.5px;color:#888;margin-top:2px;}
+.az-r-ch{color:#bbb;display:flex;}
+.az-foot{display:flex;align-items:center;gap:6px;font-size:11px;color:#aaa;margin:14px 4px 2px;}
+.az-foot svg{flex-shrink:0;}
+body.theme-dark .az-x{background:#333;color:#ccc;}
+body.theme-dark .az-rows{background:#2a2a2a;}
+body.theme-dark .az-row{color:#ddd;}
+body.theme-dark .az-row + .az-row{border-color:#363636;}
+body.theme-dark .az-r-ic{background:#333;color:#5cc8c0;}
+body.theme-dark .az-grab{background:#444;}
+/* ══════ 青空文庫ここまで ══════ */
