@@ -305,14 +305,34 @@ function azClose(){
 }
 
 // ＋ボタン：新しい本を書く／名作を読む／ファイルから
+const AZ_IC = {
+  pen: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  file: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>',
+  chev: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>',
+  x: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  info: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+};
+const _azMini = {};
+function azMiniCovers(){
+  // 名作の表紙を小さく並べる（その場で描く）
+  return [['羅生門', '芥川龍之介'], ['銀河鉄道の夜', '宮沢賢治'], ['走れメロス', '太宰治'], ['坊っちゃん', '夏目漱石']].map(([t, a], i) => {
+    const u = _azMini[t] = _azMini[t] || azMakeCover(t, a);
+    return `<span class="az-mini" style="background-image:url('${u}');--i:${i}"></span>`;
+  }).join('');
+}
 function azOpenAdd(){
   azSheet(`
-    <div class="az-title">本を追加</div>
-    <button class="az-item" onclick="azClose();createNewNovel()"><span class="az-ic">✎</span><span><b>新しい本を書く</b><small>白紙の本を作るよ</small></span></button>
-    <button class="az-item" onclick="azOpenCatalog()"><span class="az-ic">📚</span><span><b>名作を読む（青空文庫）</b><small>漱石・太宰・賢治…すぐ読めるよ</small></span></button>
-    <button class="az-item" onclick="azPickFile()"><span class="az-ic">⤓</span><span><b>テキストファイルから</b><small>青空文庫の .txt / .zip、ほかの .txt</small></span></button>
-    <div class="az-note">取り込んだ作品は、自分で読むためだけに使ってね。公開（投稿）はできないよ。</div>
-    <button class="az-close" onclick="azClose()">閉じる</button>`);
+    <div class="az-grab"></div>
+    <div class="az-head"><span>本を追加</span><button class="az-x" onclick="azClose()" aria-label="閉じる">${AZ_IC.x}</button></div>
+    <button class="az-feature" onclick="azOpenCatalog()">
+      <span class="az-f-txt"><small>青空文庫</small><b>名作を読む</b><span>漱石・太宰・賢治など</span></span>
+      <span class="az-f-covers">${azMiniCovers()}</span>
+    </button>
+    <div class="az-rows">
+      <button class="az-row" onclick="azClose();createNewNovel()"><span class="az-r-ic">${AZ_IC.pen}</span><span class="az-r-t"><b>新しい本を書く</b><small>白紙の本から書きはじめる</small></span><span class="az-r-ch">${AZ_IC.chev}</span></button>
+      <button class="az-row" onclick="azPickFile()"><span class="az-r-ic">${AZ_IC.file}</span><span class="az-r-t"><b>ファイルから取り込む</b><small>.txt・.zip（青空文庫のファイルもOK）</small></span><span class="az-r-ch">${AZ_IC.chev}</span></button>
+    </div>
+    <div class="az-foot">${AZ_IC.info}<span>取り込んだ作品は自分で読む用。公開はできないよ</span></div>`);
 }
 
 let _azCatalog = null;
@@ -434,7 +454,7 @@ function azDecorateLibrary(){
     if(old) return;
     const b = document.createElement('div');
     b.id = 'az-banner';
-    b.innerHTML = `<div class="az-b-txt"><b>名作をすぐ読めるよ</b><span>夏目漱石・太宰治・宮沢賢治など（青空文庫）</span></div>
+    b.innerHTML = `<div class="az-b-txt"><b>名作をすぐ読めるよ</b><span>漱石・太宰・賢治など（青空文庫）</span></div>
       <button class="az-b-go" onclick="azOpenCatalog()">見てみる</button><button class="az-b-x" onclick="azBannerOff()" aria-label="閉じる">×</button>`;
     grid.parentNode.insertBefore(b, grid);
   }catch(e){ console.warn('az lib', e); }

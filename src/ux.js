@@ -21,7 +21,10 @@ function uxTopbarInfo(){
     const n = state.novel;
     if(!n || !state.currentEpisodeId){ t.removeAttribute('data-book'); return; }
     const eps = uxSortedEps(n), i = eps.findIndex(e => e.id === state.currentEpisodeId);
-    t.setAttribute('data-book', n.title || '無題の小説');
+    const ep = eps[i];
+    const bt = n.title || '無題の小説';
+    if(ep && (ep.title || '').trim() === bt.trim()) t.removeAttribute('data-book');   // 1話だけの本：同じ名前を2回出さない
+    else t.setAttribute('data-book', bt);
   }catch(_){}
 }
 let _uxProgRaf = 0;
@@ -324,3 +327,38 @@ if(typeof togglePanel === 'function'){
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(uxTidyMenus, 0));
 else setTimeout(uxTidyMenus, 0);
 /* ══════ 使いやすさここまで ══════ */
+
+/* ══════ 二次創作（タグの1つ目が「二次創作」、2つ目が原作名） ══════ */
+const FAN_TAG = '二次創作';
+function fanSplit(tags){
+  tags = Array.isArray(tags) ? tags.slice() : [];
+  if(tags[0] === FAN_TAG && tags[1]) return { fan: true, orig: tags[1], rest: tags.slice(2) };
+  return { fan: false, orig: '', rest: tags.filter(t => t !== FAN_TAG) };
+}
+function fanJoin(fan, orig, rest){
+  orig = String(orig || '').replace(/[\s#＃,、，]+/g, '').slice(0, 20);
+  rest = (rest || []).filter(t => t && t !== FAN_TAG && t !== orig);
+  return (fan && orig ? [FAN_TAG, orig].concat(rest) : rest).slice(0, 8);
+}
+function workFanHtml(tags){
+  const f = fanSplit(tags);
+  if(!f.fan) return '';
+  return `<div class="work-fan"><span class="work-fan-k">二次創作</span><button onclick='openBrowseTag(${uxEsc(JSON.stringify(f.orig))})'>原作：${uxEsc(f.orig)}</button></div>`;
+}
+// 作品をさがす：オリジナル／二次創作で分ける（ジャンルとは別）
+function fanFilter(works, mode){
+  if(mode === 'fan') return works.filter(w => fanSplit(w.tags).fan);
+  if(mode === 'orig') return works.filter(w => !fanSplit(w.tags).fan);
+  return works;
+}
+if(typeof BROWSE_SHELVES !== 'undefined' && Array.isArray(BROWSE_SHELVES) && !BROWSE_SHELVES.some(x => x.key === 'fan')){
+  const i = BROWSE_SHELVES.findIndex(x => x.key === 'new');
+  BROWSE_SHELVES.splice(i >= 0 ? i + 1 : BROWSE_SHELVES.length, 0, { key: 'fan', title: '二次創作', more: { fan: 'fan', sort: 'popular' }, q: { tag: FAN_TAG, sort: 'popular' } });
+}
+if(typeof coverWithBadges === 'function'){
+  const _uxOrigCWB = coverWithBadges;
+  coverWithBadges = function(w){
+    const h = _uxOrigCWB.apply(this, arguments);
+    return w && fanSplit(w.tags).fan ? h.replace(/<\/span>$/, '<span class="wc-fan">二次創作</span></span>') : h;
+  };
+}
