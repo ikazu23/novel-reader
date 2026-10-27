@@ -2749,24 +2749,53 @@ body:has(#ko-sheet.show) #library-fab{visibility:hidden;}
 .az-w-btn:disabled{opacity:.6;}
 .az-flag{position:absolute;left:6px;top:6px;background:rgba(0,90,90,.82);color:#fff;font-size:9.5px;padding:2px 6px;border-radius:8px;font-family:'Noto Sans JP',sans-serif;pointer-events:none;}
 .az-author{font-family:"Noto Sans JP",sans-serif;font-size:10px;color:#999;text-align:left;margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 1px;}
-#az-banner{display:flex;align-items:center;gap:8px;margin:10px 14px 4px;padding:11px 12px;border-radius:12px;background:linear-gradient(135deg,#e9f6f5,#f6f1e6);font-family:'Noto Sans JP',sans-serif;}
+#az-banner{display:flex;align-items:center;gap:10px;margin:10px 14px 4px;padding:12px 12px 12px 16px;border-radius:14px;background:linear-gradient(120deg,#0f6e6c,#2f9a8f);color:#fff;font-family:'Noto Sans JP',sans-serif;box-shadow:0 4px 14px rgba(0,110,108,.18);}
 .az-b-txt{flex:1;min-width:0;}
-.az-b-txt b{display:block;font-size:13.5px;color:#225;}
-.az-b-txt span{display:block;font-size:11.5px;color:#777;margin-top:2px;}
-.az-b-go{border:none;background:#008080;color:#fff;border-radius:16px;padding:7px 13px;font-size:12.5px;cursor:pointer;font-family:inherit;flex-shrink:0;}
-.az-b-x{border:none;background:none;color:#aaa;font-size:18px;cursor:pointer;padding:0 2px;flex-shrink:0;}
+.az-b-txt b{display:block;font-size:14px;color:#fff;font-family:'Shippori Mincho B1','Noto Serif JP','Noto Serif CJK JP',serif;letter-spacing:.03em;}
+.az-b-txt span{display:block;font-size:11.5px;color:rgba(255,255,255,.82);margin-top:2px;}
+.az-b-go{border:none;background:#fff;color:#0f6e6c;border-radius:16px;padding:7px 14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;}
+.az-b-x{border:none;background:none;color:rgba(255,255,255,.7);font-size:18px;cursor:pointer;padding:0 2px;flex-shrink:0;}
 body.theme-dark #az-sheet{background:#222;color:#ddd;}
 body.theme-dark .az-item{background:#2a2a2a;border-color:#3a3a3a;color:#ddd;}
 body.theme-dark .az-w-t{color:#eee;}
 body.theme-dark .az-work{border-color:#333;}
 body.theme-dark .az-w-btn{background:#222;}
 body.theme-dark .az-w-btn.read{background:#008080;}
-body.theme-dark #az-banner{background:#24302f;}
-body.theme-dark .az-b-txt b{color:#ddd;}
 body.theme-dark .az-close{background:#333;color:#ddd;}
 body:has(#az-sheet.show) #library-fab{visibility:hidden;}
 body.az-book .page-editor rt{line-height:1;}
 body.az-book .page-editor ruby{line-height:inherit;}
+/* 本を追加 */
+.az-grab{width:36px;height:4px;border-radius:2px;background:#ddd;margin:-6px auto 10px;}
+.az-head{display:flex;align-items:center;justify-content:space-between;margin:0 0 14px;}
+.az-head span{font-size:17px;font-weight:700;letter-spacing:.02em;}
+.az-x{border:none;background:#f2f2f2;color:#666;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.az-feature{position:relative;display:flex;align-items:center;width:100%;min-height:118px;border:none;border-radius:16px;padding:16px 16px 16px 18px;margin-bottom:14px;cursor:pointer;text-align:left;overflow:hidden;
+  background:linear-gradient(120deg,#0f6e6c 0%,#14857f 55%,#2f9a8f 100%);color:#fff;font-family:inherit;box-shadow:0 6px 18px rgba(0,110,108,.22);}
+.az-f-txt{position:relative;z-index:1;flex:1;min-width:0;}
+.az-f-txt small{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.12em;background:rgba(255,255,255,.18);border-radius:10px;padding:2px 8px;}
+.az-f-txt b{display:block;font-size:19px;margin:6px 0 2px;font-family:'Shippori Mincho B1','Noto Serif JP','Noto Serif CJK JP',serif;letter-spacing:.04em;}
+.az-f-txt span{display:block;font-size:12px;opacity:.85;}
+.az-f-covers{position:relative;width:122px;height:92px;flex-shrink:0;}
+.az-mini{position:absolute;top:calc(6px + var(--i) * 3px);left:calc(var(--i) * 22px);width:50px;height:70px;border-radius:3px;background:#eee center/cover no-repeat;
+  box-shadow:0 3px 8px rgba(0,0,0,.28);transform:rotate(calc((var(--i) - 1.5) * 4deg));z-index:calc(4 - var(--i));}
+.az-rows{display:flex;flex-direction:column;border-radius:14px;background:#f6f8f8;overflow:hidden;}
+.az-row{display:flex;align-items:center;gap:12px;width:100%;border:none;background:none;padding:13px 14px;cursor:pointer;text-align:left;font-family:inherit;color:#222;}
+.az-row + .az-row{border-top:1px solid #e9eded;}
+.az-row:active,.az-feature:active{opacity:.75;}
+.az-r-ic{width:38px;height:38px;border-radius:12px;background:#fff;color:#008080;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.az-r-t{flex:1;min-width:0;}
+.az-r-t b{display:block;font-size:14.5px;font-weight:600;}
+.az-r-t small{display:block;font-size:11.5px;color:#888;margin-top:2px;}
+.az-r-ch{color:#bbb;display:flex;}
+.az-foot{display:flex;align-items:center;gap:6px;font-size:11px;color:#aaa;margin:14px 4px 2px;}
+.az-foot svg{flex-shrink:0;}
+body.theme-dark .az-x{background:#333;color:#ccc;}
+body.theme-dark .az-rows{background:#2a2a2a;}
+body.theme-dark .az-row{color:#ddd;}
+body.theme-dark .az-row + .az-row{border-color:#363636;}
+body.theme-dark .az-r-ic{background:#333;color:#5cc8c0;}
+body.theme-dark .az-grab{background:#444;}
 /* ══════ 青空文庫ここまで ══════ */
 /* ══════ 使いやすさ ══════ */
 /* 読む画面の上：本の名前と進み具合 */
@@ -2810,7 +2839,9 @@ body.ux-ro-book #toc-fab, body.ux-ro-book #export-menu .own-only{display:none !i
 /* メニューの見出し */
 .ux-mh{padding:10px 16px 2px;font-size:10.5px;font-weight:700;color:#008080;letter-spacing:.08em;font-family:'Noto Sans JP',sans-serif;}
 /* 設定パネル */
-#side-panel .pl{color:#555;font-size:12.5px;letter-spacing:.02em;font-weight:600;}
+#side-panel .pl{color:#333;font-size:13.5px;letter-spacing:.03em;font-weight:400;}
+#side-panel .stepper-val{color:#444;font-weight:400;}
+#side-panel .ps > .pl{font-size:12px;color:#888;letter-spacing:.08em;}
 #side-panel .pl small{display:block;font-size:10.5px;color:#999;font-weight:400;margin-top:1px;}
 #ux-ptabs{position:sticky;top:-20px;z-index:2;display:flex;gap:4px;margin:-20px -20px 16px;padding:10px 14px;background:inherit;background:#fff;border-bottom:1px solid #eee;}
 #ux-ptabs button{flex:1;border:none;background:#f2f4f4;color:#555;border-radius:16px;padding:7px 0;font-size:12.5px;font-family:'Noto Sans JP',sans-serif;cursor:pointer;}
@@ -2825,8 +2856,15 @@ body.ux-ro-book #toc-fab, body.ux-ro-book #export-menu .own-only{display:none !i
 body.theme-dark #ux-ptabs{background:#1e1e1e;border-color:#333;}
 body.theme-dark #ux-ptabs button{background:#2c2c2c;color:#bbb;}
 body.theme-dark #ux-ptabs button.on{background:#008080;color:#fff;}
-body.theme-dark #side-panel .pl{color:#bbb;}
+body.theme-dark #side-panel .pl{color:#ccc;}
+body.theme-dark #side-panel .ps > .pl{color:#999;}
+body.theme-dark #side-panel .stepper-val{color:#ccc;}
 body.theme-dark #ux-preview{border-color:#333;}
+.work-fan{display:flex;align-items:center;gap:6px;margin:6px 0 2px;font-family:'Noto Sans JP',sans-serif;flex-wrap:wrap;}
+.work-fan-k{font-size:10.5px;font-weight:700;color:#8a5a00;background:#fdf1d8;border-radius:8px;padding:2px 7px;}
+.work-fan button{border:none;background:none;padding:0;font-size:12px;color:#555;cursor:pointer;text-decoration:underline;text-decoration-color:#ccc;font-family:inherit;}
+body.theme-dark .work-fan-k{background:#4a3a1a;color:#f0c870;}
+body.theme-dark .work-fan button{color:#bbb;}
 /* ══════ 使いやすさここまで ══════ */
 </style>
 </head>
@@ -8807,7 +8845,14 @@ function openPublishModal(){
       <option value="R18" ${pub.rating === 'R18' ? 'selected' : ''}>R18（18歳以上向け）</option>
     </select>
     ${L('タグ（スペースで区切って8個まで）')}
-    <input class="mi" id="pub-tags" maxlength="200" value="${escapeHtml((pub.tags || []).join(' '))}" placeholder="例：異世界 溺愛 ハッピーエンド" style="min-height:40px;margin-bottom:10px;">
+    <input class="mi" id="pub-tags" maxlength="200" value="${escapeHtml(fanSplit(pub.tags).rest.join(' '))}" placeholder="例：異世界 溺愛 ハッピーエンド" style="min-height:40px;margin-bottom:10px;">
+    <label style="display:flex;gap:8px;align-items:center;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#333;margin:0 0 8px;">
+      <input type="checkbox" id="pub-fan" style="width:16px;height:16px;accent-color:#008080;" ${fanSplit(pub.tags).fan ? 'checked' : ''} onchange="document.getElementById('pub-fan-box').hidden=!this.checked;this.dataset.edited='1'"> 二次創作です
+    </label>
+    <div id="pub-fan-box" ${fanSplit(pub.tags).fan ? '' : 'hidden'} style="margin:0 0 14px;">
+      <input class="mi" id="pub-orig" maxlength="20" value="${escapeHtml(fanSplit(pub.tags).orig)}" placeholder="原作の名前（例：怪談出勤）" style="min-height:40px;margin-bottom:6px;" oninput="this.dataset.edited='1'">
+      <div style="font-family:'Noto Sans JP',sans-serif;font-size:11px;color:#888;line-height:1.6;">原作の公式が二次創作を禁止していないか確かめてね。原作の文章をそのまま・翻訳して載せたり、話の流れをそのままなぞったりするのはダメだよ。</div>
+    </div>
     <label style="display:flex;gap:8px;align-items:center;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#333;margin:0 0 14px;">
       <input type="checkbox" id="pub-done" style="width:16px;height:16px;accent-color:#008080;" ${pub.done ? 'checked' : ''}> 完結した
     </label>
@@ -8816,7 +8861,7 @@ function openPublishModal(){
     ${(() => { const d = (state.novel.episodes || []).filter(e => e.draft).length; return d ? `<div style="font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#888;margin:-4px 0 10px;">下書きの話（${d}話）は公開されないよ</div>` : ''; })()}
     <label style="display:flex;gap:8px;align-items:flex-start;font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#333;margin:6px 0 4px;line-height:1.6;">
       <input type="checkbox" id="pub-self" style="margin-top:3px;width:16px;height:16px;accent-color:#008080;" ${isPub ? 'checked' : ''}>
-      <span>自分で書いた作品です。翻訳・他人の作品の転載ではありません。<a href="${TERMS_URL}" target="_blank" rel="noopener" style="color:#008080;">利用規約</a>に同意します。</span>
+      <span>自分で書いた作品です。翻訳・他人の作品の転載ではありません（二次創作は規約のルールを守っています）。<a href="${TERMS_URL}" target="_blank" rel="noopener" style="color:#008080;">利用規約</a>に同意します。</span>
     </label>
     <div style="font-family:'Noto Sans JP',sans-serif;font-size:10px;color:#999;line-height:1.6;margin-top:6px;">
       本文はあなたのGoogleドライブ（「イカ墨ノベル 公開作品」フォルダ）に、リンクを知っている人が読める形で置かれます。<a href="${TERMS_URL}" target="_blank" rel="noopener" style="color:#999;">規約</a>に反する作品は予告なく公開停止されることがあります。
@@ -8834,17 +8879,21 @@ function openPublishModal(){
         if(!sy.dataset.edited && !sy.value && w.synopsis) sy.value = w.synopsis;
         if(!ge.dataset.edited && w.genre && WORK_GENRES.includes(w.genre)) ge.value = w.genre;
         { const ra = document.getElementById('pub-rating'); if(ra && w.rating) ra.value = w.rating; }
-        { const tg = document.getElementById('pub-tags'); if(tg && !tg.dataset.edited && !tg.value && (w.tags || []).length) tg.value = w.tags.join(' '); }
+        { const tg = document.getElementById('pub-tags'); if(tg && !tg.dataset.edited && !tg.value && (w.tags || []).length){ const fs = fanSplit(w.tags); tg.value = fs.rest.join(' ');
+            const fc = document.getElementById('pub-fan'), fo = document.getElementById('pub-orig');
+            if(fc && !fc.dataset.edited && fs.fan){ fc.checked = true; document.getElementById('pub-fan-box').hidden = false; if(fo && !fo.dataset.edited) fo.value = fs.orig; } } }
         { const dn = document.getElementById('pub-done'); if(dn && w.done) dn.checked = true; }
       }).catch(() => {});
     } }
   showModal(isPub ? '作品の公開・更新' : '作品を公開', async () => {
     if(!document.getElementById('pub-self').checked){ showToast('「自分で書いた作品です・利用規約に同意します」にチェックしてね'); return false; }
+    const _fan = document.getElementById('pub-fan').checked, _orig = document.getElementById('pub-orig').value.trim();
+    if(_fan && !_orig){ showToast('原作の名前を入れてね'); return false; }
     const meta = { genre: document.getElementById('pub-genre').value, synopsis: document.getElementById('pub-synopsis').value.trim(),
       rating: document.getElementById('pub-rating').value,
-      tags: document.getElementById('pub-tags').value.split(/[\s,、，#＃]+/).filter(Boolean).slice(0, 8),
+      tags: fanJoin(_fan, _orig, document.getElementById('pub-tags').value.split(/[\s,、，#＃]+/).filter(Boolean)),
       done: document.getElementById('pub-done').checked,
-      keepTags: !document.getElementById('pub-tags').dataset.edited && !document.getElementById('pub-tags').value.trim(),
+      keepTags: !document.getElementById('pub-tags').dataset.edited && !document.getElementById('pub-tags').value.trim() && !document.getElementById('pub-fan').dataset.edited && !_fan,
       keep: !document.getElementById('pub-synopsis').dataset.edited && !document.getElementById('pub-genre').dataset.edited };
     $.modal_ok.textContent = 'OK';
     // 公開は時間がかかるので、モーダルを閉じてから裏で進める
@@ -9626,6 +9675,7 @@ async function openWorkDetail(workId){
       <div class="work-info-text">
         <div class="work-title">${escapeHtml(meta.title)}</div>
         ${meta.ak ? `<button class="work-author work-author-link" onclick='openBrowseAuthor(${JSON.stringify(meta.ak)}, ${escapeHtml(JSON.stringify(meta.author || "この作者"))})'><u>${escapeHtml(meta.author || '作者')}</u><span>の作品を見る</span></button>` : `<div class="work-author">${escapeHtml(meta.author || '')}</div>`}
+        ${workFanHtml(tags)}
         <div class="work-chips"><span class="work-genre">${escapeHtml(meta.genre || '')}${meta.rating ? `<span class="work-rate">${meta.rating}</span>` : ''}</span><span class="br-st ${meta.done ? 'done' : ''}">${meta.done ? '完結' : '連載中'}</span></div>
         <div class="work-stats"><span><span class="ts-num">${meta.epCount}</span> 話</span>${meta.chars ? `<span>${fmtChars(meta.chars)}</span>` : ''}${meta.updatedAt ? `<span>更新 ${escapeHtml(fmtDay(meta.updatedAt))}</span>` : ''}${likeButtonHtml(workId, meta.likes, meta.liked, 'small')}</div>
       </div>
@@ -15038,14 +15088,34 @@ function azClose(){
 }
 
 // ＋ボタン：新しい本を書く／名作を読む／ファイルから
+const AZ_IC = {
+  pen: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+  file: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>',
+  chev: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>',
+  x: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+  info: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+};
+const _azMini = {};
+function azMiniCovers(){
+  // 名作の表紙を小さく並べる（その場で描く）
+  return [['羅生門', '芥川龍之介'], ['銀河鉄道の夜', '宮沢賢治'], ['走れメロス', '太宰治'], ['坊っちゃん', '夏目漱石']].map(([t, a], i) => {
+    const u = _azMini[t] = _azMini[t] || azMakeCover(t, a);
+    return `<span class="az-mini" style="background-image:url('${u}');--i:${i}"></span>`;
+  }).join('');
+}
 function azOpenAdd(){
   azSheet(`
-    <div class="az-title">本を追加</div>
-    <button class="az-item" onclick="azClose();createNewNovel()"><span class="az-ic">✎</span><span><b>新しい本を書く</b><small>白紙の本を作るよ</small></span></button>
-    <button class="az-item" onclick="azOpenCatalog()"><span class="az-ic">📚</span><span><b>名作を読む（青空文庫）</b><small>漱石・太宰・賢治…すぐ読めるよ</small></span></button>
-    <button class="az-item" onclick="azPickFile()"><span class="az-ic">⤓</span><span><b>テキストファイルから</b><small>青空文庫の .txt / .zip、ほかの .txt</small></span></button>
-    <div class="az-note">取り込んだ作品は、自分で読むためだけに使ってね。公開（投稿）はできないよ。</div>
-    <button class="az-close" onclick="azClose()">閉じる</button>`);
+    <div class="az-grab"></div>
+    <div class="az-head"><span>本を追加</span><button class="az-x" onclick="azClose()" aria-label="閉じる">${AZ_IC.x}</button></div>
+    <button class="az-feature" onclick="azOpenCatalog()">
+      <span class="az-f-txt"><small>青空文庫</small><b>名作を読む</b><span>漱石・太宰・賢治など</span></span>
+      <span class="az-f-covers">${azMiniCovers()}</span>
+    </button>
+    <div class="az-rows">
+      <button class="az-row" onclick="azClose();createNewNovel()"><span class="az-r-ic">${AZ_IC.pen}</span><span class="az-r-t"><b>新しい本を書く</b><small>白紙の本から書きはじめる</small></span><span class="az-r-ch">${AZ_IC.chev}</span></button>
+      <button class="az-row" onclick="azPickFile()"><span class="az-r-ic">${AZ_IC.file}</span><span class="az-r-t"><b>ファイルから取り込む</b><small>.txt・.zip（青空文庫のファイルもOK）</small></span><span class="az-r-ch">${AZ_IC.chev}</span></button>
+    </div>
+    <div class="az-foot">${AZ_IC.info}<span>取り込んだ作品は自分で読む用。公開はできないよ</span></div>`);
 }
 
 let _azCatalog = null;
@@ -15167,7 +15237,7 @@ function azDecorateLibrary(){
     if(old) return;
     const b = document.createElement('div');
     b.id = 'az-banner';
-    b.innerHTML = `<div class="az-b-txt"><b>名作をすぐ読めるよ</b><span>夏目漱石・太宰治・宮沢賢治など（青空文庫）</span></div>
+    b.innerHTML = `<div class="az-b-txt"><b>名作をすぐ読めるよ</b><span>漱石・太宰・賢治など（青空文庫）</span></div>
       <button class="az-b-go" onclick="azOpenCatalog()">見てみる</button><button class="az-b-x" onclick="azBannerOff()" aria-label="閉じる">×</button>`;
     grid.parentNode.insertBefore(b, grid);
   }catch(e){ console.warn('az lib', e); }
@@ -15269,7 +15339,10 @@ function uxTopbarInfo(){
     const n = state.novel;
     if(!n || !state.currentEpisodeId){ t.removeAttribute('data-book'); return; }
     const eps = uxSortedEps(n), i = eps.findIndex(e => e.id === state.currentEpisodeId);
-    t.setAttribute('data-book', n.title || '無題の小説');
+    const ep = eps[i];
+    const bt = n.title || '無題の小説';
+    if(ep && (ep.title || '').trim() === bt.trim()) t.removeAttribute('data-book');   // 1話だけの本：同じ名前を2回出さない
+    else t.setAttribute('data-book', bt);
   }catch(_){}
 }
 let _uxProgRaf = 0;
@@ -15572,6 +15645,24 @@ if(typeof togglePanel === 'function'){
 if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(uxTidyMenus, 0));
 else setTimeout(uxTidyMenus, 0);
 /* ══════ 使いやすさここまで ══════ */
+
+/* ══════ 二次創作（タグの1つ目が「二次創作」、2つ目が原作名） ══════ */
+const FAN_TAG = '二次創作';
+function fanSplit(tags){
+  tags = Array.isArray(tags) ? tags.slice() : [];
+  if(tags[0] === FAN_TAG && tags[1]) return { fan: true, orig: tags[1], rest: tags.slice(2) };
+  return { fan: false, orig: '', rest: tags.filter(t => t !== FAN_TAG) };
+}
+function fanJoin(fan, orig, rest){
+  orig = String(orig || '').replace(/[\s#＃,、，]+/g, '').slice(0, 20);
+  rest = (rest || []).filter(t => t && t !== FAN_TAG && t !== orig);
+  return (fan && orig ? [FAN_TAG, orig].concat(rest) : rest).slice(0, 8);
+}
+function workFanHtml(tags){
+  const f = fanSplit(tags);
+  if(!f.fan) return '';
+  return `<div class="work-fan"><span class="work-fan-k">二次創作</span><button onclick='openBrowseTag(${uxEsc(JSON.stringify(f.orig))})'>原作：${uxEsc(f.orig)}</button></div>`;
+}
 
 function setupDoubleTap(){
   let lastTap=0;
