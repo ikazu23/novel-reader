@@ -2865,6 +2865,15 @@ body.theme-dark #ux-preview{border-color:#333;}
 .work-fan button{border:none;background:none;padding:0;font-size:12px;color:#555;cursor:pointer;text-decoration:underline;text-decoration-color:#ccc;font-family:inherit;}
 body.theme-dark .work-fan-k{background:#4a3a1a;color:#f0c870;}
 body.theme-dark .work-fan button{color:#bbb;}
+/* 画面の上にシートや確認が出ているときは、＋ボタンを隠す（ボタンに重なるため） */
+body:has(#modal-ov.show) #toc-fab, body:has(.kzs-ov.show) #toc-fab, body:has(#az-sheet.show) #toc-fab{visibility:hidden;}
+.bl-fan{display:flex;gap:0;margin:0 0 10px;background:#f1f4f4;border-radius:18px;padding:3px;width:max-content;font-family:'Noto Sans JP',sans-serif;}
+.bl-fan button{border:none;background:none;color:#666;font-size:12.5px;padding:6px 14px;border-radius:15px;cursor:pointer;font-family:inherit;}
+.bl-fan button.on{background:#fff;color:#007070;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.1);}
+.wc-fan{position:absolute;left:4px;bottom:4px;background:rgba(138,90,0,.88);color:#fff;font-size:8.5px;font-weight:700;padding:1px 5px;border-radius:6px;font-family:'Noto Sans JP',sans-serif;pointer-events:none;z-index:2;}
+body.theme-dark .bl-fan{background:#2a2a2a;}
+body.theme-dark .bl-fan button{color:#aaa;}
+body.theme-dark .bl-fan button.on{background:#3a3a3a;color:#5cc8c0;}
 /* ══════ 使いやすさここまで ══════ */
 </style>
 </head>
@@ -9428,7 +9437,7 @@ function browseBack(){
   closeBrowse();
 }
 function browseHome(){
-  Object.assign(_browse, { view: 'home', q: '', ak: '', akName: '', tag: '', genre: '', done: false });
+  Object.assign(_browse, { view: 'home', q: '', ak: '', akName: '', tag: '', genre: '', done: false, fan: '' });
   const qi = document.getElementById('browse-q'); if(qi) qi.value = '';
   renderBrowse();
 }
@@ -9604,6 +9613,7 @@ async function renderBrowseList(body){
         const on = v === 'popular' ? b.sort === 'popular' : b.sort === 'rank' && b.period === v.slice(5);
         return `<button class="${on ? 'on' : ''}" onclick="${v === 'popular' ? "browseList({sort:'popular'})" : `browseList({sort:'rank',period:'${v.slice(5)}'})`}">${l}</button>`;
       }).join('')}</div>` : (b.ak || b.tag || b.q) ? `<div class="bl-seg">${[['popular', 'いいね順'], ['new', '新着順'], ['updated', '更新順']].map(([v, l]) => `<button class="${b.sort === v ? 'on' : ''}" onclick="browseList({sort:'${v}'})">${l}</button>`).join('')}</div>` : ''}
+      <div class="bl-fan">${[['', 'すべて'], ['orig', 'オリジナル'], ['fan', '二次創作']].map(([v, l]) => `<button class="${(b.fan || '') === v ? 'on' : ''}" onclick="browseList({fan:'${v}'})">${l}</button>`).join('')}</div>
       <div class="bl-chips">
         ${chip(!b.genre, 'すべて', "browseList({genre:''})")}${WORK_GENRES.map(g => chip(b.genre === g, g, `browseList({genre:'${g}'})`)).join('')}
         <span class="bl-div"></span>
@@ -9624,11 +9634,11 @@ async function renderBrowseList(body){
   }
   const grid = document.getElementById('browse-grid');
   let data;
-  try{ data = await fetchWorks(b); }
+  try{ data = await fetchWorks(b.fan === 'fan' && !b.tag ? Object.assign({}, b, { tag: FAN_TAG }) : b); }
   catch(e){ if(seq === window._browseSeq) grid.innerHTML = '<div class="work-msg" style="grid-column:1/-1">一覧を読み込めませんでした。通信状態を確認して、右上の矢印でもう一度読み込んでね</div>'; return; }
   if(seq !== window._browseSeq) return;
-  const works = data.works || [];
-  const tot = document.getElementById('bl-total'); if(tot) tot.textContent = works.length ? `${data.total || works.length}作品` : '';
+  const works = fanFilter(data.works || [], b.fan);
+  const tot = document.getElementById('bl-total'); if(tot) tot.textContent = works.length ? `${b.fan ? works.length : (data.total || works.length)}作品` : '';
   if(!works.length){
     grid.innerHTML = `<div class="work-msg" style="grid-column:1/-1">${b.q ? `「${escapeHtml(b.q)}」に合う作品は見つからなかったよ` : b.sort === 'rank' && b.period !== 'all' ? 'この期間に読まれた作品はまだないよ' : 'この条件の作品はまだないよ'}</div>`;
     return;
@@ -15662,6 +15672,23 @@ function workFanHtml(tags){
   const f = fanSplit(tags);
   if(!f.fan) return '';
   return `<div class="work-fan"><span class="work-fan-k">二次創作</span><button onclick='openBrowseTag(${uxEsc(JSON.stringify(f.orig))})'>原作：${uxEsc(f.orig)}</button></div>`;
+}
+// 作品をさがす：オリジナル／二次創作で分ける（ジャンルとは別）
+function fanFilter(works, mode){
+  if(mode === 'fan') return works.filter(w => fanSplit(w.tags).fan);
+  if(mode === 'orig') return works.filter(w => !fanSplit(w.tags).fan);
+  return works;
+}
+if(typeof BROWSE_SHELVES !== 'undefined' && Array.isArray(BROWSE_SHELVES) && !BROWSE_SHELVES.some(x => x.key === 'fan')){
+  const i = BROWSE_SHELVES.findIndex(x => x.key === 'new');
+  BROWSE_SHELVES.splice(i >= 0 ? i + 1 : BROWSE_SHELVES.length, 0, { key: 'fan', title: '二次創作', more: { fan: 'fan', sort: 'popular' }, q: { tag: FAN_TAG, sort: 'popular' } });
+}
+if(typeof coverWithBadges === 'function'){
+  const _uxOrigCWB = coverWithBadges;
+  coverWithBadges = function(w){
+    const h = _uxOrigCWB.apply(this, arguments);
+    return w && fanSplit(w.tags).fan ? h.replace(/<\/span>$/, '<span class="wc-fan">二次創作</span></span>') : h;
+  };
 }
 
 function setupDoubleTap(){
