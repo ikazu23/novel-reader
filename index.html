@@ -1897,6 +1897,329 @@ body.theme-dark .page-editor p.tts-reading{background:rgba(0,200,200,0.14);}
 body.theme-dark .pnl{color:#666;}
 body.theme-dark .page-editor [data-dkfix]{color:var(--ink) !important;}
 
+/* ══════ 作品の公開・共有 ══════ */
+/* 表紙 */
+.wc{position:relative;display:block;width:100%;aspect-ratio:2/3;border-radius:3px 6px 6px 3px;background:#e9e9e6 center/cover no-repeat;
+  box-shadow:0 1px 2px rgba(0,0,0,.12),0 6px 14px -8px rgba(0,0,0,.35);overflow:hidden;container-type:inline-size;}
+.wc::after{content:'';position:absolute;inset:0 auto 0 0;width:5%;background:linear-gradient(90deg,rgba(0,0,0,.18),rgba(255,255,255,.06) 60%,transparent);}
+.wc-gen{background:var(--wc);}
+.wc-slip{position:absolute;top:9%;right:11%;height:68%;writing-mode:vertical-rl;background:#f7f4ec;color:#2a2a2a;
+  padding:.6em .4em;border:1px solid rgba(0,0,0,.08);box-shadow:inset 0 0 0 2px #f7f4ec,inset 0 0 0 3px rgba(0,0,0,.12);
+  font-family:'Shippori Mincho B1','Noto Serif JP','Noto Serif CJK JP','Hiragino Mincho ProN','Yu Mincho',serif;font-weight:600;line-height:1.3;letter-spacing:.04em;overflow:hidden;}
+.wc-t{display:block;word-break:break-all;}
+.wc-a{display:block;font-size:.6em;font-weight:500;color:#666;letter-spacing:.1em;text-align:end;margin-right:.5em;}
+.wc-eps{position:absolute;left:9%;bottom:5%;font-family:'Noto Sans JP',sans-serif;font-size:9cqw;color:rgba(255,255,255,.85);text-shadow:0 1px 2px rgba(0,0,0,.4);}
+.wc-big{width:112px;flex-shrink:0;}
+/* 作品をさがす */
+#browse-search{background:#fff;padding:10px 18px 0;flex-shrink:0;}
+.bs-pill{display:flex;align-items:center;gap:8px;padding:0 12px;height:38px;background:#f2f3f3;border-radius:19px;color:#999;}
+.bs-pill:focus-within{box-shadow:0 0 0 2px rgba(0,128,128,.35);}
+#browse-search input{flex:1;min-width:0;border:none;background:none;outline:none;font-family:'Noto Sans JP',sans-serif;font-size:14px;color:#222;}
+#browse-author{display:flex;align-items:center;gap:6px;background:#fff;padding:10px 18px 0;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#008080;font-weight:600;flex-shrink:0;}
+#browse-author button{border:none;background:#e8f4f4;color:#008080;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:11px;}
+.browse-genre.r18{border-style:dashed;}
+.browse-genre.r18.active{background:#c0506a;border-color:#c0506a;border-style:solid;}
+.wc-rate{position:absolute;top:5%;left:9%;z-index:1;font-family:'Noto Sans JP',sans-serif;font-size:8.5cqw;font-weight:700;color:#fff;background:rgba(0,0,0,.45);border-radius:3px;padding:.1em .35em;}
+.wc-rate.r18{background:#c0506a;}
+.work-rate{margin-left:6px;padding-left:6px;border-left:1px solid currentColor;font-weight:700;}
+.work-author-link{all:unset;align-self:flex-start;cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#3a6d8c;margin-bottom:8px;}
+.work-author-link u{text-underline-offset:3px;text-decoration-color:rgba(58,109,140,.35);}
+.work-author-link span{color:#999;font-size:11px;margin-left:6px;}
+.work-author-link:focus-visible{outline:2px solid #008080;outline-offset:2px;}
+.work-gate{padding:70px 24px;text-align:center;font-family:'Noto Sans JP',sans-serif;}
+.work-gate-mark{display:inline-block;border:2px solid #c0506a;color:#c0506a;border-radius:6px;padding:2px 10px;font-weight:700;font-size:18px;margin-bottom:14px;}
+.work-gate-t{font-size:15px;color:#222;margin-bottom:4px;}
+.work-gate-s{font-size:13px;color:#888;margin-bottom:18px;}
+#browse-grid{gap:26px 16px;padding:22px 20px 40px;}
+.bw-card{all:unset;box-sizing:border-box;display:flex;flex-direction:column;min-width:0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.bw-card:focus-visible{outline:2px solid #008080;outline-offset:4px;border-radius:4px;}
+.bw-card:active .wc{transform:translateY(1px);}
+.bw-title{margin-top:9px;font-family:'Shippori Mincho B1','Noto Serif JP',serif;font-size:14px;font-weight:600;color:#222;line-height:1.45;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all;}
+.bw-rank{font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:700;color:#999;margin-right:5px;}
+.bw-rank.top{color:#008080;}
+.bw-author{margin-top:2px;font-family:'Noto Sans JP',sans-serif;font-size:11px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bw-meta{margin-top:4px;display:flex;flex-wrap:wrap;gap:2px 8px;font-family:'Noto Sans JP',sans-serif;font-size:10.5px;color:#999;}
+.bw-like{color:#c0506a;}
+.bw-own{color:#008080;font-weight:600;}
+/* 作品ページ */
+.work-info{background:color-mix(in srgb, var(--wc, #008080) 9%, #fff);border-bottom:none !important;padding:24px 18px 22px !important;gap:18px !important;}
+.work-title{font-size:21px !important;}
+.work-genre{background:#fff !important;color:var(--wc, #008080) !important;border:1px solid color-mix(in srgb, var(--wc, #008080) 35%, #fff);}
+.work-synopsis{border-left:2px solid #e2e2e2;padding-left:14px !important;margin:0 18px;padding-right:0 !important;}
+.work-sec-title{letter-spacing:.05em !important;color:#999 !important;font-size:12px !important;}
+body.theme-dark .bw-title{color:#e6e6e6;}
+body.theme-dark .work-info{background:color-mix(in srgb, var(--wc, #008080) 22%, #1e1e1e);}
+.browse-terms{text-align:center;padding:18px 0 28px;font-family:'Noto Sans JP',sans-serif;font-size:12px;}
+.browse-terms a{color:#888;}
+body.shared-mode .own-only{display:none !important;}
+body.work-open #library-fab{display:none !important;}
+.shared-only{display:none;}
+body.shared-mode .shared-only{display:block;}
+body.shared-mode #toc-fab{display:none !important;}
+body.shared-mode #toc-cover{pointer-events:none;}
+body.shared-mode #toc-cover .cover-edit-hint{display:none;}
+body.shared-mode #topbar-reading-mode{display:none;}
+.toc-ep-flag{
+  flex-shrink:0;font-family:'Noto Sans JP',sans-serif;font-size:9px;font-weight:700;
+  padding:2px 6px;border-radius:3px;letter-spacing:.04em;
+}
+.toc-ep-flag.new{background:#e0701b;color:#fff;}
+.toc-ep-flag.draft{background:#f1f1f1;color:#888;border:1px dashed #ccc;}
+.toc-ep-flag.upd{background:#e8f4f4;color:#008080;border:1px solid #bfe0e0;}
+.lib-card-flag{
+  position:absolute;top:6px;right:6px;
+  background:#e0701b;color:#fff;
+  font-family:'Noto Sans JP',sans-serif;font-size:9px;font-weight:700;
+  padding:2px 7px;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,0.25);
+}
+.lib-card-flag.stop{background:#777;}
+.toc-trial-note{
+  margin:18px;padding:14px;border-radius:10px;background:#f4f9f9;border:1px solid #d7ecec;
+  font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#355;line-height:1.7;text-align:center;
+}
+.toc-trial-note .work-btn{margin-top:10px;width:100%;}
+
+#work-screen{
+  position:fixed;inset:0;z-index:230;background:#fff;overflow-y:auto;
+  display:none;flex-direction:column;
+}
+#work-screen.show{display:flex;}
+#work-topbar{
+  position:sticky;top:0;display:flex;align-items:center;gap:6px;
+  height:var(--top-h);padding:0 6px;background:#fff;border-bottom:1px solid #eee;z-index:2;flex-shrink:0;
+}
+#work-body{flex:1;padding-bottom:60px;}
+.work-msg{text-align:center;padding:60px 20px;font-family:'Noto Sans JP',sans-serif;color:#999;font-size:13px;line-height:2;}
+.work-info{display:flex;gap:16px;padding:20px 18px 18px;border-bottom:1px solid #f0f0f0;}
+.work-cover{
+  width:96px;height:140px;flex-shrink:0;border-radius:8px;background:#f0f0f0 center/cover no-repeat;
+  border:1px solid #e8e8e8;display:flex;align-items:center;justify-content:center;
+  font-family:'Noto Sans JP',sans-serif;font-size:11px;color:#bbb;
+}
+.work-info-text{flex:1;min-width:0;display:flex;flex-direction:column;}
+.work-title{font-family:'Shippori Mincho B1','Noto Serif JP',serif;font-size:20px;font-weight:600;color:#222;line-height:1.4;margin-bottom:6px;word-break:break-all;}
+.work-author{font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#888;margin-bottom:8px;}
+.work-genre{
+  align-self:flex-start;font-family:'Noto Sans JP',sans-serif;font-size:11px;color:#008080;
+  background:#e8f4f4;border-radius:4px;padding:2px 8px;margin-bottom:10px;
+}
+.work-stats{margin-top:auto;display:flex;gap:14px;font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#888;}
+.work-stats .ts-num{color:#222;font-weight:600;}
+.work-actions{display:flex;gap:8px;padding:16px 18px;border-bottom:1px solid #f0f0f0;}
+.work-btn{
+  flex:1;padding:12px 8px;border-radius:10px;border:1px solid #008080;background:#fff;color:#008080;
+  font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:600;cursor:pointer;
+}
+.work-btn.primary{background:#008080;color:#fff;}
+.work-btn:active{opacity:.85;}
+.work-sec-title{padding:18px 18px 6px;font-family:'Noto Sans JP',sans-serif;font-size:11px;color:#aaa;letter-spacing:.15em;}
+.work-synopsis{padding:0 18px;font-family:'Noto Sans JP',sans-serif;font-size:14px;color:#333;line-height:1.9;white-space:pre-wrap;word-break:break-all;}
+.work-foot{padding:24px 18px;text-align:center;}
+.work-link-btn{background:none;border:none;color:#3a6d8c;font-family:'Noto Sans JP',sans-serif;font-size:12px;cursor:pointer;}
+@media (min-width:900px){
+  .work-info,.work-actions,.work-sec-title,.work-synopsis{padding-left:64px;padding-right:64px;}
+  .work-cover{width:140px;height:200px;}
+}
+
+/* ══════ 作品をさがす・いいね ══════ */
+body.browse-open #library-fab{display:none !important;}
+#browse-screen{
+  position:fixed;inset:0;z-index:225;background:#f7f7f7;overflow-y:auto;
+  display:none;flex-direction:column;
+}
+#browse-screen.show{display:flex;}
+#browse-topbar{
+  position:sticky;top:0;display:flex;align-items:center;gap:6px;
+  height:var(--top-h);padding:0 6px;background:#fff;border-bottom:1px solid #eee;z-index:2;flex-shrink:0;
+}
+#browse-sorts{display:flex;gap:0;padding:10px 18px 0;background:#fff;flex-shrink:0;}
+.browse-sort{
+  flex:1;background:none;border:none;border-bottom:2px solid #eee;color:#888;padding:8px 4px;
+  font-family:'Noto Sans JP',sans-serif;font-size:13px;cursor:pointer;
+}
+.browse-sort.active{color:#008080;border-bottom-color:#008080;font-weight:600;}
+#browse-genres{
+  display:flex;gap:6px;overflow-x:auto;padding:10px 18px;background:#fff;border-bottom:1px solid #eee;
+  scrollbar-width:none;flex-shrink:0;
+}
+#browse-genres::-webkit-scrollbar{display:none;}
+.browse-genre{
+  flex-shrink:0;background:#fff;border:1px solid #ddd;border-radius:14px;padding:4px 12px;
+  font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#555;cursor:pointer;white-space:nowrap;
+}
+.browse-genre.active{background:#008080;border-color:#008080;color:#fff;}
+#browse-grid{
+  flex-shrink:0;display:grid;grid-template-columns:repeat(3,1fr);gap:24px 14px;padding:22px 28px 80px;
+}
+@media (min-width:900px){
+  #browse-grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:48px 32px;padding:40px 64px 100px;max-width:1100px;margin:0 auto;width:100%;}
+}
+.browse-card-meta{
+  display:flex;justify-content:space-between;gap:4px;margin-top:3px;padding:0 1px;
+  font-family:'Noto Sans JP',sans-serif;font-size:10px;color:#999;
+}
+.lib-card-flag.owned{background:#008080;}
+.browse-rank{
+  position:absolute;top:0;left:0;z-index:2;min-width:26px;height:26px;padding:0 6px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(40,40,40,.82);color:#fff;border-radius:0 0 8px 0;
+  font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:700;line-height:1;
+}
+.browse-rank.top1{background:#c9a227;}
+.browse-rank.top2{background:#9aa3ad;}
+.browse-rank.top3{background:#b07a4f;}
+.like-btn{
+  display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid #e3c3c8;border-radius:14px;
+  padding:3px 10px;font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#c0506a;cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.like-btn.small{padding:1px 9px;font-size:11px;}
+.like-btn.liked{background:#fdeef1;border-color:#f0a8b8;}
+.like-btn .like-heart{font-size:13px;line-height:1;}
+.like-btn:active{transform:scale(.95);}
+#toc-stats{align-items:center;flex-wrap:wrap;}
+.work-stats{align-items:center;flex-wrap:wrap;}
+
+/* ══════ 作品をさがす（トップの棚・一覧） ══════ */
+/* 白い面・黒い文字・ゴシック。色はアプリのティールと、ジャンルの点だけ */
+#browse-screen{background:#fff !important;}
+#browse-body{flex:1;padding-bottom:30px;font-family:'Noto Sans JP',sans-serif;}
+#browse-search{padding:8px 16px 0 !important;}
+.bs-pill{height:36px !important;border-radius:8px !important;background:#f3f4f4 !important;}
+.browse-tabs{display:flex;gap:22px;padding:0 16px;background:#fff;border-bottom:1px solid #eee;overflow-x:auto;scrollbar-width:none;flex-shrink:0;position:sticky;top:var(--top-h);z-index:2;}
+.browse-tabs::-webkit-scrollbar{display:none;}
+.browse-tabs button{flex-shrink:0;border:none;background:none;padding:12px 0 10px;font-family:'Noto Sans JP',sans-serif;font-size:14px;color:#888;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.browse-tabs button.on{color:#111;font-weight:700;border-bottom-color:#111;}
+/* ジャンル */
+.bh-genres{display:flex;gap:6px;overflow-x:auto;padding:14px 16px 4px;scrollbar-width:none;}
+.bh-genres::-webkit-scrollbar{display:none;}
+.bh-genres button{flex-shrink:0;display:flex;align-items:center;gap:6px;border:1px solid #e6e6e6;background:#fff;border-radius:16px;padding:6px 12px;font-family:'Noto Sans JP',sans-serif;font-size:12.5px;color:#333;cursor:pointer;}
+.bh-dot{width:7px;height:7px;border-radius:50%;}
+/* 棚 */
+.bh-shelf{padding:22px 0 2px;}
+.bh-shelf + .bh-shelf{border-top:8px solid #f5f5f5;}
+.bh-head{display:flex;align-items:center;justify-content:space-between;padding:0 16px 12px;}
+.bh-head h2{margin:0;font-family:'Noto Sans JP',sans-serif;font-size:17px;font-weight:700;color:#111;letter-spacing:-.01em;}
+.bh-head button{display:flex;align-items:center;gap:1px;border:none;background:none;color:#888;font-family:'Noto Sans JP',sans-serif;font-size:12.5px;cursor:pointer;padding:4px 0;}
+.bh-row{display:grid;grid-auto-flow:column;grid-auto-columns:27%;gap:12px;overflow-x:auto;padding:0 16px 16px;scroll-padding-inline:16px;scroll-snap-type:x proximity;scrollbar-width:none;}
+.bh-row::-webkit-scrollbar{display:none;}
+.bh-row .bw-card{scroll-snap-align:start;}
+.bh-msg{font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#aaa;padding:20px 0;grid-column:1/-1;}
+/* 表紙のカード */
+.bw-card{all:unset;box-sizing:border-box;display:flex;flex-direction:column;min-width:0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.bw-card:focus-visible{outline:2px solid #008080;outline-offset:3px;border-radius:4px;}
+.bw-card .wc{border-radius:4px;box-shadow:0 0 0 1px rgba(0,0,0,.06);}
+.bw-card .wc::after{display:none;}
+.bw-title{margin-top:8px;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:600;color:#1a1a1a;line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all;}
+.bw-author{margin-top:3px;font-family:'Noto Sans JP',sans-serif;font-size:11.5px;color:#8a8a8a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:1.4em;}
+.wc-own{position:absolute;top:0;right:0;z-index:1;font-family:'Noto Sans JP',sans-serif;font-size:8.5cqw;font-weight:700;color:#fff;background:#008080;border-radius:0 0 0 4px;padding:.15em .45em;}
+.wc-rate{top:0 !important;left:0 !important;border-radius:0 0 4px 0 !important;}
+/* ランキング（3作品ずつの列を横にめくる） */
+.rk-cols{display:grid;grid-auto-flow:column;grid-auto-columns:86%;gap:16px;overflow-x:auto;padding:0 16px 16px;scroll-padding-inline:16px;scroll-snap-type:x mandatory;scrollbar-width:none;}
+.rk-cols::-webkit-scrollbar{display:none;}
+.rk-col{display:flex;flex-direction:column;gap:12px;scroll-snap-align:start;min-width:0;}
+.rk-item{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:12px;cursor:pointer;min-width:0;}
+.rk-item:focus-visible{outline:2px solid #008080;outline-offset:2px;border-radius:4px;}
+.rk-cover{width:56px;flex-shrink:0;}
+.rk-cover .wc{border-radius:3px;box-shadow:0 0 0 1px rgba(0,0,0,.06);}
+.rk-cover .wc::after{display:none;}
+.rk-n{flex-shrink:0;width:22px;text-align:center;font-family:'Noto Sans JP',sans-serif;font-size:17px;font-weight:800;color:#222;font-variant-numeric:tabular-nums;}
+.rk-n.top{color:#008080;}
+.rk-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.rk-title{font-size:14px;font-weight:600;color:#1a1a1a;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all;}
+.rk-sub{font-size:11.5px;color:#8a8a8a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.rk-meta{font-size:11px;color:#aaa;}
+.rk-meta i,.br-meta i{font-style:normal;}
+.rk-meta i::before,.br-meta i::before{content:'';display:inline-block;width:1px;height:9px;background:#ddd;margin:0 6px;vertical-align:middle;}
+@media (min-width:900px){
+  .bh-row{grid-auto-columns:140px;gap:20px;padding-left:64px;padding-right:64px;scroll-padding-inline:64px;}
+  .rk-cols{grid-auto-columns:340px;padding-left:64px;padding-right:64px;scroll-padding-inline:64px;}
+  .bh-head,.bh-genres{padding-left:64px;padding-right:64px;}
+}
+
+/* 一覧の上 */
+.bl-author{padding:18px 16px 6px;}
+.bl-au-name{font-family:'Noto Sans JP',sans-serif;font-size:20px;font-weight:700;color:#111;}
+.bl-au-bio{font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#666;line-height:1.8;white-space:pre-wrap;margin-top:4px;}
+.bl-au-bio:empty{display:none;}
+.bl-filter{display:flex;align-items:center;gap:6px;padding:14px 16px 0;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#555;}
+.bl-filter b{color:#111;}
+.bl-filter button{border:none;background:#f0f0f0;color:#666;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:11px;margin-left:2px;}
+.bl-bar{padding:12px 0 0;border-bottom:1px solid #f0f0f0;}
+.bl-seg{display:flex;gap:4px;margin:0 16px 10px;padding:3px;background:#f3f4f4;border-radius:8px;}
+.bl-seg button{flex:1;border:none;background:none;border-radius:6px;padding:6px 0;font-family:'Noto Sans JP',sans-serif;font-size:12.5px;color:#777;cursor:pointer;}
+.bl-seg button.on{background:#fff;color:#111;font-weight:700;box-shadow:0 1px 2px rgba(0,0,0,.08);}
+.bl-chips{display:flex;align-items:center;gap:6px;overflow-x:auto;padding:0 16px;scrollbar-width:none;}
+.bl-chips::-webkit-scrollbar{display:none;}
+.bl-chip{flex-shrink:0;border:1px solid #e6e6e6;background:#fff;border-radius:16px;padding:5px 12px;font-family:'Noto Sans JP',sans-serif;font-size:12.5px;color:#444;cursor:pointer;}
+.bl-chip.on{background:#111;border-color:#111;color:#fff;}
+.bl-chip.r18.on{background:#c0506a;border-color:#c0506a;}
+.bl-div{flex-shrink:0;width:1px;height:18px;background:#e6e6e6;margin:0 4px;}
+.bl-count{display:flex;align-items:center;justify-content:space-between;padding:8px 16px 8px;font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#999;}
+.bl-lays{display:flex;gap:2px;}
+.bl-lay{border:none;background:none;color:#c4c4c4;padding:4px;cursor:pointer;border-radius:6px;display:flex;}
+.bl-lay.on{color:#111;}
+
+/* 表紙で並べる */
+#browse-grid.bl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px 12px;padding:16px 16px 40px;}
+@media (min-width:900px){ #browse-grid.bl-grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:36px 24px;padding:28px 64px 80px;max-width:1100px;margin:0 auto;} }
+/* あらすじ付きで並べる */
+#browse-grid.bl-rows{display:block;padding:0 0 30px;}
+@media (min-width:900px){ #browse-grid.bl-rows{max-width:860px;margin:0 auto;} }
+.br-row{display:flex;align-items:flex-start;gap:12px;padding:16px;border-bottom:1px solid #f2f2f2;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.br-row:active{background:#fafafa;}
+.br-row:focus-visible{outline:2px solid #008080;outline-offset:-2px;}
+.br-n{padding-top:22px;}
+.br-cover{width:72px;flex-shrink:0;}
+.br-cover .wc{border-radius:4px;box-shadow:0 0 0 1px rgba(0,0,0,.06);}
+.br-cover .wc::after{display:none;}
+.br-body{flex:1;min-width:0;}
+.br-title{font-family:'Noto Sans JP',sans-serif;font-size:15px;font-weight:700;color:#111;line-height:1.45;word-break:break-all;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.br-author{font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#8a8a8a;margin-top:2px;}
+.br-meta{display:flex;flex-wrap:wrap;align-items:center;margin-top:6px;font-family:'Noto Sans JP',sans-serif;font-size:11.5px;color:#999;}
+.br-st{color:#2f7d57;font-weight:600;}
+.br-st.done{color:#8a5a14;}
+.br-like{color:#c0506a;}
+.br-syn{margin-top:6px;font-family:'Noto Sans JP',sans-serif;font-size:12.5px;color:#555;line-height:1.7;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-all;}
+.br-tags{display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:6px;font-family:'Noto Sans JP',sans-serif;font-size:11.5px;color:#3a6d8c;}
+
+/* 作品ページ */
+.work-chips{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.work-chips .work-genre{margin-bottom:0 !important;}
+.work-chips .br-st{font-family:'Noto Sans JP',sans-serif;font-size:11px;}
+.work-last{padding:0 18px 12px;font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#888;}
+.work-tags{display:flex;flex-wrap:wrap;gap:6px;padding:4px 18px 8px;}
+.work-tags button{border:1px solid #d6e3ea;background:#f5f9fb;color:#3a6d8c;border-radius:14px;padding:3px 11px;font-family:'Noto Sans JP',sans-serif;font-size:12px;cursor:pointer;}
+.work-toc{padding:0 18px;}
+.wt-row{display:flex;align-items:baseline;gap:12px;width:100%;border:none;border-bottom:1px solid #f2f2f2;background:none;padding:12px 2px;text-align:left;cursor:pointer;font-family:'Noto Sans JP',sans-serif;}
+.wt-row:active{background:#fafafa;}
+.wt-n{flex-shrink:0;min-width:2.2em;font-size:12px;color:#aaa;}
+.wt-t{flex:1;min-width:0;font-size:14px;color:#222;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.wt-m{flex-shrink:0;font-size:11px;color:#aaa;}
+.wt-more{display:block;width:100%;border:none;background:none;color:#008080;padding:12px 0;font-family:'Noto Sans JP',sans-serif;font-size:13px;cursor:pointer;}
+#work-more{padding-top:4px;}
+@media (min-width:900px){ .work-toc,.work-tags,.work-last{padding-left:64px;padding-right:64px;} }
+
+/* 公開画面 */
+.pub-row{display:flex;align-items:center;gap:8px;margin-bottom:14px;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#333;}
+.pub-pen{flex:1;min-width:0;}
+.pub-pen b{color:#222;}
+.pub-pen small{display:block;color:#999;font-size:11px;}
+
+/* 暗い画面 */
+body.theme-dark #browse-screen,body.theme-dark .browse-tabs{background:#1b1b1b !important;}
+body.theme-dark .bh-shelf + .bh-shelf{border-top-color:#111;}
+body.theme-dark .bh-genres button,body.theme-dark .bl-chip{background:#222;border-color:#333;color:#ddd;}
+body.theme-dark .bl-seg{background:#262626;}body.theme-dark .bl-seg button.on{background:#383838;color:#fff;}
+body.theme-dark .bh-head h2,body.theme-dark .br-title,body.theme-dark .bl-au-name,body.theme-dark .wt-t,body.theme-dark .bw-title,body.theme-dark .rk-title,body.theme-dark .rk-n,body.theme-dark .browse-tabs button.on{color:#e6e6e6;}
+body.theme-dark .browse-tabs button.on{border-bottom-color:#e6e6e6;}
+body.theme-dark .bl-chip.on{background:#e6e6e6;color:#111;}
+body.theme-dark .br-row,body.theme-dark .wt-row{border-color:#2c2c2c;}
+
 /* ══════ PC：左右の端クリックでページ移動 ══════ */
 #viewport.edge-hover{cursor:pointer;}
 #viewport.edge-hover .page-editor{cursor:pointer;}
@@ -2445,7 +2768,69 @@ body.theme-dark #az-banner{background:#24302f;}
 body.theme-dark .az-b-txt b{color:#ddd;}
 body.theme-dark .az-close{background:#333;color:#ddd;}
 body:has(#az-sheet.show) #library-fab{visibility:hidden;}
+body.az-book .page-editor rt{line-height:1;}
+body.az-book .page-editor ruby{line-height:inherit;}
 /* ══════ 青空文庫ここまで ══════ */
+/* ══════ 使いやすさ ══════ */
+/* 読む画面の上：本の名前と進み具合 */
+#topbar-title[data-book]{line-height:1.25;font-size:14px;}
+#topbar-title[data-book]::before{content:attr(data-book);display:block;font-size:10px;font-weight:400;color:#999;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#ux-prog{position:absolute;left:0;right:0;bottom:-1px;height:2px;background:transparent;pointer-events:none;}
+#ux-prog i{display:block;height:100%;width:0;background:#008080;opacity:.7;transition:width .2s;}
+#topbar{transition:background .3s,border-color .3s,transform .22s ease;}
+#viewport{transition:top .22s ease;}
+body.ux-immersive #topbar{transform:translateY(-100%);}
+body.ux-immersive #viewport{top:0;}
+/* 本棚 */
+.ux-pbar{position:absolute;left:6px;right:6px;bottom:5px;height:3px;border-radius:2px;background:rgba(255,255,255,.55);overflow:hidden;pointer-events:none;}
+.ux-pbar i{display:block;height:100%;background:#008080;}
+.ux-pbar.line{position:relative;left:auto;right:auto;bottom:auto;display:block;margin-top:7px;background:#e3ecec;}
+#ux-continue{margin:12px 14px 2px;}
+.ux-cont{display:flex;align-items:center;gap:12px;width:100%;border:none;background:#fff;border-radius:14px;padding:10px 12px;box-shadow:0 2px 10px rgba(0,0,0,.07);cursor:pointer;text-align:left;font-family:'Noto Sans JP',sans-serif;color:#222;}
+.ux-cont-cv{width:44px;height:62px;border-radius:4px;background:#e8e8e8 center/cover no-repeat;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.15);}
+.ux-cont-main{flex:1;min-width:0;display:block;}
+.ux-cont-main small{display:block;font-size:10.5px;color:#008080;font-weight:700;letter-spacing:.05em;}
+.ux-cont-main b{display:block;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+.ux-cont-ep{display:block;font-size:12px;color:#777;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ux-cont-ep em{font-style:normal;color:#aaa;margin-left:8px;}
+.ux-cont-go{width:36px;height:36px;border-radius:50%;background:#008080;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;padding-left:2px;}
+body.theme-dark .ux-cont{background:#2a2a2a;color:#ddd;}
+body.theme-dark .ux-pbar.line{background:#3a4444;}
+/* 目次 */
+#ux-toc-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+#ux-toc-acts:empty{display:none;}
+.ux-ta{border:1.5px solid #008080;background:#fff;color:#008080;border-radius:18px;padding:7px 14px;font-size:12.5px;cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-weight:600;max-width:100%;}
+.ux-ta.main{background:#008080;color:#fff;}
+.ux-ta small{display:block;font-size:10.5px;font-weight:400;opacity:.85;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+body.theme-dark .ux-ta{background:#222;}
+body.theme-dark .ux-ta.main{background:#008080;}
+body.ux-ro-book #toc-fab, body.ux-ro-book #export-menu .own-only{display:none !important;}
+#toc-fab .ux-fab-l{display:none;}
+@media (min-width:0px){
+  #toc-fab{width:auto !important;padding:0 18px 0 14px;border-radius:28px !important;gap:6px;}
+  #toc-fab .ux-fab-l{display:inline;font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:700;}
+}
+/* メニューの見出し */
+.ux-mh{padding:10px 16px 2px;font-size:10.5px;font-weight:700;color:#008080;letter-spacing:.08em;font-family:'Noto Sans JP',sans-serif;}
+/* 設定パネル */
+#side-panel .pl{color:#555;font-size:12.5px;letter-spacing:.02em;font-weight:600;}
+#side-panel .pl small{display:block;font-size:10.5px;color:#999;font-weight:400;margin-top:1px;}
+#ux-ptabs{position:sticky;top:-20px;z-index:2;display:flex;gap:4px;margin:-20px -20px 16px;padding:10px 14px;background:inherit;background:#fff;border-bottom:1px solid #eee;}
+#ux-ptabs button{flex:1;border:none;background:#f2f4f4;color:#555;border-radius:16px;padding:7px 0;font-size:12.5px;font-family:'Noto Sans JP',sans-serif;cursor:pointer;}
+#ux-ptabs button.on{background:#008080;color:#fff;font-weight:700;}
+#panel-body:not(.ux-all)[data-ux-tab="text"] > [data-ux-t]:not([data-ux-t="text"]),
+#panel-body:not(.ux-all)[data-ux-tab="tts"] > [data-ux-t]:not([data-ux-t="tts"]),
+#panel-body:not(.ux-all)[data-ux-tab="look"] > [data-ux-t]:not([data-ux-t="look"]),
+#panel-body:not(.ux-all)[data-ux-tab="etc"] > [data-ux-t]:not([data-ux-t="etc"]){display:none !important;}
+#panel-body.ux-all #ux-ptabs, #panel-body.ux-all #ux-preview{display:none;}
+#ux-preview{border:1px solid #eee;border-radius:10px;padding:10px 12px;margin-bottom:22px;background:var(--bg, #fff);color:var(--ink, #222);max-height:170px;overflow:hidden;}
+.ux-pv-k{font-size:10px;color:#aaa;margin-bottom:4px;font-family:'Noto Sans JP',sans-serif;}
+body.theme-dark #ux-ptabs{background:#1e1e1e;border-color:#333;}
+body.theme-dark #ux-ptabs button{background:#2c2c2c;color:#bbb;}
+body.theme-dark #ux-ptabs button.on{background:#008080;color:#fff;}
+body.theme-dark #side-panel .pl{color:#bbb;}
+body.theme-dark #ux-preview{border-color:#333;}
+/* ══════ 使いやすさここまで ══════ */
 </style>
 </head>
 <body class="booting">
@@ -2483,6 +2868,9 @@ body:has(#az-sheet.show) #library-fab{visibility:hidden;}
       onblur="saveLibraryName(this)"
       onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
     >マイライブラリ</span>
+    <button class="lib-tb-btn" onclick="openBrowse()" title="作品をさがす">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+    </button>
     <button class="lib-tb-btn" onclick="openBackupMenu()" title="バックアップ・復元" style="position:relative;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.5" fill="currentColor" stroke="none"/></svg>
     </button>
@@ -2515,6 +2903,19 @@ body:has(#az-sheet.show) #library-fab{visibility:hidden;}
     ログアウト
   </button>
   <div style="height:1px;background:#f0f0f0;"></div>
+  <button onclick="openAddByLinkModal()" style="display:flex;align-items:center;gap:10px;width:100%;border:none;background:none;padding:14px 16px;font-size:14px;color:#222;cursor:pointer;text-align:left;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    リンクから作品を追加
+  </button>
+  <button onclick="closeBackupMenu();openProfileModal()" style="display:flex;align-items:center;gap:10px;width:100%;border:none;background:none;padding:14px 16px;font-size:14px;color:#222;cursor:pointer;text-align:left;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+    ペンネーム（作者名）
+  </button>
+  <button onclick="closeBackupMenu();openMyWorksModal()" style="display:flex;align-items:center;gap:10px;width:100%;border:none;background:none;padding:14px 16px;font-size:14px;color:#222;cursor:pointer;text-align:left;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+    自分の公開作品
+  </button>
+  <div style="height:1px;background:#f0f0f0;"></div>
   <div style="padding:8px 16px 4px;font-size:10px;color:#999;">
     ※ ファイルでのバックアップWeb版のみ対応です
   </div>
@@ -2535,6 +2936,32 @@ body:has(#az-sheet.show) #library-fab{visibility:hidden;}
   </a>
 </div>
 <input type="file" id="restore-file-input" accept=".json,application/json" style="display:none" onchange="doRestore(this)">
+<!-- 作品をさがす（一覧） -->
+<div id="browse-screen">
+  <div id="browse-topbar">
+    <button class="toc-tb-btn" onclick="browseBack()" title="戻る">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="toc-tb-title" id="browse-tb-title">作品をさがす</span>
+    <button class="toc-tb-btn" onclick="renderBrowse()" title="再読み込み">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15A9 9 0 1 1 18.36 5.64L23 10"/></svg>
+    </button>
+  </div>
+  <div id="browse-search"><label class="bs-pill"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg><input id="browse-q" type="search" placeholder="題名・作者名・タグでさがす" enterkeyhint="search" oninput="onBrowseSearch(this.value)" onkeydown="event.stopPropagation()"></label></div>
+  <div id="browse-tabs" class="browse-tabs"></div>
+  <div id="browse-body"></div>
+</div>
+<!-- 作品ページ（共有リンクから開く） -->
+<div id="work-screen">
+  <div id="work-topbar">
+    <button class="toc-tb-btn" onclick="closeWorkDetail()" title="戻る">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+    <span class="toc-tb-title">作品</span>
+    <div class="toc-tb-spacer"></div>
+  </div>
+  <div id="work-body"></div>
+</div>
 <button id="library-fab" onclick="azOpenAdd()">
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 </button>
@@ -3160,6 +3587,25 @@ body:has(#az-sheet.show) #library-fab{visibility:hidden;}
     </details>
   </div>
 
+  <div class="ps shared-only" style="margin-top:32px;">
+    <div class="pl">この作品について</div>
+    <button onclick="removeCurrentFromLibrary()" style="
+      width:100%;background:none;border:1px solid #ddd;
+      color:#555;padding:10px;border-radius:8px;margin-bottom:8px;
+      font-family:'Noto Sans JP',sans-serif;font-size:12px;cursor:pointer;">
+      本棚から削除
+    </button>
+    <button onclick="closePanel();openReportModal();" style="
+      width:100%;background:none;border:1px solid #f0d0d0;
+      color:#c54040;padding:10px;border-radius:8px;
+      font-family:'Noto Sans JP',sans-serif;font-size:12px;cursor:pointer;">
+      この作品を通報
+    </button>
+    <div style="font-size:10px;color:#aaa;margin-top:6px;line-height:1.5;">
+      翻訳作品・無断転載・不適切な内容などを見つけたら教えてください。
+    </div>
+  </div>
+
   <div class="ps" style="margin-top:32px;">
     <div class="pl">データ管理</div>
     <button onclick="cleanupBakedInFurigana()" style="
@@ -3354,9 +3800,12 @@ const state = {
 };
 
 /* ── Novel / TOC state ── */
+/* 試験版（beta）フラグ：本番に反映するときは false にする
+   true の間は、本棚のデータ・設定・クラウド同期ファイル・ログイン情報がすべて本番と別になる */
+const IS_BETA = false;
+const LS_PREFIX = IS_BETA ? 'beta-' : '';
 const STORAGE_KEY='novel-reader-data-v1';
-const LS_PREFIX = '';
-const SETTINGS_KEY='novel-reader-settings-v1';
+const SETTINGS_KEY='novel-reader-settings-v1' + (IS_BETA ? '-beta' : '');
 
 const PARAS_PER_SUBPAGE = 1000; // 1グループあたりの段落数
 
@@ -3380,7 +3829,7 @@ async function init(){
   setupKoSync();
   setupMediaSession();
   setupNativeTtsQueueListeners();
-  state.readingMode = localStorage.getItem('readingMode') === '1';
+  state.readingMode = localStorage.getItem(LS_PREFIX+'readingMode') === '1';
   document.getElementById('topbar-reading-mode')
   .classList.toggle('active', state.readingMode);
 
@@ -3395,6 +3844,14 @@ async function init(){
   document.body.classList.remove('booting');
   // イカ墨翻訳から訳した話を受け取れるようにする
   try{ kzLinkReady(); }catch(e){ console.warn('kzLinkReady failed', e); }
+  // 共有リンク（?work=作品ID）から来たら作品ページを開く
+  {
+    const wq = new URLSearchParams(location.search).get('work');
+    if(wq){
+      try{ history.replaceState(history.state, '', location.pathname + location.hash); }catch(_){}
+      setTimeout(()=>openWorkDetail(wq), 300);
+    }
+  }
   // 起動時に自動バックアップ（24時間経過していれば）
   setTimeout(()=>{ autoBackupAllNovels(); }, 2000);
   // 保存されたカスタムフォントを読み込む
@@ -3406,11 +3863,11 @@ async function init(){
 function saveLibraryName(el){
   const name = el.textContent.trim();
   if(!name){ el.textContent='マイライブラリ'; }
-  try{ localStorage.setItem('libraryName', el.textContent.trim()); }catch(e){}
+  try{ localStorage.setItem(LS_PREFIX+'libraryName', el.textContent.trim()); }catch(e){}
 }
 function loadLibraryName(){
   try{
-    const saved = localStorage.getItem('libraryName');
+    const saved = localStorage.getItem(LS_PREFIX+'libraryName');
     if(saved){
       const el = document.getElementById('library-topbar-title');
       if(el) el.textContent = saved;
@@ -3421,7 +3878,7 @@ function loadLibraryName(){
 /* ══════════════════════════════════════
    IndexedDB
 ══════════════════════════════════════ */
-const DB_NAME='novel-reader-db';
+const DB_NAME='novel-reader-db' + (IS_BETA ? '-beta' : '');
 const DB_STORE='novelData';
 const DB_IMG_STORE='imageStore';
 const DB_LIBRARY_STORE='libraryData'; // 複数小説ライブラリ
@@ -3500,6 +3957,7 @@ function libDbGetAll(){
 }
 // 小説1件を保存（novelId をキーとして）
 function libDbPut(novel){
+  if(novel && novel.trial) return Promise.resolve(); // 試し読みは本棚に保存しない
   return openDB().then(db=>new Promise((resolve,reject)=>{
     const tx=db.transaction(DB_LIBRARY_STORE,'readwrite');
     tx.objectStore(DB_LIBRARY_STORE).put(novel, novel.id);
@@ -3817,17 +4275,18 @@ function toggleFuriganaDisplay(el){
 ══════════════════════════════════════ */
 
 const GDRIVE_CLIENT_ID = '1065503937621-mr4legtegr2rjbt5udr1bm3mqfupnigd.apps.googleusercontent.com';
-const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
-const GDRIVE_FILE_NAME = 'novel-reader-data.json';
+const GDRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';   // ふだん（同期）はアプリ専用の場所だけ
+const GDRIVE_PUBLISH_SCOPE = GDRIVE_SCOPE + ' https://www.googleapis.com/auth/drive.file';   // 作品を公開するときに追加で聞く
+const GDRIVE_FILE_NAME = IS_BETA ? 'novel-reader-data-beta.json' : 'novel-reader-data.json';
 // ↓ Cloudflare Worker のURL（末尾スラッシュなし）に書き換える
 const TOKEN_WORKER_URL = 'https://novel-reader-token.qoo25p.workers.dev';
 
-const LS_REFRESH = 'gdrive-refresh-token';
-const LS_ACCESS = 'gdrive-token';
-const LS_FLAG = 'gdrive-signed-in';
-const LS_OAUTH_STATE = 'gdrive-oauth-state';
-const LS_LAST_SYNC = 'gdrive-last-sync';
-const LS_LAST_ERR = 'gdrive-last-error';
+const LS_REFRESH = LS_PREFIX + 'gdrive-refresh-token';
+const LS_ACCESS = LS_PREFIX + 'gdrive-token';
+const LS_FLAG = LS_PREFIX + 'gdrive-signed-in';
+const LS_OAUTH_STATE = LS_PREFIX + 'gdrive-oauth-state';
+const LS_LAST_SYNC = LS_PREFIX + 'gdrive-last-sync';
+const LS_LAST_ERR = LS_PREFIX + 'gdrive-last-error';
 
 let _gdriveAccessToken = null;
 let _gdriveTokenExpiresAt = 0;
@@ -3928,7 +4387,7 @@ function gdriveRedirectUri(){
 }
 
 // Web版ログイン：Googleのページへ移動して戻ってくる
-function gdriveSignIn(){
+function gdriveSignIn(opts){
   const st = Math.random().toString(36).slice(2) + Date.now().toString(36);
   try{ localStorage.setItem(LS_OAUTH_STATE, st); }catch(_){}
   try{ flushSave(); }catch(_){}
@@ -3936,7 +4395,7 @@ function gdriveSignIn(){
     client_id: GDRIVE_CLIENT_ID,
     redirect_uri: gdriveRedirectUri(),
     response_type: 'code',
-    scope: GDRIVE_SCOPE,
+    scope: opts && opts.publish ? GDRIVE_PUBLISH_SCOPE : GDRIVE_SCOPE,
     access_type: 'offline',
     prompt: 'consent',          // 毎回リフレッシュトークンを確実にもらう
     include_granted_scopes: 'true',
@@ -3960,6 +4419,7 @@ async function gdriveHandleRedirect(){
     showToast('Google Driveに接続中...');
     await gdriveExchangeCode(code, gdriveRedirectUri());
     showToast('Google Driveに接続しました');
+    setTimeout(() => { try{ resumePublishAfterLogin(); }catch(_){} }, 600);
   }catch(e){
     console.warn('gdriveHandleRedirect:', e);
     alert('Google接続に失敗しました：' + e.message);
@@ -4049,7 +4509,7 @@ async function gdriveFetch(url, opts = {}){
 /* ── 挿絵の同期 ──
    本のデータとは別に、挿絵を1枚ずつ「img_画像名」というファイルでアプリ専用領域に置く。
    まだ上げていない挿絵だけを送り、手元にない挿絵は表示するときに取りに行く。 */
-const LS_UPLOADED_IMAGES = 'gdrive-uploaded-images';
+const LS_UPLOADED_IMAGES = LS_PREFIX + 'gdrive-uploaded-images';
 let _gdriveRemoteImages = null; // 今回の起動で確認したドライブ上の挿絵の一覧
 function collectLibraryImageNames(){
   const names = new Set();
@@ -4491,7 +4951,7 @@ async function loadLibrary(){
   try{ existingNovels=await libDbGetAll(); }catch(e){}
   const existingIds=new Set(existingNovels.map(n=>n.id));
   // libraryData が空の場合のみ旧データからの移行を試みる（毎起動の上書きを防ぐ）
-  if(existingNovels.length===0){
+  if(existingNovels.length===0 && !IS_BETA){
     // 旧データ（単一小説）をライブラリに移行（localStorage）
     try{
       const oldRaw=localStorage.getItem(STORAGE_KEY);
@@ -4739,6 +5199,7 @@ function flushSave(){
 }
 
 async function resetAllData(){
+  if(state.currentNovelId && publishedIn([state.novel]).length){ alert(PUBLISHED_NO_DELETE); return; }
   if(!confirm('この小説のデータをリセットしますか？\nエピソード・タイトル・カバー画像がすべて削除されます。'))return;
   try{
     if(state.currentNovelId){
@@ -4858,7 +5319,9 @@ function showLibrary(){
   document.getElementById('library-screen').classList.add('show');
   $.toc_screen.classList.remove('show');
   document.getElementById('library-fab').style.display='flex';
+  document.body.classList.remove('shared-mode');
   renderLibrary();
+  setTimeout(()=>{ if(!state.currentNovelId) checkAllSharedUpdates(); }, 1200);
   koApplyVisibility();
 }
 
@@ -4887,6 +5350,7 @@ function renderLibrary(){
         </div>`:''}
         <div class="lib-card-checkbox"></div>
         <div class="lib-card-ep-badge">全${epCount}話</div>
+        ${novel.shared&&novel.shared.status==='blocked'?'<div class="lib-card-flag stop">公開停止</div>':(novel.episodes||[]).some(e=>e.isNew||e.isUpdated)?'<div class="lib-card-flag">新着</div>':''}
 
       </div>
       <div class="lib-card-title">${escapeHtml(novel.title||'無題の小説')}</div>
@@ -5013,8 +5477,11 @@ function updateSelectionCount(){
 async function deleteSelectedNovels(){
   if(_selectedNovelIds.size === 0) return;
   const n = _selectedNovelIds.size;
-  if(!confirm(`選択した${n}冊を削除しますか？\nこの操作は元に戻せません。`)) return;
+  if(publishedIn(Array.from(_selectedNovelIds).map(id => state.library.find(x => x.id === id))).length){
+    alert(PUBLISHED_NO_DELETE); return;
+  }
   const ids = Array.from(_selectedNovelIds);
+  if(!confirm(`選択した${n}冊を削除しますか？\nこの操作は元に戻せません。`)) return;
   for(const id of ids){
     state.library = state.library.filter(n=>n.id!==id); // 先に本棚から外す（書き戻し防止）
     await libDbDelete(id).catch(()=>{});
@@ -5057,6 +5524,7 @@ async function openNovel(novelId){
   hideLibrary();
   showToc();
   applyNovelLook();
+  if(state.novel.shared && state.novel.shared.status!=='blocked') checkSharedUpdates(novelId,{silent:true});
   // この本の背景画像を復元
   loadNovelBgImage(novelId);
   koApplyVisibility();
@@ -5073,11 +5541,13 @@ async function createNewNovel(){
 function openNovelMenu(novelId){
   const novel=state.library.find(n=>n.id===novelId);
   if(!novel)return;
+  if(publishedIn([novel]).length){ alert(PUBLISHED_NO_DELETE); return; }
   if(!confirm(`「${novel.title||'無題の小説'}」を削除しますか？\nこの操作は元に戻せません。`))return;
   deleteNovel(novelId);
 }
 
 async function deleteNovel(novelId){
+  if(publishedIn([state.library.find(n=>n.id===novelId)]).length){ alert(PUBLISHED_NO_DELETE); return; }
   state.library=state.library.filter(n=>n.id!==novelId); // 先に本棚から外す（書き戻し防止）
   await libDbDelete(novelId);
   if(state.library.length===0){
@@ -5106,6 +5576,7 @@ function showToc(){
   document.getElementById('library-fab').style.display='none';
   renderToc();
   kzDeferredLater();
+  checkOpenSharedNovelSoon();
 }
 
 // 翻訳ユーザースクリプト用の目印：作品と話を見分けられるようにする（作品メモ・前の話の文脈が本ごとに分かれる）
@@ -5151,6 +5622,11 @@ function renderToc(){
   // エピソード一覧
   const list=$.toc_list;
   list.innerHTML='';
+  applySharedModeUI();
+  if(state.novel.shared && state.novel.shared.status==='blocked'){
+    list.innerHTML='<div class="toc-empty">この作品は公開停止されました<br>長押しでライブラリから削除できます</div>';
+    return;
+  }
   if(state.novel.episodes.length===0){
     list.innerHTML='<div class="toc-empty">エピソードがありません<br>右下の ＋ ボタンから追加できます</div>';
     return;
@@ -5168,12 +5644,14 @@ function renderToc(){
     div.innerHTML=`
       <span class="toc-ep-num">${ep.number}</span>
       <div class="toc-ep-title">${escapeHtml(ep.title)}</div>
+      ${ep.isNew?'<span class="toc-ep-flag new">NEW</span>':ep.isUpdated?'<span class="toc-ep-flag upd">更新</span>':''}${ep.draft&&!isSharedNovel()?'<span class="toc-ep-flag draft">下書き</span>':''}
       <div class="toc-ep-meta">
         <span>${(ep.charCount||0).toLocaleString()} 文字</span>
       </div>
     `;
     div.onclick=(e)=>{
       // 番号バッジ長押しでメニュー(将来用)
+      if(isSharedNovel()){ openSharedEpisodeFresh(ep.id); return; }
       openEpisode(ep.id);
     };
     // 長押しで編集メニュー
@@ -5196,6 +5674,7 @@ function renderToc(){
     list.appendChild(div);
   });
 
+  renderTocSharedExtras();
   // しおり付きエピソードが画面に表示されるようスクロール
   const lastReadEl = list.querySelector('.toc-ep.last-read');
   if(lastReadEl){
@@ -5281,6 +5760,7 @@ function setCoverImage(input){
 
 // ── エピソード操作 ──
 function addEpisode(){
+  if(isSharedNovel()) return;
   const maxNum=state.novel.episodes.reduce((m,e)=>Math.max(m,e.number),0);
   const num=maxNum+1;
   $.modal_body.innerHTML=
@@ -5316,10 +5796,16 @@ function openEpisode(id, startPos='first'){
   state.subPageIndex=0;
   state.currentEpisodeId=id;
   state.novel.lastReadId=id;
+  if(ep.isNew||ep.isUpdated){ delete ep.isNew; delete ep.isUpdated; }
+  if(state.novel && state.novel.shared && state.novel.shared.workId) workHit(state.novel.shared.workId, 'read');
   // lastReadId だけ保存（syncCurrentEpisode は呼ばない）
   {
     const li = state.library.findIndex(n=>n.id===state.currentNovelId);
-    if(li>=0) state.library[li].lastReadId = id;
+    if(li>=0){
+      state.library[li].lastReadId = id;
+      const lep = (state.library[li].episodes||[]).find(e=>e.id===id);
+      if(lep){ delete lep.isNew; delete lep.isUpdated; }
+    }
     libDbPut(state.novel).catch(e=>console.warn('save lastReadId failed:',e));
   }
   // タイトル更新
@@ -5334,6 +5820,7 @@ function openEpisode(id, startPos='first'){
 }
 
 function openEpMenu(id){
+  if(isSharedNovel()) return;
   const ep=state.novel.episodes.find(e=>e.id===id);
   if(!ep)return;
   $.modal_body.innerHTML=
@@ -5341,10 +5828,15 @@ function openEpMenu(id){
      <input class="mi" id="ep-num" type="number" min="1" value="${ep.number}" style="margin-bottom:14px;">
      <label style="font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#666;display:block;margin-bottom:6px;">タイトル</label>
      <input class="mi" id="ep-title" value="${escapeHtml(ep.title)}" style="min-height:40px;margin-bottom:14px;">
+     <label style="display:flex;gap:8px;align-items:flex-start;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#333;margin:0 0 16px;line-height:1.6;">
+       <input type="checkbox" id="ep-draft" style="margin-top:3px;width:16px;height:16px;accent-color:#008080;" ${ep.draft ? 'checked' : ''}>
+       <span>下書き<br><span style="font-size:11px;color:#999;">作品を公開しても、この話は出さない</span></span>
+     </label>
      <button class="mb" style="background:#fce8e8;color:#c54040;width:100%;" onclick="if(confirm('このエピソードを削除しますか？')){deleteEpisode('${ep.id}');closeModal();}">このエピソードを削除</button>`;
   showModal('エピソードを編集',()=>{
     ep.number=parseInt(document.getElementById('ep-num').value)||ep.number;
     ep.title=document.getElementById('ep-title').value.trim()||ep.title;
+    if(document.getElementById('ep-draft').checked) ep.draft = true; else delete ep.draft;
     debouncedSave();
     renderToc();
   });
@@ -5823,7 +6315,7 @@ async function handleHtmlImport(event){
 // イカ墨翻訳（ユーザースクリプト）が、この端末で訳した話をこのページに渡してくる。
 // 作品ごとに取り込み先の本を覚えておき（本のIDで覚えるので、本の名前を変えても大丈夫）、2回目からは自動で入れる。
 // 一度取り込んだ話を手で直していたら、訳し直した版が来ても上書きしない。
-const KZ_LINK_KEY = 'kzLinkMap'; // { 作品のキー: 本のID | 'skip' }
+const KZ_LINK_KEY = LS_PREFIX + 'kzLinkMap'; // { 作品のキー: 本のID | 'skip' }
 function kzLinkMap(){ try{ return JSON.parse(localStorage.getItem(KZ_LINK_KEY) || '{}') || {}; }catch(e){ return {}; } }
 function kzSaveLinkMap(m){ try{ localStorage.setItem(KZ_LINK_KEY, JSON.stringify(m)); }catch(e){} }
 let kzLinkReadyFlag = false, kzLinkBusy = false, kzLinkPending = null;
@@ -7806,6 +8298,7 @@ function goPage(dir, axis='v'){
     const _sorted=[...state.novel.episodes].sort((a,b)=>a.number-b.number);
     const _idx=_sorted.findIndex(e=>e.id===state.currentEpisodeId);
     if(_idx!==-1 && _sorted[_idx+1]) openEpisode(_sorted[_idx+1].id);
+    else if(isTrialNovel()) showTrialEnd();
     return;
   }
   slideToPage(next,dir,axis);
@@ -7893,6 +8386,7 @@ function updateNavBtns(){
 function enterEditMode(){
   if(state.editMode)return;
   koCloseSheet();
+  if(isSharedNovel()){ showToast('共有された作品は編集できません'); return; }
   // 翻訳スクリプトの訳文を表示中に編集すると、訳文で本文が上書き保存される
   if($.viewport.querySelector('[data-kztl-tr],[lang="ja"]') &&
      !confirm('翻訳を表示中です。このまま編集すると、原文が訳文で上書き保存されます。\n（原文のままにするなら、キャンセルして「原」で戻してから編集）\n\n訳文で上書きしますか？')) return;
@@ -8007,7 +8501,7 @@ function toggleReadingMode() {
   state.readingMode = !state.readingMode;
   document.getElementById('topbar-reading-mode')
     .classList.toggle('active', state.readingMode);
-  localStorage.setItem('readingMode', state.readingMode ? '1' : '0');
+  localStorage.setItem(LS_PREFIX+'readingMode', state.readingMode ? '1' : '0');
 }
 
 /* ══════ 読書中の文字選択 ══════ */
@@ -8016,6 +8510,1238 @@ function hasTextSelection(){
   const sel = window.getSelection();
   return !!(sel && sel.rangeCount && !sel.isCollapsed && sel.toString().trim());
 }
+
+/* ══════════════════════════════════════
+   作品の公開・共有
+   ・作者：本文は作者自身のGoogleドライブに公開ファイルとして置く
+   ・Worker：作品の登録情報・通報・公開停止を管理し、本文は中継するだけ
+   ・読者：リンクから作品ページ → 試し読み／本棚に追加 → 開くたびに差分だけ更新
+══════════════════════════════════════ */
+const WORK_API = TOKEN_WORKER_URL;
+const TERMS_URL = (IS_BETA ? '../' : '') + 'terms.html';   // 利用規約・プライバシー
+const WORK_GENRES = ['ファンタジー','恋愛','現代','SF','ミステリー','ホラー','歴史','コメディ','BL','GL','その他'];
+const TRIAL_EPISODES = 3;
+const PUBLISH_FOLDER_LS = LS_PREFIX + 'publish-folder-id';
+const SHARED_CHECK_INTERVAL = 10 * 60 * 1000; // ライブラリ表示時の自動確認は10分に1回まで
+
+function isSharedNovel(n){ n = n || state.novel; return !!(n && n.shared); }
+function isTrialNovel(n){ n = n || state.novel; return !!(n && n.trial); }
+
+async function workApi(path, opts = {}){
+  const res = await fetch(WORK_API + path, Object.assign({ headers: {'Content-Type':'application/json'}, cache: 'no-store' }, opts));
+  let data = {};
+  try{ data = await res.json(); }catch(_){}
+  if(!res.ok && res.status !== 410){
+    const e = new Error(data.error || ('HTTP ' + res.status));
+    e.status = res.status; e.data = data;
+    throw e;
+  }
+  return data;
+}
+function strHash(s){ let h = 5381; for(let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; return h.toString(36) + '_' + s.length; }
+function workShareUrl(workId){ return WORK_API + '/share/' + workId + (IS_BETA ? '?app=beta' : ''); }
+function parseWorkIdFromText(t){
+  t = (t || '').trim();
+  const m = t.match(/[?&]work=([A-Za-z0-9]+)/) || t.match(/\/share\/([A-Za-z0-9]+)/) || t.match(/^([A-Za-z0-9]{6,24})$/);
+  return m ? m[1] : null;
+}
+async function fetchCoverDataUrl(url){
+  try{
+    const r = await fetch(url);
+    if(!r.ok) return '';
+    const b = await r.blob();
+    return await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = () => res(''); fr.readAsDataURL(b); });
+  }catch(_){ return ''; }
+}
+// 表紙を公開用に小さくする（幅400px・JPEG）
+function compressCoverForPublish(dataUrl){
+  return new Promise(resolve => {
+    if(!dataUrl) return resolve(null);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, 400 / img.width);
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      resolve(c.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = () => resolve(null);
+    img.src = dataUrl;
+  });
+}
+
+/* ────────── 作者：ドライブへの公開 ────────── */
+async function driveApi(url, opts = {}){
+  await gdriveEnsureToken();
+  const doFetch = () => fetch(url, Object.assign({}, opts, {
+    headers: Object.assign({}, opts.headers || {}, {'Authorization': 'Bearer ' + _gdriveAccessToken})
+  }));
+  let res = await doFetch();
+  if(res.status === 401){ _gdriveTokenExpiresAt = 0; await gdriveRefresh(); res = await doFetch(); }
+  return res;
+}
+function publishDriveError(r, t){
+  const e = new Error(r.status === 403 && /insufficient|scope/i.test(t || '') ? 'need_scope' : ('Drive ' + r.status));
+  e.status = r.status;
+  return e;
+}
+async function ensurePublishFolder(){
+  let id = localStorage.getItem(PUBLISH_FOLDER_LS);
+  if(id){
+    const r = await driveApi(`https://www.googleapis.com/drive/v3/files/${id}?fields=id,trashed`);
+    if(r.ok){ const d = await r.json(); if(!d.trashed) return id; }
+  }
+  const r = await driveApi('https://www.googleapis.com/drive/v3/files?fields=id', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ name: 'イカ墨ノベル 公開作品' + (IS_BETA ? '（試験版）' : ''), mimeType: 'application/vnd.google-apps.folder' })
+  });
+  const t = await r.text();
+  if(!r.ok) throw publishDriveError(r, t);
+  id = JSON.parse(t).id;
+  localStorage.setItem(PUBLISH_FOLDER_LS, id);
+  return id;
+}
+async function driveUploadPublicJson(name, obj, fileId, folderId){
+  const boundary = '-------ikasumi-' + Date.now() + Math.random().toString(36).slice(2);
+  const meta = { name, mimeType: 'application/json' };
+  if(!fileId) meta.parents = [folderId];
+  const body = '--' + boundary + '\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n' + JSON.stringify(meta) +
+    '\r\n--' + boundary + '\r\nContent-Type: application/json\r\n\r\n' + JSON.stringify(obj) + '\r\n--' + boundary + '--';
+  const url = fileId
+    ? `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart&fields=id`
+    : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id';
+  const r = await driveApi(url, { method: fileId ? 'PATCH' : 'POST', headers: {'Content-Type': 'multipart/related; boundary=' + boundary}, body });
+  if(fileId && r.status === 404) return driveUploadPublicJson(name, obj, null, folderId); // 作者がファイルを消していた
+  const t = await r.text();
+  if(!r.ok) throw publishDriveError(r, t);
+  const id = JSON.parse(t).id;
+  if(!fileId){
+    // リンクを知っている人は誰でも読めるようにする
+    const pr = await driveApi(`https://www.googleapis.com/drive/v3/files/${id}/permissions`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ role: 'reader', type: 'anyone' })
+    });
+    if(!pr.ok) throw publishDriveError(pr, await pr.text());
+  }
+  return id;
+}
+function episodeHash(ep){ return strHash(JSON.stringify({ t: ep.title, n: ep.number, p: ep.pages })); }
+async function buildEpisodePayload(ep){
+  const pages = JSON.parse(JSON.stringify(ep.pages || []));
+  for(const pg of pages){
+    for(const p of (pg.paras || [])){
+      if(p.type === 'image' && p.imgName){
+        const d = await imgDbGet(p.imgName).catch(() => null);
+        if(d) p.src = d; // 挿絵は本文ファイルに埋め込む
+      }
+      if(p.type === 'text' && p.html) p.html = stripFuriganaHtml(p.html);
+    }
+  }
+  return { id: ep.id, number: ep.number, title: ep.title, pages };
+}
+
+// 公開の記録の控え（本の保存が古い本で上書きされても、同じ作品として更新できるように）
+const PUBLISH_MAP_LS = LS_PREFIX + 'publish-map';
+function publishMap(){ try{ return JSON.parse(localStorage.getItem(PUBLISH_MAP_LS) || '{}') || {}; }catch(_){ return {}; } }
+function publishMapSet(novelId, v){ const m = publishMap(); m[novelId] = v; try{ localStorage.setItem(PUBLISH_MAP_LS, JSON.stringify(m)); }catch(_){} }
+// 公開の記録が無いとき：前に公開した目次ファイル（ikasumi-本のID-index.json）をドライブから探す
+async function findPublishedIndex(novelId, folderId){
+  try{
+    const q = encodeURIComponent(`name='ikasumi-${novelId}-index.json' and '${folderId}' in parents and trashed=false`);
+    const r = await driveApi(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id)&spaces=drive`);
+    if(!r.ok) return null;
+    const f = ((await r.json()).files || [])[0];
+    if(!f) return null;
+    const d = await (await driveApi(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`)).json();
+    return { fileId: f.id, data: d };
+  }catch(_){ return null; }
+}
+let _publishBusy = false;
+const PUBLISH_RESUME_LS = LS_PREFIX + 'publish-resume';
+function askPublishScope(meta){
+  if(!confirm('作品を公開するには、Googleドライブに「イカ墨ノベル 公開作品」フォルダを作る許可がいるよ。\nGoogleの画面で許可してね（このアプリが作ったファイルにしか触りません）。')) return;
+  try{ localStorage.setItem(PUBLISH_RESUME_LS, JSON.stringify({ novelId: state.currentNovelId, meta, at: Date.now() })); }catch(_){}
+  gdriveSignIn({ publish: true });
+}
+// 許可して戻ってきたら、公開の画面をもう一度開く（書いたあらすじなどはそのまま）
+async function resumePublishAfterLogin(){
+  let r = null;
+  try{ r = JSON.parse(localStorage.getItem(PUBLISH_RESUME_LS) || 'null'); localStorage.removeItem(PUBLISH_RESUME_LS); }catch(_){}
+  if(!r || !r.novelId || Date.now() - (r.at || 0) > 30 * 60 * 1000) return;
+  for(let i = 0; i < 40 && !state.library.find(n => n.id === r.novelId); i++) await new Promise(res => setTimeout(res, 250));
+  if(!state.library.find(n => n.id === r.novelId)) return;
+  if(state.currentNovelId !== r.novelId) await openNovel(r.novelId);
+  openPublishModal();
+  const m = r.meta || {};
+  const sy = document.getElementById('pub-synopsis'), ge = document.getElementById('pub-genre'), ra = document.getElementById('pub-rating');
+  if(sy && m.synopsis != null){ sy.value = m.synopsis; sy.dataset.edited = '1'; }
+  if(ge && m.genre){ ge.value = m.genre; ge.dataset.edited = '1'; }
+  if(ra && m.rating != null) ra.value = m.rating;
+  showToast('許可できたよ。もう一度「公開する」を押してね');
+}
+async function publishCurrentNovel(meta){
+  if(_publishBusy) throw new Error('busy');
+  _publishBusy = true;
+  try{ return await publishCurrentNovel0(meta); }
+  finally{ _publishBusy = false; }
+}
+async function publishCurrentNovel0(meta){
+  const novel = state.novel;
+  if(!novel || isSharedNovel(novel)) return null;
+  if(state.editMode) exitEditMode();
+  syncCurrentEpisode();
+  const pub = novel.publish ? JSON.parse(JSON.stringify(novel.publish)) : { eps: {} };
+  pub.eps = pub.eps || {};
+  const folderId = await ensurePublishFolder();
+  if(!pub.workId){
+    const saved = publishMap()[novel.id];
+    if(saved && saved.workId){ pub.workId = saved.workId; if(!pub.indexFileId) pub.indexFileId = saved.indexFileId; }
+    else{
+      const found = await findPublishedIndex(novel.id, folderId);
+      if(found){
+        pub.indexFileId = found.fileId;
+        if(found.data && found.data.workId) pub.workId = found.data.workId;
+        (found.data && found.data.episodes || []).forEach(e => { if(e.id && e.fileId && !pub.eps[e.id]) pub.eps[e.id] = { fileId: e.fileId, hash: '', updatedAt: e.updatedAt }; });
+        // あらすじ・ジャンルを触っていなければ、前に公開したときのまま
+        if(meta.keep && found.data){ if(!meta.synopsis && found.data.synopsis) meta.synopsis = found.data.synopsis; if(found.data.genre) meta.genre = found.data.genre; if(!meta.rating && found.data.rating) meta.rating = found.data.rating; }
+        if(meta.keepTags && found.data && (found.data.tags || []).length) meta.tags = found.data.tags;
+      }
+    }
+  }
+  const eps = [...novel.episodes].filter(e => !e.draft).sort((a, b) => a.number - b.number);   // 下書きの話は出さない
+  if(eps.length === 0) throw new Error('話がありません');
+  const now = new Date().toISOString();
+  let changed = 0, i = 0;
+  for(const ep of eps){
+    i++;
+    const h = episodeHash(ep);
+    const cur = pub.eps[ep.id];
+    if(cur && cur.hash === h && cur.fileId) continue; // 変わっていない話は送らない
+    showToast(`公開中... ${i}/${eps.length}`);
+    const payload = await buildEpisodePayload(ep);
+    const fileId = await driveUploadPublicJson(`ikasumi-${novel.id}-${ep.id}.json`, payload, cur && cur.fileId, folderId);
+    pub.eps[ep.id] = { fileId, hash: h, updatedAt: now };
+    changed++;
+  }
+  // 消した話のファイルを片付ける
+  for(const id of Object.keys(pub.eps)){
+    if(!eps.find(e => e.id === id)){
+      try{ await driveApi(`https://www.googleapis.com/drive/v3/files/${pub.eps[id].fileId}`, { method: 'DELETE' }); }catch(_){}
+      delete pub.eps[id];
+      changed++;
+    }
+  }
+  const index = {
+    v: 1, workId: pub.workId || '', rating: meta.rating || '', tags: meta.tags || [], done: !!meta.done, title: novel.title, author: novel.author || '', genre: meta.genre, synopsis: meta.synopsis, updatedAt: now,
+    furiganaRules: (novel.furiganaRules || []).filter(r => r.word && r.enabled !== false).map(r => ({ word: r.word, reading: r.reading || '', enabled: true })),
+    episodes: eps.map(ep => ({ id: ep.id, number: ep.number, title: ep.title, fileId: pub.eps[ep.id].fileId, updatedAt: pub.eps[ep.id].updatedAt, charCount: ep.charCount || 0 })),
+  };
+  showToast('目次を公開中...');
+  pub.indexFileId = await driveUploadPublicJson(`ikasumi-${novel.id}-index.json`, index, pub.indexFileId, folderId);
+  await gdriveEnsureToken();
+  const cover = await compressCoverForPublish(novel.cover);
+  const body = (workId) => JSON.stringify({
+    access_token: _gdriveAccessToken, workId, indexFileId: pub.indexFileId,
+    meta: { title: novel.title, author: novel.author || '', genre: meta.genre, synopsis: meta.synopsis, rating: meta.rating || '', tags: meta.tags || [], done: !!meta.done, chars: eps.reduce((a, e) => a + (e.charCount || 0), 0), epCount: eps.length, cover, selfWritten: true },
+  });
+  let res;
+  try{ res = await workApi('/publish', { method: 'POST', body: body(pub.workId || null) }); }
+  catch(e){
+    if(e.message === 'work_not_found'){ res = await workApi('/publish', { method: 'POST', body: body(null) }); }
+    else throw e;
+  }
+  const firstTime = !index.workId;
+  Object.assign(pub, { workId: res.workId, genre: meta.genre, synopsis: meta.synopsis, rating: meta.rating || '', tags: meta.tags || [], done: !!meta.done, publishedAt: now, status: 'public' });
+  publishMapSet(novel.id, { workId: res.workId, indexFileId: pub.indexFileId, status: 'public', genre: meta.genre, synopsis: meta.synopsis, rating: meta.rating || '', tags: meta.tags || [], done: !!meta.done });
+  // 目次ファイルにも作品IDを書いておく（別の端末でも同じ作品として更新できる）
+  if(firstTime){ try{ index.workId = res.workId; await driveUploadPublicJson(`ikasumi-${novel.id}-index.json`, index, pub.indexFileId, folderId); }catch(_){} }
+  savePublishInfo(novel, pub);
+  return { workId: res.workId, changed };
+}
+// 公開の記録を保存：公開中に本棚へ戻ったり別の本を開いたりしても、その本に入れる
+function savePublishInfo(novel, pub){
+  const copy = () => JSON.parse(JSON.stringify(pub));
+  novel.publish = copy();
+  if(state.currentNovelId === novel.id && state.novel){
+    state.novel.publish = copy();
+    save();
+  }else{
+    const li = state.library.findIndex(n => n.id === novel.id);
+    if(li >= 0){ state.library[li].publish = copy(); libDbPut(state.library[li]).catch(e => console.warn('publish save', e)); }
+  }
+}
+
+function publishErrorMessage(e){
+  const m = e && e.message;
+  if(m === 'need_scope' || m === 'auth_failed') return '公開するための権限がありません。いったんログアウトして、もう一度Googleでログインしてください（公開用の権限を許可してください）';
+  if(m === 'blocked') return 'この作品は公開停止されているため、更新できません';
+  if(m === 'banned') return 'このアカウントでは作品を公開できません';
+  if(m === 'not_work_owner') return 'この作品の作者ではないため更新できません';
+  if(m === '話がありません') return '公開する話がありません';
+  if(m === 'busy') return 'いま公開しているところだよ。終わるまで待ってね';
+  return '公開に失敗しました：' + (m || '不明なエラー');
+}
+
+function openPublishModal(){
+  if(!state.novel || isSharedNovel()) return;
+  if(_publishBusy){ showToast('いま公開しているところだよ。終わるまで待ってね'); return; }
+  if(state.novel.publish && !state.novel.publish.workId) delete state.novel.publish;
+  if(!state.novel.publish && publishMap()[state.novel.id]) state.novel.publish = Object.assign({ eps: {} }, publishMap()[state.novel.id]);
+  if(!gdriveIsSignedIn()){
+    alert('作品を公開するには、ライブラリ右上の︙から「Googleでログイン」してください。');
+    return;
+  }
+  const pub = state.novel.publish || {};
+  const isPub = pub.workId && pub.status === 'public';
+  const genreOpts = WORK_GENRES.map(g => `<option value="${g}" ${g === (pub.genre || 'ファンタジー') ? 'selected' : ''}>${g}</option>`).join('');
+  const L = (t) => `<label style="font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#666;display:block;margin-bottom:6px;">${t}</label>`;
+  $.modal_body.innerHTML = `
+    ${isPub ? `
+    <div style="background:#f0f7f7;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#335;">
+      <div style="margin-bottom:6px;">公開中です。変更した話だけが更新されます。</div>
+      <div style="display:flex;gap:6px;">
+        <input class="mi" id="pub-share-url" readonly value="${escapeHtml(workShareUrl(pub.workId))}" style="min-height:36px;margin:0;font-size:12px;flex:1;">
+        <button class="mb secondary" style="flex:0 0 auto;padding:8px 12px;" onclick="copyText(document.getElementById('pub-share-url').value)">コピー</button>
+      </div>
+    </div>` : ''}
+    <div class="pub-row"><div class="pub-pen">作者名：<b>${escapeHtml(penName() || state.novel.author || '（なし）')}</b><small>${penName() ? 'ペンネーム（全作品にそろう）' : 'ペンネームを登録すると、全作品の作者名がそろうよ'}</small></div><button class="mb secondary" style="flex:0 0 auto;padding:7px 12px;" onclick="closeModal();$.modal_ok.textContent='OK';openProfileModal()">${penName() ? '変える' : '登録'}</button></div>
+    ${L('ジャンル')}
+    <select class="mi" id="pub-genre" style="min-height:40px;margin-bottom:14px;font-family:'Noto Sans JP',sans-serif;">${genreOpts}</select>
+    ${L('年齢制限')}
+    <select class="mi" id="pub-rating" style="min-height:40px;margin-bottom:14px;font-family:'Noto Sans JP',sans-serif;">
+      <option value="" ${!pub.rating ? 'selected' : ''}>なし（全年齢）</option>
+      <option value="R15" ${pub.rating === 'R15' ? 'selected' : ''}>R15（暴力・性的な表現が少しある）</option>
+      <option value="R18" ${pub.rating === 'R18' ? 'selected' : ''}>R18（18歳以上向け）</option>
+    </select>
+    ${L('タグ（スペースで区切って8個まで）')}
+    <input class="mi" id="pub-tags" maxlength="200" value="${escapeHtml((pub.tags || []).join(' '))}" placeholder="例：異世界 溺愛 ハッピーエンド" style="min-height:40px;margin-bottom:10px;">
+    <label style="display:flex;gap:8px;align-items:center;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#333;margin:0 0 14px;">
+      <input type="checkbox" id="pub-done" style="width:16px;height:16px;accent-color:#008080;" ${pub.done ? 'checked' : ''}> 完結した
+    </label>
+    ${L('あらすじ')}
+    <textarea class="mi" id="pub-synopsis" maxlength="1000" placeholder="作品を選んだ人に表示されます" style="min-height:110px;">${escapeHtml(pub.synopsis || '')}</textarea>
+    ${(() => { const d = (state.novel.episodes || []).filter(e => e.draft).length; return d ? `<div style="font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#888;margin:-4px 0 10px;">下書きの話（${d}話）は公開されないよ</div>` : ''; })()}
+    <label style="display:flex;gap:8px;align-items:flex-start;font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#333;margin:6px 0 4px;line-height:1.6;">
+      <input type="checkbox" id="pub-self" style="margin-top:3px;width:16px;height:16px;accent-color:#008080;" ${isPub ? 'checked' : ''}>
+      <span>自分で書いた作品です。翻訳・他人の作品の転載ではありません。<a href="${TERMS_URL}" target="_blank" rel="noopener" style="color:#008080;">利用規約</a>に同意します。</span>
+    </label>
+    <div style="font-family:'Noto Sans JP',sans-serif;font-size:10px;color:#999;line-height:1.6;margin-top:6px;">
+      本文はあなたのGoogleドライブ（「イカ墨ノベル 公開作品」フォルダ）に、リンクを知っている人が読める形で置かれます。<a href="${TERMS_URL}" target="_blank" rel="noopener" style="color:#999;">規約</a>に反する作品は予告なく公開停止されることがあります。
+    </div>
+    ${isPub ? `<button class="mb" style="background:#fce8e8;color:#c54040;width:100%;margin-top:12px;" onclick="unpublishCurrentNovel()">公開をやめる</button>` : ''}`;
+  $.modal_ok.textContent = isPub ? '更新を公開' : '公開する';
+  { const sy = document.getElementById('pub-synopsis'), ge = document.getElementById('pub-genre');
+    sy.addEventListener('input', () => { sy.dataset.edited = '1'; });
+    { const tg = document.getElementById('pub-tags'); tg.addEventListener('input', () => { tg.dataset.edited = '1'; }); }
+    ge.addEventListener('change', () => { ge.dataset.edited = '1'; });
+    // この端末にあらすじが無いとき：公開中の作品から読み込んで入れておく
+    if(pub.workId && !pub.synopsis){
+      workApi('/w/' + pub.workId).then(w => {
+        if(!w || w.status !== 'public' || document.getElementById('pub-synopsis') !== sy) return;
+        if(!sy.dataset.edited && !sy.value && w.synopsis) sy.value = w.synopsis;
+        if(!ge.dataset.edited && w.genre && WORK_GENRES.includes(w.genre)) ge.value = w.genre;
+        { const ra = document.getElementById('pub-rating'); if(ra && w.rating) ra.value = w.rating; }
+        { const tg = document.getElementById('pub-tags'); if(tg && !tg.dataset.edited && !tg.value && (w.tags || []).length) tg.value = w.tags.join(' '); }
+        { const dn = document.getElementById('pub-done'); if(dn && w.done) dn.checked = true; }
+      }).catch(() => {});
+    } }
+  showModal(isPub ? '作品の公開・更新' : '作品を公開', async () => {
+    if(!document.getElementById('pub-self').checked){ showToast('「自分で書いた作品です・利用規約に同意します」にチェックしてね'); return false; }
+    const meta = { genre: document.getElementById('pub-genre').value, synopsis: document.getElementById('pub-synopsis').value.trim(),
+      rating: document.getElementById('pub-rating').value,
+      tags: document.getElementById('pub-tags').value.split(/[\s,、，#＃]+/).filter(Boolean).slice(0, 8),
+      done: document.getElementById('pub-done').checked,
+      keepTags: !document.getElementById('pub-tags').dataset.edited && !document.getElementById('pub-tags').value.trim(),
+      keep: !document.getElementById('pub-synopsis').dataset.edited && !document.getElementById('pub-genre').dataset.edited };
+    $.modal_ok.textContent = 'OK';
+    // 公開は時間がかかるので、モーダルを閉じてから裏で進める
+    (async () => {
+      try{
+        const r = await publishCurrentNovel(meta);
+        if(r) setTimeout(() => showPublishedModal(r.workId, r.changed), 50);
+      }catch(e){
+        console.warn('publish:', e);
+        if(e && e.message === 'need_scope'){ askPublishScope(meta); return; }
+        alert(publishErrorMessage(e));
+      }
+    })();
+  });
+  const cancelBtn = document.querySelector('#modal .mb.secondary');
+  if(cancelBtn) cancelBtn.addEventListener('click', () => { $.modal_ok.textContent = 'OK'; }, { once: true });
+}
+function showPublishedModal(workId, changed){
+  const url = workShareUrl(workId);
+  $.modal_body.innerHTML = `
+    <div style="font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#333;line-height:1.7;margin-bottom:10px;">
+      ${changed ? `${changed}件の変更を公開しました。` : '変更はありませんでした（目次の情報だけ更新しました）。'}<br>このリンクを共有すると、作品ページが開きます。
+    </div>
+    <input class="mi" id="pub-done-url" readonly value="${escapeHtml(url)}" style="min-height:40px;font-size:12px;">`;
+  $.modal_ok.textContent = 'リンクをコピー';
+  showModal('公開しました', () => { copyText(url); $.modal_ok.textContent = 'OK'; });
+  { const c = document.querySelector('#modal .mb.secondary'); if(c) c.textContent = '閉じる'; }
+  const cancelBtn = document.querySelector('#modal .mb.secondary');
+  if(cancelBtn) cancelBtn.addEventListener('click', () => { $.modal_ok.textContent = 'OK'; }, { once: true });
+}
+async function unpublishCurrentNovel(){
+  const pub = state.novel && state.novel.publish;
+  if(!pub || !pub.workId) return;
+  if(!confirm('公開をやめますか？\n読者は新しくこの作品を追加できなくなります（すでに追加した人の手元の話は残ります）。')) return;
+  closeModal(); $.modal_ok.textContent = 'OK';
+  try{
+    await gdriveEnsureToken();
+    await workApi('/unpublish', { method: 'POST', body: JSON.stringify({ access_token: _gdriveAccessToken, workId: pub.workId }) });
+    pub.status = 'private';
+    publishMapSet(state.novel.id, { workId: pub.workId, indexFileId: pub.indexFileId, status: 'private' });
+    save();
+    showToast('公開をやめました');
+  }catch(e){ alert(publishErrorMessage(e)); }
+}
+/* ────────── 自分の公開作品（本棚から消した作品もここで公開をやめられる） ────────── */
+async function openMyWorksModal(){
+  if(!gdriveIsSignedIn()){ alert('Googleドライブにログインすると確認できます'); return; }
+  $.modal_body.innerHTML = '<div id="myworks-list" style="font-family:\'Noto Sans JP\',sans-serif;font-size:13px;color:#888;">読み込み中...</div>';
+  showModal('自分の公開作品', () => {});
+  { const c = document.querySelector('#modal .mb.secondary'); if(c) c.textContent = '閉じる'; }
+  await renderMyWorks();
+}
+async function renderMyWorks(){
+  const box = document.getElementById('myworks-list');
+  if(!box) return;
+  let works;
+  try{
+    await gdriveEnsureToken();
+    works = (await workApi('/mine', { method: 'POST', body: JSON.stringify({ access_token: _gdriveAccessToken }) })).works || [];
+  }catch(e){ box.textContent = '読み込めませんでした（' + publishErrorMessage(e) + '）'; return; }
+  if(!works.length){ box.textContent = '公開した作品はありません'; return; }
+  const label = { public: '<span style="color:#008080">公開中</span>', private: '<span style="color:#999">非公開</span>', blocked: '<span style="color:#c00">公開停止</span>' };
+  box.innerHTML = works.map(w => {
+    const local = state.library.some(n => n.publish && n.publish.workId === w.id);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid #eee;">
+      <div style="flex:1;min-width:0;">
+        <div style="color:#222;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(w.title || '無題')}</div>
+        <div style="font-size:11px;color:#999;">${label[w.status] || escapeHtml(w.status)}・全${w.epCount || 0}話${local ? '' : '・本棚にありません'}<br>${w.reads30 != null ? `30日で${w.reads30}人が読んだ・本棚に追加${w.adds30 || 0}・` : ''}♡${w.likes || 0}${w.readsAll != null ? `<span style="color:#bbb">（これまで${w.readsAll}）</span>` : ''}</div>
+      </div>
+      ${w.status === 'public' ? `<button onclick="unpublishWorkById('${w.id}')" style="flex-shrink:0;border:1px solid #c33;color:#c33;background:#fff;border-radius:14px;padding:5px 12px;font-size:12px;cursor:pointer;">公開をやめる</button>` : ''}
+    </div>`;
+  }).join('');
+}
+async function unpublishWorkById(workId, opts = {}){
+  if(!opts.silent && !confirm('この作品の公開をやめますか？\n作品一覧から消え、新しく追加できなくなります。')) return false;
+  try{
+    await gdriveEnsureToken();
+    await workApi('/unpublish', { method: 'POST', body: JSON.stringify({ access_token: _gdriveAccessToken, workId }) });
+  }catch(e){
+    if(e.status === 404) return true; // もう無い
+    if(!opts.silent) alert(publishErrorMessage(e));
+    return false;
+  }
+  state.library.forEach(n => { if(n.publish && n.publish.workId === workId){ n.publish.status = 'private'; libDbPut(n).catch(()=>{}); } });
+  if(state.novel && state.novel.publish && state.novel.publish.workId === workId) state.novel.publish.status = 'private';
+  { const pm = publishMap(); Object.keys(pm).forEach(k => { if(pm[k] && pm[k].workId === workId) publishMapSet(k, Object.assign({}, pm[k], { status: 'private' })); }); }
+  if(!opts.silent){ showToast('公開をやめました'); renderMyWorks(); }
+  return true;
+}
+// 公開中の本は消せない（読者の手元の作品が更新されなくなるのを防ぐ）
+function publishedIn(novels){ return novels.filter(n => n && n.publish && n.publish.workId && n.publish.status === 'public'); }
+const PUBLISHED_NO_DELETE = '公開中の作品は削除できません。\n先に「公開をやめる」をしてから削除してください。';
+
+async function copyText(t){
+  try{ await navigator.clipboard.writeText(t); showToast('コピーしました'); }
+  catch(_){ prompt('コピーしてください', t); }
+}
+
+/* ────────── 読者：作品ページ ────────── */
+let _workScreenId = null;
+function openAddByLinkModal(){
+  closeBackupMenu();
+  $.modal_body.innerHTML = `
+    <div style="font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#666;margin-bottom:8px;">作者から共有されたリンクを貼り付けてください</div>
+    <input class="mi" id="work-link-input" placeholder="https://…/share/…" style="min-height:40px;">`;
+  showModal('リンクから作品を追加', () => {
+    const id = parseWorkIdFromText(document.getElementById('work-link-input').value);
+    if(!id){ showToast('リンクの形が正しくありません'); return false; }
+    setTimeout(() => openWorkDetail(id), 50);
+  });
+  setTimeout(() => { const i = document.getElementById('work-link-input'); if(i) i.focus(); }, 120);
+}
+function closeWorkDetail(){
+  const s = document.getElementById('work-screen');
+  if(s) s.classList.remove('show');
+  document.body.classList.remove('work-open');
+  _workScreenId = null;
+}
+async function sharedEpisodeFromPayload(workId, d, e){
+  const pages = (d.pages && d.pages.length) ? d.pages : [{ paras: [] }];
+  for(const pg of pages){
+    for(const p of (pg.paras || [])){
+      if(p.type === 'image' && p.src && p.src.startsWith('data:')){
+        const name = `shared_${workId}_${p.imgName || strHash(p.src)}`;
+        await imgDbSave(name, p.src);
+        p.imgName = name; p.src = '';
+      }
+    }
+  }
+  return { id: e.id, number: e.number, title: e.title, date: e.updatedAt, pages, charCount: e.charCount || countChars(pages), _v: e.updatedAt };
+}
+async function downloadWorkEpisodes(workId, list, onProgress, reuse){
+  const out = []; let done = 0;
+  const queue = [...list];
+  async function run(){
+    while(queue.length){
+      const e = queue.shift();
+      let ep = reuse && reuse.find(r => r.id === e.id && r._v === e.updatedAt);
+      if(ep) ep = JSON.parse(JSON.stringify(ep));
+      else{
+        const d = await workApi(`/w/${workId}/ep/${encodeURIComponent(e.id)}?v=${encodeURIComponent(e.updatedAt)}`);
+        if(d.status && d.status !== 'public') throw new Error(d.status);
+        ep = await sharedEpisodeFromPayload(workId, d, e);
+      }
+      out.push(ep);
+      done++;
+      if(onProgress) onProgress(done, list.length);
+    }
+  }
+  await Promise.all([run(), run(), run()]);
+  return out.sort((a, b) => a.number - b.number);
+}
+async function loadWorkIndex(workId){
+  const idx = await workApi(`/w/${workId}/index`);
+  if(idx.status && idx.status !== 'public'){ const e = new Error(idx.status); e.status = idx.status; throw e; }
+  return idx;
+}
+function sharedStatusMessage(s){
+  return s === 'blocked' ? 'この作品は公開停止されています' : s === 'private' ? '作者が公開をやめました' : s === 'not_found' ? '作品が見つかりません' : '作品を読み込めませんでした';
+}
+
+async function addWorkToLibrary(workId){
+  const nid = 'shared_' + workId;
+  if(state.library.find(n => n.id === nid)){ closeWorkDetail(); openNovel(nid); return; }
+  try{
+    showToast('作品を読み込み中...');
+    const meta = await workApi('/w/' + workId);
+    if(meta.status !== 'public'){ showToast(sharedStatusMessage(meta.status)); return; }
+    const idx = await loadWorkIndex(workId);
+    const reuse = (state.novel && state.novel.trial && state.novel.shared && state.novel.shared.workId === workId) ? state.novel.episodes : null;
+    const eps = await downloadWorkEpisodes(workId, idx.episodes || [], (d, t) => showToast(`ダウンロード中... ${d}/${t}`), reuse);
+    const novel = makeNovel(idx.title || meta.title);
+    novel.id = nid;
+    novel.author = idx.author || meta.author || '';
+    novel.cover = (reuse && state.novel.cover) || (meta.cover ? await fetchCoverDataUrl(meta.cover) : '');
+    novel.episodes = eps;
+    novel.sortMode = 'oldest';
+    novel.furiganaRules = JSON.parse(JSON.stringify(idx.furiganaRules || []));
+    novel.shared = {
+      workId, genre: idx.genre || meta.genre, synopsis: idx.synopsis || meta.synopsis || '',
+      indexUpdatedAt: idx.updatedAt, eps: Object.fromEntries((idx.episodes || []).map(e => [e.id, e.updatedAt])),
+      lastCheck: Date.now(), status: 'public',
+    };
+    await libDbPut(novel);
+    state.library.push(JSON.parse(JSON.stringify(novel)));
+    if(isTrialNovel()){ state.currentNovelId = null; state.currentEpisodeId = null; }
+    closeWorkDetail();
+    closeBrowse();
+    await openNovel(nid);
+    showToast('本棚に追加しました');
+    workHit(workId, 'add');
+  }catch(e){
+    console.warn('addWorkToLibrary:', e);
+    showToast(sharedStatusMessage(e.status || e.message));
+  }
+}
+
+async function startTrial(workId){
+  try{
+    showToast('試し読みを準備中...');
+    const meta = await workApi('/w/' + workId);
+    if(meta.status !== 'public'){ showToast(sharedStatusMessage(meta.status)); return; }
+    const idx = await loadWorkIndex(workId);
+    const all = (idx.episodes || []).slice().sort((a, b) => a.number - b.number);
+    const first = all.slice(0, TRIAL_EPISODES);
+    if(!first.length){ showToast('まだ話がありません'); return; }
+    const eps = await downloadWorkEpisodes(workId, first, null, null);
+    const novel = makeNovel(idx.title || meta.title);
+    novel.id = 'trial_' + workId;
+    novel.trial = true; // 本棚には保存しない
+    novel.author = idx.author || meta.author || '';
+    novel.cover = meta.cover ? await fetchCoverDataUrl(meta.cover) : '';
+    novel.episodes = eps;
+    novel.sortMode = 'oldest';
+    novel.furiganaRules = JSON.parse(JSON.stringify(idx.furiganaRules || []));
+    novel.shared = { workId, total: all.length, genre: idx.genre || meta.genre, synopsis: idx.synopsis || meta.synopsis || '', status: 'public', eps: {} };
+    // 今開いている本があれば保存してから切り替える
+    clearTimeout(_saveTimer);
+    if(state.currentNovelId && !isTrialNovel()) save();
+    state.currentNovelId = novel.id;
+    state.novel = novel;
+    state.currentEpisodeId = null;
+    closeWorkDetail();
+    closeBrowse();
+    hideLibrary();
+    showToc();
+    applyNovelLook();
+    resetBgDisplay();
+    openEpisode(eps[0].id);
+  }catch(e){
+    console.warn('startTrial:', e);
+    showToast(sharedStatusMessage(e.status || e.message));
+  }
+}
+function showTrialEnd(){
+  const n = state.novel;
+  const total = (n.shared && n.shared.total) || n.episodes.length;
+  $.modal_body.innerHTML = `<div style="font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#333;line-height:1.8;">
+    試し読みはここまでです（全${total}話）。<br>本棚に追加すると、続きを全部読めます。</div>`;
+  $.modal_ok.textContent = '本棚に追加';
+  showModal('続きを読む', () => { $.modal_ok.textContent = 'OK'; addWorkToLibrary(n.shared.workId); });
+  const cancelBtn = document.querySelector('#modal .mb.secondary');
+  if(cancelBtn) cancelBtn.addEventListener('click', () => { $.modal_ok.textContent = 'OK'; }, { once: true });
+}
+
+/* ────────── 読者：差分更新 ────────── */
+async function persistSharedNovel(n){
+  const copy = JSON.parse(JSON.stringify(n));
+  const i = state.library.findIndex(x => x.id === n.id);
+  if(i < 0) return; // 確認している間に本棚から削除された
+  state.library[i] = copy;
+  await libDbPut(copy).catch(e => console.warn('persistShared:', e));
+}
+async function checkSharedUpdates(novelId, opts = {}){
+  const lib = state.library.find(n => n.id === novelId);
+  if(!lib || !lib.shared) return;
+  const isOpen = state.currentNovelId === novelId;
+  if(isOpen && state.currentEpisodeId) return; // 読んでいる最中は差し替えない
+  const target = isOpen ? state.novel : lib;
+  const workId = target.shared.workId;
+  let idx;
+  try{ idx = await workApi(`/w/${workId}/index`); }
+  catch(e){ if(!opts.silent) showToast('更新を確認できませんでした'); return; }
+  if(state.currentNovelId === novelId && state.currentEpisodeId) return;
+
+  if(idx.status && idx.status !== 'public'){
+    if(target.shared.status !== idx.status){
+      target.shared.status = idx.status;
+      if(idx.status === 'blocked'){
+        target.episodes = [];
+        target.lastReadId = null;
+        showToast(`「${target.title}」は公開停止されました`);
+      } else if(idx.status === 'private'){
+        showToast(`「${target.title}」は作者が公開をやめました（手元の話は読めます）`);
+      }
+      await persistSharedNovel(target);
+      if(isOpen) renderToc(); else if(document.body.classList.contains('library-mode')) renderLibrary();
+    }
+    return;
+  }
+
+  const remote = idx.episodes || [];
+  const known = target.shared.eps || {};
+  const toFetch = remote.filter(e => known[e.id] !== e.updatedAt || !target.episodes.find(x => x.id === e.id));
+  const removed = target.episodes.filter(x => !remote.find(e => e.id === x.id));
+  target.shared.lastCheck = Date.now();
+  target.shared.status = 'public';
+  if(idx.title) target.title = idx.title;
+  target.author = idx.author || target.author;
+  target.shared.genre = idx.genre || target.shared.genre;
+  target.shared.synopsis = idx.synopsis || target.shared.synopsis;
+  if(!toFetch.length && !removed.length){ await persistSharedNovel(target); return; }
+
+  let fetched = [];
+  try{
+    fetched = await downloadWorkEpisodes(workId, toFetch, opts.silent ? null : (d, t) => showToast(`更新をダウンロード中... ${d}/${t}`), null);
+  }catch(e){ if(!opts.silent) showToast('更新のダウンロードに失敗しました'); return; }
+  if(state.currentNovelId === novelId && state.currentEpisodeId) return;
+  let added = 0, updated = 0;
+  for(const ep of fetched){
+    const i = target.episodes.findIndex(x => x.id === ep.id);
+    if(i >= 0){ ep.isUpdated = true; target.episodes[i] = ep; updated++; }
+    else{ ep.isNew = true; target.episodes.push(ep); added++; }
+  }
+  if(removed.length){
+    const ids = new Set(removed.map(r => r.id));
+    target.episodes = target.episodes.filter(x => !ids.has(x.id));
+    if(ids.has(target.lastReadId)) target.lastReadId = null;
+  }
+  target.shared.eps = Object.fromEntries(remote.map(e => [e.id, e.updatedAt]));
+  target.shared.indexUpdatedAt = idx.updatedAt;
+  await persistSharedNovel(target);
+  if(isOpen) renderToc();
+  else if(document.body.classList.contains('library-mode')) renderLibrary();
+  const parts = [];
+  if(added) parts.push(`新しい話 ${added}件`);
+  if(updated) parts.push(`更新 ${updated}件`);
+  if(removed.length) parts.push(`削除 ${removed.length}件`);
+  if(parts.length) showToast(`「${target.title}」${parts.join('・')}`);
+}
+let _sharedCheckRunning = false;
+async function checkAllSharedUpdates(){
+  if(_sharedCheckRunning) return;
+  _sharedCheckRunning = true;
+  try{
+    for(const n of state.library.filter(x => x.shared && x.shared.status !== 'blocked')){
+      if(state.currentNovelId) break; // 本を開いたらやめる
+      if(Date.now() - (n.shared.lastCheck || 0) < SHARED_CHECK_INTERVAL) continue;
+      await checkSharedUpdates(n.id, { silent: true });
+    }
+  }finally{ _sharedCheckRunning = false; }
+}
+
+/* ────────── 通報 ────────── */
+function openReportModal(){
+  const n = state.novel;
+  if(!n || !n.shared) return;
+  const reasons = [['translation','翻訳作品'],['copy','無断転載・盗作'],['adult','不適切な内容'],['spam','スパム・荒らし'],['other','その他']];
+  $.modal_body.innerHTML = `
+    <div style="font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#666;margin-bottom:10px;">「${escapeHtml(n.title)}」を通報します。理由を選んでください。</div>
+    ${reasons.map(([v, l], i) => `<label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:#333;">
+      <input type="radio" name="report-reason" value="${v}" ${i === 0 ? 'checked' : ''} style="accent-color:#c54040;">${l}</label>`).join('')}
+    <textarea class="mi" id="report-detail" maxlength="500" placeholder="詳しい内容（任意）：原作の題名やURLなど" style="min-height:80px;margin-top:8px;"></textarea>`;
+  $.modal_ok.textContent = '通報する';
+  showModal('作品を通報', () => {
+    $.modal_ok.textContent = 'OK';
+    const reason = (document.querySelector('input[name="report-reason"]:checked') || {}).value || 'other';
+    const detail = document.getElementById('report-detail').value.trim();
+    workApi('/report', { method: 'POST', body: JSON.stringify({ workId: n.shared.workId, reason, detail }) })
+      .then(() => showToast('通報しました。ご協力ありがとうございます'))
+      .catch(() => showToast('通報を送れませんでした'));
+  });
+  const cancelBtn = document.querySelector('#modal .mb.secondary');
+  if(cancelBtn) cancelBtn.addEventListener('click', () => { $.modal_ok.textContent = 'OK'; }, { once: true });
+}
+
+/* ────────── 共有作品は読むだけ ────────── */
+function applySharedModeUI(){
+  const shared = isSharedNovel();
+  document.body.classList.toggle('shared-mode', shared);
+  if($.toc_novel_title) $.toc_novel_title.contentEditable = shared ? 'false' : 'true';
+  if($.toc_novel_author) $.toc_novel_author.contentEditable = shared ? 'false' : 'true';
+  if($.toc_cover_placeholder) $.toc_cover_placeholder.innerHTML = shared ? '表紙なし' : 'カバー画像<br>を追加';
+}
+function renderTocSharedExtras(){
+  refreshTocLike();
+  const list = $.toc_list;
+  const n = state.novel;
+  if(!n || !n.shared || !list) return;
+  if(n.trial){
+    const total = n.shared.total || n.episodes.length;
+    const div = document.createElement('div');
+    div.className = 'toc-trial-note';
+    div.innerHTML = `<div>試し読みは${n.episodes.length}話までです（全${total}話）</div>
+      <button class="work-btn primary" onclick="addWorkToLibrary('${n.shared.workId}')">本棚に追加して続きを読む</button>`;
+    list.appendChild(div);
+  } else if(n.shared.status === 'private'){
+    const div = document.createElement('div');
+    div.className = 'toc-trial-note';
+    div.textContent = '作者がこの作品の公開をやめました。手元にある話は引き続き読めます。';
+    list.appendChild(div);
+  }
+}
+
+
+/* ────────── 最新の話を確実に読む ────────── */
+// 目次で話をタップしたら、まず最新かを確認してから開く（最大2.5秒待つ）
+async function openSharedEpisodeFresh(id){
+  const n = state.novel;
+  if(!n || !n.shared || n.trial || n.shared.status !== 'public'){ openEpisode(id); return; }
+  try{
+    await Promise.race([ checkSharedUpdates(state.currentNovelId, { silent: true }), new Promise(r => setTimeout(r, 2500)) ]);
+  }catch(_){}
+  if(state.novel && state.novel.episodes.find(e => e.id === id)) openEpisode(id);
+  else{ renderToc(); showToast('この話は作者が削除しました'); }
+}
+// 目次に戻ってきた時・アプリに戻ってきた時も確認
+function checkOpenSharedNovelSoon(){
+  const n = state.novel;
+  if(!state.currentNovelId || !n || !n.shared || n.trial || n.shared.status === 'blocked') return;
+  if(state.currentEpisodeId) return;
+  checkSharedUpdates(state.currentNovelId, { silent: true });
+}
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState !== 'visible') return;
+  if(document.body.classList.contains('toc-mode')) checkOpenSharedNovelSoon();
+  else if(document.body.classList.contains('library-mode') && !state.currentNovelId){
+    state.library.forEach(n => { if(n.shared) n.shared.lastCheck = 0; });
+    checkAllSharedUpdates();
+  }
+});
+
+/* ────────── 共有作品を本棚から削除 ────────── */
+async function removeCurrentFromLibrary(){
+  const n = state.novel;
+  if(!n || !state.currentNovelId) return;
+  if(!confirm(`「${n.title}」を本棚から削除しますか？\n作品ページからいつでも追加し直せます。`)) return;
+  const id = state.currentNovelId;
+  clearTimeout(_saveTimer);
+  state.currentNovelId = null;
+  state.currentEpisodeId = null;
+  state.library = state.library.filter(x => x.id !== id); // 先に本棚から外す（書き戻し防止）
+  await libDbDelete(id).catch(() => {});
+  closePanel();
+  showLibrary();
+  showToast('本棚から削除しました');
+}
+
+/* ────────── いいね ────────── */
+function getDeviceId(){
+  const k = LS_PREFIX + 'device-id';
+  let d = localStorage.getItem(k);
+  if(!d){
+    d = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, '0')).join('');
+    localStorage.setItem(k, d);
+  }
+  return d;
+}
+function likeButtonHtml(workId, likes, liked, cls){
+  return `<button class="like-btn ${cls || ''} ${liked ? 'liked' : ''}" data-work="${workId}" onclick="toggleLike('${workId}', this)">
+    <span class="like-heart">${liked ? '♥' : '♡'}</span><span class="like-count">${likes || 0}</span></button>`;
+}
+async function toggleLike(workId, btn){
+  const liked = btn.classList.contains('liked');
+  // 先に見た目を変えておく
+  const setUi = (on, count) => document.querySelectorAll(`.like-btn[data-work="${workId}"]`).forEach(b => {
+    b.classList.toggle('liked', on);
+    b.querySelector('.like-heart').textContent = on ? '♥' : '♡';
+    if(count != null) b.querySelector('.like-count').textContent = count;
+  });
+  const cur = parseInt(btn.querySelector('.like-count').textContent) || 0;
+  setUi(!liked, Math.max(0, cur + (liked ? -1 : 1)));
+  try{
+    const r = await workApi('/like', { method: 'POST', body: JSON.stringify({ workId, device: getDeviceId(), like: !liked }) });
+    setUi(r.liked, r.likes);
+    const n = state.library.find(x => x.shared && x.shared.workId === workId);
+    if(n){ n.shared.likes = r.likes; n.shared.liked = r.liked; }
+    if(state.novel && state.novel.shared && state.novel.shared.workId === workId){ state.novel.shared.likes = r.likes; state.novel.shared.liked = r.liked; }
+  }catch(e){
+    setUi(liked, cur);
+    showToast('いいねできませんでした');
+  }
+}
+// 目次（共有作品）の統計の横に いいね を出す
+async function refreshTocLike(){
+  const n = state.novel;
+  const stats = document.getElementById('toc-stats');
+  if(!stats) return;
+  stats.querySelectorAll('.like-btn').forEach(b => b.remove());
+  if(!n || !n.shared || n.shared.status !== 'public') return;
+  const wid = n.shared.workId;
+  stats.insertAdjacentHTML('beforeend', likeButtonHtml(wid, n.shared.likes || 0, !!n.shared.liked, 'small'));
+  try{
+    const m = await workApi(`/w/${wid}?device=${getDeviceId()}`);
+    if(m.status === 'public' && state.novel && state.novel.shared && state.novel.shared.workId === wid){
+      state.novel.shared.likes = m.likes; state.novel.shared.liked = m.liked;
+      document.querySelectorAll(`.like-btn[data-work="${wid}"]`).forEach(b => {
+        b.classList.toggle('liked', !!m.liked);
+        b.querySelector('.like-heart').textContent = m.liked ? '♥' : '♡';
+        b.querySelector('.like-count').textContent = m.likes || 0;
+      });
+    }
+  }catch(_){}
+}
+
+/* ────────── 作品をさがす ──────────
+   ・トップ：ランキング・新着・更新・完結の棚（横に流れる）
+   ・一覧：並べ方（ランキング／いいね／新着／更新）・期間・ジャンル・完結・R18・タグ・作者でしぼる
+   ・表示：表紙だけ（グリッド）／あらすじ付き（リスト） */
+let _browse = { view: 'home', sort: 'rank', period: 'week', genre: '', q: '', ak: '', akName: '', tag: '', done: false, r18: false, layout: 'rows', rankOk: null };
+const ADULT_LS = LS_PREFIX + 'adult-ok';
+const BROWSE_LAYOUT_LS = LS_PREFIX + 'browse-layout';
+try{ const l = localStorage.getItem(BROWSE_LAYOUT_LS); if(l === 'grid' || l === 'rows') _browse.layout = l; }catch(_){}
+function adultOk(){ try{ return localStorage.getItem(ADULT_LS) === '1'; }catch(_){ return false; } }
+function setAdultOk(){ try{ localStorage.setItem(ADULT_LS, '1'); }catch(_){} }
+
+// 表紙：画像がなければ、ジャンルの色の本に題簽（タイトルを書いた細長い紙）をはった表紙を作る
+const WORK_GENRE_COLORS = { 'ファンタジー': '#2f4f73', '恋愛': '#a8506a', '現代': '#55626c', 'SF': '#2d6e78', 'ミステリー': '#34363f', 'ホラー': '#4a3148', '歴史': '#7d6238', 'コメディ': '#b8802a', 'BL': '#3f7c94', 'GL': '#7e6aa0', 'その他': '#5f6f5c' };
+function workGenreColor(g){ return WORK_GENRE_COLORS[g] || WORK_GENRE_COLORS['その他']; }
+function workCoverHtml(w, big){
+  const cls = 'wc' + (big ? ' wc-big' : '');
+  const rate = w.rating ? `<span class="wc-rate ${w.rating === 'R18' ? 'r18' : ''}">${w.rating}</span>` : '';
+  const eps = w.epCount && !big ? `<span class="wc-eps">${w.epCount}話</span>` : '';
+  if(w.cover) return `<span class="${cls}" style="background-image:url('${w.cover}')">${rate}${eps}</span>`;
+  const t = String(w.title || '無題').slice(0, 30), n = [...t].length;
+  const fs = n <= 7 ? 11.5 : n <= 9 ? 80 / n : Math.max(7.5, Math.min(10, 150 / n));   // 長い題名は小さく・2〜3行に
+  return `<span class="${cls} wc-gen" style="--wc:${workGenreColor(w.genre)}">${rate}<span class="wc-slip" style="font-size:${fs}cqw"><span class="wc-t">${escapeHtml(t)}</span>${w.author ? `<span class="wc-a">${escapeHtml(String(w.author).slice(0, 12))}</span>` : ''}</span>${eps}</span>`;
+}
+function fmtChars(n){ n = n || 0; return n >= 10000 ? (Math.round(n / 1000) / 10) + '万字' : n.toLocaleString() + '字'; }
+function fmtDay(iso){
+  if(!iso) return '';
+  const d = new Date(iso), now = new Date();
+  const days = Math.floor((now - d) / 864e5);
+  if(days <= 0 && d.getDate() === now.getDate()) return '今日';
+  if(days < 7) return (days || 1) + '日前';
+  return `${d.getFullYear() === now.getFullYear() ? '' : d.getFullYear() + '/'}${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+/* ── 画面の開け閉め ── */
+function openBrowse(){
+  document.getElementById('browse-screen').classList.add('show');
+  document.body.classList.add('browse-open');
+  renderBrowse();
+}
+function closeBrowse(){
+  document.getElementById('browse-screen').classList.remove('show');
+  document.body.classList.remove('browse-open');
+}
+// 戻る：一覧 → トップ → 閉じる
+function browseBack(){
+  if(_browse.view === 'list'){ browseHome(); return; }
+  closeBrowse();
+}
+function browseHome(){
+  Object.assign(_browse, { view: 'home', q: '', ak: '', akName: '', tag: '', genre: '', done: false });
+  const qi = document.getElementById('browse-q'); if(qi) qi.value = '';
+  renderBrowse();
+}
+function browseList(opts){
+  Object.assign(_browse, { view: 'list' }, opts || {});
+  if(_browse.sort === 'rank' && _browse.rankOk === false) _browse.sort = 'popular';
+  renderBrowse();
+  const s = document.getElementById('browse-screen'); if(s) s.scrollTop = 0;
+}
+function openBrowseAuthor(ak, name){
+  closeWorkDetail();
+  document.getElementById('browse-screen').classList.add('show');
+  document.body.classList.add('browse-open');
+  const qi = document.getElementById('browse-q'); if(qi) qi.value = '';
+  browseList({ ak, akName: name, q: '', tag: '', genre: '', done: false, sort: 'new' });
+}
+function openBrowseTag(tag){
+  closeWorkDetail();
+  document.getElementById('browse-screen').classList.add('show');
+  document.body.classList.add('browse-open');
+  browseList({ tag, ak: '', akName: '', q: '', genre: '' });
+}
+function onBrowseSearch(v){
+  clearTimeout(window._bsT);
+  window._bsT = setTimeout(() => {
+    v = v.trim();
+    if(v) browseList({ q: v }); else if(_browse.view === 'list' && !_browse.ak && !_browse.tag) browseHome(); else { _browse.q = ''; renderBrowse(); }
+  }, 350);
+}
+function toggleBrowseR18(){
+  if(!_browse.r18 && !adultOk()){ if(!confirm('R18（18歳以上向け）の作品も表示します。\n18歳以上ですか？')) return; setAdultOk(); }
+  _browse.r18 = !_browse.r18; renderBrowse();
+}
+function setBrowseLayout(l){ _browse.layout = l; try{ localStorage.setItem(BROWSE_LAYOUT_LS, l); }catch(_){} renderBrowse(); }
+
+/* ── 一覧を読む ── */
+function worksQuery(o){
+  const p = new URLSearchParams();
+  p.set('sort', o.sort || 'popular');
+  if(o.sort === 'rank') p.set('period', o.period || 'week');
+  if(o.genre) p.set('genre', o.genre);
+  if(o.q) p.set('q', o.q);
+  if(o.ak) p.set('ak', o.ak);
+  if(o.tag) p.set('tag', o.tag);
+  if(o.done) p.set('done', '1');
+  if(o.r18) p.set('r18', '1');
+  return '/works?' + p.toString();
+}
+async function fetchWorks(o){
+  const d = await workApi(worksQuery(o));
+  if(typeof d.rankAvailable === 'boolean') _browse.rankOk = d.rankAvailable;
+  return d;
+}
+function ownedWork(id){ return state.library.some(n => n.id === 'shared_' + id); }
+
+/* ── 1作品の表示 ── */
+function coverWithBadges(w){
+  return workCoverHtml(Object.assign({}, w, { epCount: 0 })).replace(/<\/span>$/, (ownedWork(w.id) ? '<span class="wc-own">本棚</span>' : '') + '</span>');
+}
+// 棚の1冊：表紙・題名・作者だけ
+function browseCardHtml(w){
+  return `<button class="bw-card" onclick="openWorkDetail('${w.id}')">
+    ${coverWithBadges(w)}
+    <span class="bw-title">${escapeHtml(w.title || '無題')}</span>
+    <span class="bw-author">${escapeHtml(w.author || '')}</span>
+  </button>`;
+}
+// ランキングの1行：順位・小さい表紙・題名・作者・ジャンル
+function browseRankHtml(w, rank){
+  return `<button class="rk-item" onclick="openWorkDetail('${w.id}')">
+    <span class="rk-cover">${coverWithBadges(w)}</span>
+    <span class="rk-n${rank <= 3 ? ' top' : ''}">${rank}</span>
+    <span class="rk-body"><span class="rk-title">${escapeHtml(w.title || '無題')}</span>
+      <span class="rk-sub">${escapeHtml(w.author || '')}</span>
+      <span class="rk-meta">${escapeHtml(w.genre || '')}<i>${w.done ? '完結' : '連載中'}</i><i>${w.epCount || 0}話</i></span></span>
+  </button>`;
+}
+// 一覧の1行：あらすじ付き
+function browseRowHtml(w, rank){
+  const tags = (w.tags || []).slice(0, 4);
+  return `<div class="br-row" role="button" tabindex="0" onclick="openWorkDetail('${w.id}')" onkeydown="if(event.key==='Enter')openWorkDetail('${w.id}')">
+    ${rank ? `<span class="rk-n br-n${rank <= 3 ? ' top' : ''}">${rank}</span>` : ''}
+    <div class="br-cover">${coverWithBadges(w)}</div>
+    <div class="br-body">
+      <div class="br-title">${escapeHtml(w.title || '無題')}</div>
+      <div class="br-author">${escapeHtml(w.author || '')}</div>
+      <div class="br-meta"><span class="br-st ${w.done ? 'done' : ''}">${w.done ? '完結' : '連載中'}</span><i>${escapeHtml(w.genre || '')}</i><i>${w.epCount || 0}話</i>${w.chars ? `<i>${fmtChars(w.chars)}</i>` : ''}<i class="br-like">♡ ${w.likes || 0}</i></div>
+      ${w.syn ? `<div class="br-syn">${escapeHtml(w.syn)}</div>` : ''}
+      ${tags.length ? `<div class="br-tags">${tags.map(t => `<span>#${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+/* ── 描く ── */
+const BROWSE_TABS = [['home', 'ホーム'], ['rank', 'ランキング'], ['new', '新着'], ['updated', '更新'], ['done', '完結']];
+function browseTabKey(){
+  const b = _browse;
+  if(b.view === 'home') return 'home';
+  if(b.ak || b.tag || b.q) return '';
+  if(b.done && b.sort === 'updated') return 'done';
+  return b.sort === 'popular' ? 'rank' : b.sort;
+}
+function browseTab(k){
+  if(k === 'home'){ browseHome(); return; }
+  if(k === 'done'){ browseList({ sort: 'updated', done: true, ak: '', akName: '', tag: '', q: '' }); return; }
+  browseList({ sort: k === 'rank' && _browse.rankOk === false ? 'popular' : k, done: false, ak: '', akName: '', tag: '', q: '' });
+}
+function renderBrowse(){
+  const body = document.getElementById('browse-body');
+  if(!body) return;
+  const tb = document.getElementById('browse-tb-title');
+  if(tb) tb.textContent = _browse.ak ? (_browse.akName || '作者') + 'の作品' : _browse.tag ? '#' + _browse.tag : _browse.q ? '検索' : '作品をさがす';
+  const tabs = document.getElementById('browse-tabs');
+  if(tabs){
+    const cur = browseTabKey();
+    tabs.innerHTML = BROWSE_TABS.map(([k, l]) => `<button class="${cur === k ? 'on' : ''}" onclick="browseTab('${k}')">${l}</button>`).join('');
+    tabs.hidden = !!(_browse.ak || _browse.tag || _browse.q);
+  }
+  if(_browse.view === 'home') renderBrowseHome(body); else renderBrowseList(body);
+}
+const BROWSE_SHELVES = [
+  { key: 'rank', title: '今週のランキング', more: { sort: 'rank', period: 'week' }, q: { sort: 'rank', period: 'week' }, kind: 'rank', needRank: true },
+  { key: 'popular', title: '人気の作品', more: { sort: 'popular' }, q: { sort: 'popular' }, kind: 'rank' },
+  { key: 'new', title: '新着', more: { sort: 'new' }, q: { sort: 'new' } },
+  { key: 'updated', title: '最近更新された作品', more: { sort: 'updated' }, q: { sort: 'updated' } },
+  { key: 'done', title: '完結した作品', more: { sort: 'updated', done: true }, q: { sort: 'updated', done: true } },
+];
+async function renderBrowseHome(body){
+  const seq = window._browseSeq = (window._browseSeq || 0) + 1;
+  body.innerHTML = `
+    <div class="bh-genres">${WORK_GENRES.map(g => `<button onclick="browseList({genre:'${g}',sort:'popular'})"><span class="bh-dot" style="background:${workGenreColor(g)}"></span>${g}</button>`).join('')}</div>
+    ${BROWSE_SHELVES.map(s => `<section class="bh-shelf" id="bh-${s.key}" ${s.needRank && _browse.rankOk === false ? 'hidden' : ''}>
+      <div class="bh-head"><h2>${s.title}</h2><button onclick='browseList(${JSON.stringify(s.more)})' aria-label="${s.title}をもっと見る">すべて<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button></div>
+      <div class="${s.kind === 'rank' ? 'rk-cols' : 'bh-row'}"><div class="bh-msg">読み込み中...</div></div></section>`).join('')}
+    <div class="browse-terms"><a href="#" onclick="window.open(TERMS_URL, '_blank', 'noopener');return false;">利用規約・プライバシー</a></div>`;
+  let anyWork = false, failed = 0;
+  await Promise.all(BROWSE_SHELVES.map(async s => {
+    const sec = document.getElementById('bh-' + s.key);
+    try{
+      const d = await fetchWorks(Object.assign({ r18: _browse.r18 }, s.q));
+      if(seq !== window._browseSeq || !sec) return;
+      if(s.needRank && !d.rankAvailable){ sec.hidden = true; return; }
+      const ws = (d.works || []).slice(0, s.kind === 'rank' ? 9 : 12);
+      if(!ws.length){ sec.hidden = true; return; }
+      anyWork = true;
+      const box = sec.querySelector('.rk-cols, .bh-row');
+      if(s.kind === 'rank'){
+        // 3作品ずつ縦に並べた列を、横にめくる
+        const cols = [];
+        for(let i = 0; i < ws.length; i += 3) cols.push(`<div class="rk-col">${ws.slice(i, i + 3).map((w, j) => browseRankHtml(w, i + j + 1)).join('')}</div>`);
+        box.innerHTML = cols.join('');
+      }else box.innerHTML = ws.map(w => browseCardHtml(w)).join('');
+    }catch(e){ failed++; if(sec) sec.querySelector('.rk-cols, .bh-row').innerHTML = '<div class="bh-msg">読み込めませんでした</div>'; }
+  }));
+  if(seq !== window._browseSeq) return;
+  const rk = document.getElementById('bh-rank'), pp = document.getElementById('bh-popular');
+  if(rk && pp && !rk.hidden) pp.hidden = true;
+  if(!anyWork && !failed) body.querySelector('.bh-genres').insertAdjacentHTML('afterend', '<div class="work-msg">まだ作品がありません。<br>本の︙メニューの「作品を公開・更新」から、最初の作品を公開してみてね</div>');
+}
+async function renderBrowseList(body){
+  const seq = window._browseSeq = (window._browseSeq || 0) + 1;
+  const b = _browse;
+  const tab = browseTabKey();
+  const periods = [['day', '日間'], ['week', '週間'], ['month', '月間'], ['all', '累計']];
+  const chip = (on, label, js, cls = '') => `<button class="bl-chip ${cls} ${on ? 'on' : ''}" onclick="${js}">${label}</button>`;
+  const showRankOpts = tab === 'rank';
+  body.innerHTML = `
+    ${b.ak ? `<div class="bl-author" id="bl-author"><div class="bl-au-name">${escapeHtml(b.akName || '作者')}</div><div class="bl-au-bio"></div></div>` : ''}
+    ${b.tag ? `<div class="bl-filter">タグ <b>#${escapeHtml(b.tag)}</b><button onclick="browseList({tag:''})" aria-label="タグのしぼりこみをやめる">✕</button></div>` : ''}
+    ${b.q ? `<div class="bl-filter">「<b>${escapeHtml(b.q)}</b>」の検索結果<button onclick="document.getElementById('browse-q').value='';browseHome()" aria-label="検索をやめる">✕</button></div>` : ''}
+    <div class="bl-bar">
+      ${showRankOpts ? `<div class="bl-seg">${(b.rankOk === false ? [['popular', 'いいね']] : [...periods.map(([v, l]) => ['rank:' + v, l]), ['popular', 'いいね']]).map(([v, l]) => {
+        const on = v === 'popular' ? b.sort === 'popular' : b.sort === 'rank' && b.period === v.slice(5);
+        return `<button class="${on ? 'on' : ''}" onclick="${v === 'popular' ? "browseList({sort:'popular'})" : `browseList({sort:'rank',period:'${v.slice(5)}'})`}">${l}</button>`;
+      }).join('')}</div>` : (b.ak || b.tag || b.q) ? `<div class="bl-seg">${[['popular', 'いいね順'], ['new', '新着順'], ['updated', '更新順']].map(([v, l]) => `<button class="${b.sort === v ? 'on' : ''}" onclick="browseList({sort:'${v}'})">${l}</button>`).join('')}</div>` : ''}
+      <div class="bl-chips">
+        ${chip(!b.genre, 'すべて', "browseList({genre:''})")}${WORK_GENRES.map(g => chip(b.genre === g, g, `browseList({genre:'${g}'})`)).join('')}
+        <span class="bl-div"></span>
+        ${tab !== 'done' ? chip(b.done, '完結のみ', 'browseList({done:!_browse.done})') : ''}${chip(b.r18, 'R18', 'toggleBrowseR18()', 'r18')}
+      </div>
+      <div class="bl-count"><span id="bl-total"></span>
+        <span class="bl-lays"><button class="bl-lay ${b.layout === 'rows' ? 'on' : ''}" onclick="setBrowseLayout('rows')" aria-label="あらすじ付きで並べる" title="あらすじ付き"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="6" height="7" rx="1"/><line x1="12" y1="6" x2="21" y2="6"/><line x1="12" y1="10" x2="18" y2="10"/><rect x="3" y="13" width="6" height="7" rx="1"/><line x1="12" y1="15" x2="21" y2="15"/><line x1="12" y1="19" x2="18" y2="19"/></svg></button><button class="bl-lay ${b.layout === 'grid' ? 'on' : ''}" onclick="setBrowseLayout('grid')" aria-label="表紙で並べる" title="表紙"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="8" rx="1"/><rect x="14" y="3" width="7" height="8" rx="1"/><rect x="3" y="13" width="7" height="8" rx="1"/><rect x="14" y="13" width="7" height="8" rx="1"/></svg></button></span></div>
+    </div>
+    <div id="browse-grid" class="${b.layout === 'grid' ? 'bl-grid' : 'bl-rows'}"><div class="work-msg" style="grid-column:1/-1">読み込み中...</div></div>
+    <div class="browse-terms"><a href="#" onclick="window.open(TERMS_URL, '_blank', 'noopener');return false;">利用規約・プライバシー</a></div>`;
+  if(b.ak){
+    workApi('/profile?ak=' + encodeURIComponent(b.ak)).then(p => {
+      if(seq !== window._browseSeq || !p) return;
+      const el = document.getElementById('bl-author'); if(!el) return;
+      if(p.name){ el.querySelector('.bl-au-name').textContent = p.name; const tb = document.getElementById('browse-tb-title'); if(tb) tb.textContent = p.name + 'の作品'; }
+      el.querySelector('.bl-au-bio').textContent = p.bio || '';
+    }).catch(() => {});
+  }
+  const grid = document.getElementById('browse-grid');
+  let data;
+  try{ data = await fetchWorks(b); }
+  catch(e){ if(seq === window._browseSeq) grid.innerHTML = '<div class="work-msg" style="grid-column:1/-1">一覧を読み込めませんでした。通信状態を確認して、右上の矢印でもう一度読み込んでね</div>'; return; }
+  if(seq !== window._browseSeq) return;
+  const works = data.works || [];
+  const tot = document.getElementById('bl-total'); if(tot) tot.textContent = works.length ? `${data.total || works.length}作品` : '';
+  if(!works.length){
+    grid.innerHTML = `<div class="work-msg" style="grid-column:1/-1">${b.q ? `「${escapeHtml(b.q)}」に合う作品は見つからなかったよ` : b.sort === 'rank' && b.period !== 'all' ? 'この期間に読まれた作品はまだないよ' : 'この条件の作品はまだないよ'}</div>`;
+    return;
+  }
+  const ranked = tab === 'rank';
+  grid.innerHTML = works.map((w, i) => b.layout === 'grid' ? browseCardHtml(w) : browseRowHtml(w, ranked ? i + 1 : 0)).join('');
+}
+// 前のバージョンの呼び名（ほかの場所から呼ばれる）
+function loadBrowse(){ renderBrowse(); }
+function renderBrowseFilters(){}
+
+/* ────────── 作品ページ ────────── */
+async function openWorkDetail(workId){
+  _workScreenId = workId;
+  const s = document.getElementById('work-screen');
+  s.classList.add('show');
+  s.scrollTop = 0;
+  document.body.classList.add('work-open');
+  const body = document.getElementById('work-body');
+  body.innerHTML = '<div class="work-msg">読み込み中...</div>';
+  let meta;
+  try{ meta = await workApi('/w/' + workId + '?device=' + getDeviceId()); }
+  catch(e){ body.innerHTML = '<div class="work-msg">作品を読み込めませんでした。通信状態を確認してください。</div>'; return; }
+  if(_workScreenId !== workId) return;
+  if(meta.status !== 'public'){
+    const msg = meta.status === 'blocked' ? 'この作品は公開停止されています。' : meta.status === 'private' ? 'この作品は作者が公開をやめました。' : '作品が見つかりません。リンクを確認してください。';
+    body.innerHTML = `<div class="work-msg">${msg}</div>`;
+    return;
+  }
+  const nid = 'shared_' + workId;
+  const inLib = state.library.some(n => n.id === nid);
+  if(meta.rating === 'R18' && !adultOk() && !inLib){
+    body.innerHTML = `<div class="work-gate"><div class="work-gate-mark">R18</div><div class="work-gate-t">この作品は18歳以上向けです</div>
+      <div class="work-gate-s">18歳以上ですか？</div>
+      <div class="work-actions" style="border:none"><button class="work-btn" onclick="closeWorkDetail()">いいえ</button><button class="work-btn primary" onclick="setAdultOk();openWorkDetail('${workId}')">はい</button></div></div>`;
+    return;
+  }
+  const lib = state.library.find(n => n.id === nid);
+  const lastEp = lib && lib.lastReadId && (lib.episodes || []).find(e => e.id === lib.lastReadId);
+  const tags = meta.tags || [];
+  body.innerHTML = `
+    <div class="work-info" style="--wc:${workGenreColor(meta.genre)}">
+      ${workCoverHtml(meta, true)}
+      <div class="work-info-text">
+        <div class="work-title">${escapeHtml(meta.title)}</div>
+        ${meta.ak ? `<button class="work-author work-author-link" onclick='openBrowseAuthor(${JSON.stringify(meta.ak)}, ${escapeHtml(JSON.stringify(meta.author || "この作者"))})'><u>${escapeHtml(meta.author || '作者')}</u><span>の作品を見る</span></button>` : `<div class="work-author">${escapeHtml(meta.author || '')}</div>`}
+        <div class="work-chips"><span class="work-genre">${escapeHtml(meta.genre || '')}${meta.rating ? `<span class="work-rate">${meta.rating}</span>` : ''}</span><span class="br-st ${meta.done ? 'done' : ''}">${meta.done ? '完結' : '連載中'}</span></div>
+        <div class="work-stats"><span><span class="ts-num">${meta.epCount}</span> 話</span>${meta.chars ? `<span>${fmtChars(meta.chars)}</span>` : ''}${meta.updatedAt ? `<span>更新 ${escapeHtml(fmtDay(meta.updatedAt))}</span>` : ''}${likeButtonHtml(workId, meta.likes, meta.liked, 'small')}</div>
+      </div>
+    </div>
+    <div class="work-actions">
+      ${inLib
+        ? `<button class="work-btn primary" onclick="closeWorkDetail();closeBrowse();openNovel('${nid}')">${lastEp ? '続きから読む' : '本棚で開く'}</button>`
+        : `<button class="work-btn primary" onclick="addWorkToLibrary('${workId}')">本棚に追加</button>
+           <button class="work-btn" onclick="startTrial('${workId}')">1話から読む</button>`}
+    </div>
+    ${lastEp ? `<div class="work-last">前回：${escapeHtml(lastEp.title || '')}</div>` : ''}
+    ${tags.length ? `<div class="work-tags">${tags.map(t => `<button onclick='openBrowseTag(${escapeHtml(JSON.stringify(t))})'>#${escapeHtml(t)}</button>`).join('')}</div>` : ''}
+    ${meta.synopsis ? `<div class="work-sec-title">あらすじ</div><div class="work-synopsis">${escapeHtml(meta.synopsis)}</div>` : ''}
+    <div class="work-sec-title">目次</div>
+    <div class="work-toc" id="work-toc"><div class="bh-msg">読み込み中...</div></div>
+    <div class="work-sec-title" id="work-more-h" hidden>${escapeHtml(meta.author || 'この作者')}のほかの作品</div>
+    <div class="bh-row" id="work-more" hidden></div>
+    <div class="work-foot"><button class="work-link-btn" onclick="copyText('${escapeHtml(meta.shareUrl || workShareUrl(workId))}')">この作品のリンクをコピー</button></div>`;
+  // 目次
+  workApi(`/w/${workId}/index`).then(idx => {
+    if(_workScreenId !== workId) return;
+    const box = document.getElementById('work-toc'); if(!box) return;
+    const eps = (idx.episodes || []).slice().sort((a, b) => a.number - b.number);
+    if(!eps.length){ box.innerHTML = '<div class="bh-msg">まだ話がありません</div>'; return; }
+    window._workTocEps = eps;
+    box.innerHTML = workTocRows(workId, eps, eps.length > 12 ? 10 : eps.length);
+  }).catch(() => { const box = document.getElementById('work-toc'); if(box) box.innerHTML = '<div class="bh-msg">目次を読み込めませんでした</div>'; });
+  // 作者のほかの作品
+  if(meta.ak){
+    fetchWorks({ ak: meta.ak, sort: 'updated', r18: adultOk() }).then(d => {
+      if(_workScreenId !== workId) return;
+      const ws = (d.works || []).filter(w => w.id !== workId).slice(0, 10);
+      if(!ws.length) return;
+      document.getElementById('work-more-h').hidden = false;
+      const row = document.getElementById('work-more'); row.hidden = false;
+      row.innerHTML = ws.map(w => browseCardHtml(w, 0)).join('');
+    }).catch(() => {});
+  }
+}
+function workTocRows(workId, eps, n){
+  const row = (e, i) => `<button class="wt-row" onclick="workTocOpen('${workId}', window._workTocEps[${i}].id, ${i})">
+      <span class="wt-n">${e.number}</span><span class="wt-t">${escapeHtml(e.title || '')}</span><span class="wt-m">${e.charCount ? fmtChars(e.charCount) : ''}</span></button>`;
+  return eps.slice(0, n).map(row).join('') +
+    (n < eps.length ? `<button class="wt-more" onclick="this.parentNode.innerHTML=workTocRows('${workId}', window._workTocEps, window._workTocEps.length)">すべての話を見る（${eps.length}話）</button>` : '');
+}
+// 目次から：本棚にあればその話を開く。なければ試し読み（3話まで）・それより先は本棚に追加をすすめる
+async function workTocOpen(workId, epId, i){
+  const nid = 'shared_' + workId;
+  if(state.library.some(n => n.id === nid)){
+    closeWorkDetail(); closeBrowse();
+    await openNovel(nid);
+    if(state.novel && state.novel.episodes.find(e => e.id === epId)) openEpisode(epId);
+    return;
+  }
+  if(i < TRIAL_EPISODES){ startTrial(workId); return; }
+  if(confirm(`試し読みは${TRIAL_EPISODES}話までだよ。本棚に追加して読む？`)) addWorkToLibrary(workId);
+}
+
+/* ────────── 読まれた数（1日1回・端末ごと） ────────── */
+const WORK_HIT_LS = LS_PREFIX + 'work-hits';
+function workHit(workId, kind){
+  if(!workId) return;
+  kind = kind === 'add' ? 'add' : 'read';
+  const day = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+  let m = {};
+  try{ m = JSON.parse(localStorage.getItem(WORK_HIT_LS) || '{}') || {}; }catch(_){}
+  if(m.day !== day) m = { day };
+  const k = kind + ':' + workId;
+  if(m[k]) return;
+  m[k] = 1;
+  try{ localStorage.setItem(WORK_HIT_LS, JSON.stringify(m)); }catch(_){}
+  workApi('/hit', { method: 'POST', body: JSON.stringify({ workId, kind, device: getDeviceId() }) }).catch(() => {});
+}
+
+/* ────────── 作者プロフィール（ペンネーム） ────────── */
+async function openProfileModal(){
+  if(!gdriveIsSignedIn()){ alert('ペンネームを登録するには、Googleでログインしてね'); return; }
+  $.modal_body.innerHTML = `
+    <div style="font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#888;line-height:1.7;margin-bottom:12px;">公開する作品の作者名になるよ。登録すると、公開中の作品の作者名もそろう。同じペンネームはひとりしか使えないよ。</div>
+    <label style="font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#666;display:block;margin-bottom:6px;">ペンネーム</label>
+    <input class="mi" id="prof-name" maxlength="30" placeholder="読み込み中..." style="min-height:40px;margin-bottom:14px;">
+    <label style="font-family:'Noto Sans JP',sans-serif;font-size:12px;color:#666;display:block;margin-bottom:6px;">ひとこと（作者ページに出る）</label>
+    <textarea class="mi" id="prof-bio" maxlength="300" placeholder="例：異世界ものを書いています。更新は週2回" style="min-height:90px;"></textarea>`;
+  $.modal_ok.textContent = '保存';
+  showModal('ペンネーム', () => { saveProfile(); });
+  { const c = document.querySelector('#modal .mb.secondary'); if(c) c.addEventListener('click', () => { $.modal_ok.textContent = 'OK'; }, { once: true }); }
+  try{
+    await gdriveEnsureToken();
+    const p = await workApi('/profile', { method: 'POST', body: JSON.stringify({ access_token: _gdriveAccessToken, get: true }) });
+    const n = document.getElementById('prof-name'), b = document.getElementById('prof-bio');
+    if(n){ n.placeholder = '例：いかすみ'; if(!n.value) n.value = p.name || ''; }
+    if(b && !b.value) b.value = p.bio || '';
+    try{ localStorage.setItem(LS_PREFIX + 'pen-name', p.name || ''); }catch(_){}
+  }catch(e){ const n = document.getElementById('prof-name'); if(n) n.placeholder = '例：いかすみ'; }
+}
+async function saveProfile(){
+  const name = (document.getElementById('prof-name') || {}).value || '', bio = (document.getElementById('prof-bio') || {}).value || '';
+  $.modal_ok.textContent = 'OK';
+  if(!name.trim()){ showToast('ペンネームを入れてね'); return; }
+  try{
+    await gdriveEnsureToken();
+    const r = await workApi('/profile', { method: 'POST', body: JSON.stringify({ access_token: _gdriveAccessToken, name: name.trim(), bio }) });
+    try{ localStorage.setItem(LS_PREFIX + 'pen-name', r.name || ''); }catch(_){}
+    showToast('ペンネームを保存したよ');
+  }catch(e){
+    const m = e && e.message;
+    alert(m === 'name_taken' ? 'そのペンネームはほかの人が使っているよ。別の名前にしてね' : m === 'banned' ? 'このアカウントでは登録できません' : '保存できませんでした：' + (m || '不明なエラー'));
+  }
+}
+function penName(){ try{ return localStorage.getItem(LS_PREFIX + 'pen-name') || ''; }catch(_){ return ''; } }
 
 
 /* ══════ PC：閲覧中に画面の左右の端をクリックでページ移動 ══════ */
@@ -13268,7 +14994,10 @@ function azMakeCover(title, author){
 async function azAddNovel(parsed, meta){
   const novel = makeNovel(parsed.title + (parsed.subtitle ? '　' + parsed.subtitle : ''));
   novel.author = parsed.author || '';
-  if(parsed.aozora) novel.cover = azMakeCover(parsed.title, parsed.author);
+  if(parsed.aozora){
+    novel.cover = azMakeCover(parsed.title, parsed.author);
+    Object.assign(novel, AZ_LOOK);   // 段落の間に少し余白・行間は広め（この本だけ）
+  }
   novel.sortMode = 'oldest';
   const base = Date.now();
   novel.episodes = parsed.eps.map((e, i) => {
@@ -13278,13 +15007,22 @@ async function azAddNovel(parsed, meta){
     ep.charCount = countChars(e.pages);
     return ep;
   });
-  novel.ext = Object.assign({ kind: parsed.aozora ? 'aozora' : 'file', at: new Date().toISOString() }, meta || {});
+  novel.ext = Object.assign({ kind: parsed.aozora ? 'aozora' : 'file', at: new Date().toISOString(), look: parsed.aozora ? 1 : undefined }, meta || {});
   await libDbPut(novel);
   state.library.push(novel);
   try{ renderLibrary(); }catch(_){}
   return novel;
 }
 function azIsExternal(n){ return !!(n && n.ext); }
+// 青空文庫は段落の間に空行がないので、この本だけ読みやすい見た目にする（設定で変えられる）
+const AZ_LOOK = { lineHeight: 2.0, paraSpacing: 10 };
+async function azFixLook(n){
+  if(!n || !n.ext || n.ext.kind !== 'aozora' || n.ext.look) return;
+  n.ext.look = 1;
+  if(n.lineHeight == null) n.lineHeight = AZ_LOOK.lineHeight;
+  if(n.paraSpacing == null) n.paraSpacing = AZ_LOOK.paraSpacing;
+  try{ await libDbPut(n); }catch(_){}
+}
 
 // ── 画面：ひとつのシート ──
 function azSheet(html){
@@ -13418,6 +15156,7 @@ function azDecorateLibrary(){
   try{
     const grid = document.getElementById('library-grid');
     if(!grid) return;
+    (state.library || []).forEach(n => { if(n.ext && n.ext.kind === 'aozora' && !n.ext.look) azFixLook(n); });
     grid.querySelectorAll('.lib-card[data-novel-id]').forEach(card => {
       const n = (state.library || []).find(x => x.id === card.dataset.novelId);
       if(n && n.ext && !card.querySelector('.az-flag')){
@@ -13444,6 +15183,58 @@ if(typeof renderLibrary === 'function'){
   const _azOrigRender = renderLibrary;
   renderLibrary = function(){ const r = _azOrigRender.apply(this, arguments); azDecorateLibrary(); return r; };
 }
+// 青空文庫の本を開いているときは、ふりがなで行の間がガタガタしないようにする
+function azBodyClass(){ try{ document.body.classList.toggle('az-book', !!(state.currentNovelId && state.novel && state.novel.ext && state.novel.ext.kind === 'aozora')); }catch(_){} }
+if(typeof openNovel === 'function'){
+  const _azOrigOpenNovel = openNovel;
+  openNovel = async function(){
+    const r = await _azOrigOpenNovel.apply(this, arguments);
+    azBodyClass();
+    return r;
+  };
+}
+// 作品をさがす：ホームの最後に「名作（青空文庫）」の棚
+const _azCoverCache = {};
+async function azBrowseShelf(){
+  const body = document.getElementById('browse-body');
+  if(!body || document.getElementById('bh-aozora')) return;
+  const terms = body.querySelector('.browse-terms');
+  const sec = document.createElement('section');
+  sec.className = 'bh-shelf'; sec.id = 'bh-aozora';
+  sec.innerHTML = `<div class="bh-head"><h2>名作（青空文庫）</h2><button onclick="azOpenCatalog()" aria-label="名作をもっと見る">すべて<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button></div>
+    <div class="bh-row"><div class="bh-msg">読み込み中...</div></div>`;
+  if(terms) body.insertBefore(sec, terms); else body.appendChild(sec);
+  try{ _azCatalog = _azCatalog || await azFetch('catalog.json?d=' + new Date().toISOString().slice(0, 10).replace(/-/g, ''), 'json'); }
+  catch(_){ sec.remove(); return; }
+  const row = sec.querySelector('.bh-row'); if(!row) return;
+  const have = new Set((state.library || []).filter(n => n.ext && n.ext.id).map(n => n.ext.id));
+  row.innerHTML = (_azCatalog.works || []).map((w, i) => {
+    const cv = _azCoverCache[w.id] = _azCoverCache[w.id] || azMakeCover(w.title, w.author);
+    return `<button class="bw-card" onclick="azShelfTap(${i})">
+      <span class="wc" style="background-image:url('${cv}')">${have.has(w.id) ? '<span class="wc-own">本棚</span>' : ''}</span>
+      <span class="bw-title">${azEsc(w.title)}</span><span class="bw-author">${azEsc(w.author)}</span></button>`;
+  }).join('');
+}
+async function azShelfTap(i){
+  const w = _azCatalog && _azCatalog.works[i]; if(!w) return;
+  let n = (state.library || []).find(x => x.ext && x.ext.id === w.id);
+  if(!n){
+    showToast('本棚に入れています…');
+    try{ n = await azAddNovel(azParse(await azFetch(w.file, 'text'), w.title), { id: w.id, card: w.card || '', src: 'aozora' }); }
+    catch(e){ showToast('読み込めませんでした。ネットにつながっているか確認してね'); return; }
+    showToast(`「${w.title}」を本棚に入れたよ`);
+  }
+  try{ closeBrowse(); }catch(_){}
+  openNovel(n.id);
+}
+if(typeof renderBrowseHome === 'function'){
+  const _azOrigBH = renderBrowseHome;
+  renderBrowseHome = function(){
+    const r = _azOrigBH.apply(this, arguments);
+    try{ azBrowseShelf(); }catch(_){}
+    return r;
+  };
+}
 // 取り込んだ作品は公開できないようにする
 if(typeof openPublishModal === 'function'){
   const _azOrigPub = openPublishModal;
@@ -13461,11 +15252,338 @@ if(typeof publishCurrentNovel === 'function'){
 }
 /* ══════ 青空文庫ここまで ══════ */
 
+/* ══════ 使いやすさ ══════ */
+// 読む人がつまずきやすいところを直す（見た目と操作だけ。本のデータの形は変えない）
+// 2. 本棚に「続きを読む」と進み具合・表紙なしの本に自動の表紙
+// 3. 読む画面：本の名前・進み具合・まんなかタップでバーを隠す   4. 設定パネルをタブに分ける
+// 5. メニューの整理（見出し・やさしい言葉）・目次の「公開」「続きから」・＋ボタン
+const UX_READ_LS = LS_PREFIX + 'ux-read-at';
+function uxEsc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m])); }
+function uxIsNative(){ try{ return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()); }catch(_){ return false; } }
+function uxSortedEps(n){ return ((n && n.episodes) || []).slice().sort((a, b) => a.number - b.number); }
+function uxReadOnlyBook(n){ n = n || state.novel; return !!(n && (n.ext || n.shared)); }
+function uxOpenEp(id){
+  if(typeof isSharedNovel === 'function' && isSharedNovel() && typeof openSharedEpisodeFresh === 'function'){ openSharedEpisodeFresh(id); return; }
+  openEpisode(id);
+}
+function uxReadMap(){ try{ return JSON.parse(localStorage.getItem(UX_READ_LS) || '{}') || {}; }catch(_){ return {}; } }
+
+// ── 3. 読む画面 ──
+function uxTopbarInfo(){
+  try{
+    const t = document.getElementById('topbar-title'); if(!t) return;
+    const n = state.novel;
+    if(!n || !state.currentEpisodeId){ t.removeAttribute('data-book'); return; }
+    const eps = uxSortedEps(n), i = eps.findIndex(e => e.id === state.currentEpisodeId);
+    t.setAttribute('data-book', n.title || '無題の小説');
+  }catch(_){}
+}
+let _uxProgRaf = 0;
+function uxProgress(){
+  if(_uxProgRaf) return;
+  _uxProgRaf = requestAnimationFrame(() => {
+    _uxProgRaf = 0;
+    try{
+      let bar = document.getElementById('ux-prog');
+      const tb = document.getElementById('topbar');
+      if(!bar && tb){ bar = document.createElement('div'); bar.id = 'ux-prog'; bar.innerHTML = '<i></i>'; tb.appendChild(bar); }
+      if(!bar || !state.pages || !state.pages.length || !state.currentEpisodeId){ if(bar) bar.style.display = 'none'; return; }
+      const cur = document.getElementById('page-' + state.curPage);
+      let f = 0;
+      if(cur){ const max = cur.scrollHeight - cur.clientHeight; f = max > 4 ? Math.min(1, Math.max(0, cur.scrollTop / max)) : 1; }
+      const p = Math.min(1, (state.curPage + f) / state.pages.length);
+      bar.style.display = '';
+      bar.firstChild.style.width = (p * 100).toFixed(1) + '%';
+    }catch(_){}
+  });
+}
+document.addEventListener('scroll', e => { if(e.target && e.target.classList && e.target.classList.contains('page')) uxProgress(); }, true);
+if(typeof updatePageIndicator === 'function'){
+  const _uxOrigUPI = updatePageIndicator;
+  updatePageIndicator = function(){
+    const r = _uxOrigUPI.apply(this, arguments);
+    try{
+      const eps = uxSortedEps(state.novel), i = eps.findIndex(e => e.id === state.currentEpisodeId);
+      if(i >= 0) document.querySelectorAll('.pnl').forEach(l => { l.textContent = `${i + 1} / ${eps.length}話`; });
+    }catch(_){}
+    uxTopbarInfo(); uxProgress();
+    return r;
+  };
+}
+// まんなかを1回タップ → 上のバーを隠す／出す
+function uxSetImmersive(on){
+  const b = document.body;
+  if(on === b.classList.contains('ux-immersive')) return;
+  const tb = document.getElementById('topbar');
+  const h = tb ? tb.offsetHeight : 0;
+  const cur = document.getElementById('page-' + state.curPage);
+  b.classList.toggle('ux-immersive', on);
+  // 文字が上下に跳ねないように、読んでいる位置を合わせる
+  if(cur && h) cur.scrollTop = Math.max(0, cur.scrollTop + (on ? -h : h));
+  uxProgress();
+}
+let _uxTapTimer = null, _uxTapAt = 0, _uxDownX = 0, _uxDownY = 0;
+document.addEventListener('pointerdown', e => { _uxDownX = e.clientX; _uxDownY = e.clientY; }, true);
+document.addEventListener('click', e => {
+  const vp = document.getElementById('viewport');
+  if(!vp || !e.target || !e.target.closest || !e.target.closest('#viewport')) return;
+  const now = Date.now();
+  if(_uxTapTimer && now - _uxTapAt < 350){ clearTimeout(_uxTapTimer); _uxTapTimer = null; return; }   // ダブルタップ（編集）
+  _uxTapAt = now;
+  if(state.editMode || !state.currentEpisodeId) return;
+  if(Math.abs(e.clientX - _uxDownX) > 8 || Math.abs(e.clientY - _uxDownY) > 8) return;
+  if(e.target.closest('button, a, input, select, textarea, label, .kw, .ko-tr, .para-img-wrap, ruby')) return;
+  const r = vp.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+  if(x < 0.22 || x > 0.78 || y < 0.15 || y > 0.85) return;   // 端はページ送りなどに使う
+  _uxTapTimer = setTimeout(() => {
+    _uxTapTimer = null;
+    if(state.editMode || (typeof hasTextSelection === 'function' && hasTextSelection())) return;
+    if(document.querySelector('#ko-sheet.show, #side-panel.open, #modal-ov.show, #search-overlay.show, #search-overlay.open')) return;
+    uxSetImmersive(!document.body.classList.contains('ux-immersive'));
+  }, 320);
+}, false);
+const UX_TIP_LS = LS_PREFIX + 'ux-tip-tap';
+if(typeof openEpisode === 'function'){
+  const _uxOrigOpenEp = openEpisode;
+  openEpisode = function(id){
+    const r = _uxOrigOpenEp.apply(this, arguments);
+    try{
+      uxSetImmersive(false);
+      if(state.currentNovelId){ const m = uxReadMap(); m[state.currentNovelId] = Date.now(); localStorage.setItem(UX_READ_LS, JSON.stringify(m)); }
+      uxTopbarInfo(); uxProgress();
+      let seen = false; try{ seen = localStorage.getItem(UX_TIP_LS) === '1'; }catch(_){}
+      if(!seen){ try{ localStorage.setItem(UX_TIP_LS, '1'); }catch(_){} setTimeout(() => showToast('まんなかをタップすると、上のバーを隠せるよ'), 900); }
+    }catch(_){}
+    return r;
+  };
+}
+['enterEditMode', 'showToc', 'showLibrary'].forEach(fn => {
+  if(typeof window[fn] !== 'function') return;
+  const orig = window[fn];
+  window[fn] = function(){ try{ uxSetImmersive(false); }catch(_){} return orig.apply(this, arguments); };
+});
+if(typeof toggleReadingMode === 'function'){
+  const _uxOrigRM = toggleReadingMode;
+  toggleReadingMode = function(){
+    const r = _uxOrigRM.apply(this, arguments);
+    try{ showToast(state.readingMode ? '読書モード：オン（ダブルタップしても編集にならないよ）' : '読書モード：オフ（ダブルタップで編集できるよ）'); }catch(_){}
+    return r;
+  };
+}
+
+// ── 2. 本棚 ──
+const _uxCoverCache = {};
+function uxAutoCover(n){
+  const k = (n.title || '') + '|' + (n.author || '');
+  if(!_uxCoverCache[k] && typeof azMakeCover === 'function') _uxCoverCache[k] = azMakeCover(n.title || '無題の小説', n.author || '');
+  return _uxCoverCache[k] || '';
+}
+function uxProgressOf(n){
+  if(!n || !n.lastReadId) return 0;
+  const eps = uxSortedEps(n), i = eps.findIndex(e => e.id === n.lastReadId);
+  return i < 0 || !eps.length ? 0 : (i + 1) / eps.length;
+}
+function uxDecorateLibrary(){
+  try{
+    const grid = document.getElementById('library-grid'); if(!grid) return;
+    grid.querySelectorAll('.lib-card[data-novel-id]').forEach(card => {
+      const n = (state.library || []).find(x => x.id === card.dataset.novelId); if(!n) return;
+      const cv = card.querySelector('.lib-card-cover'); if(!cv) return;
+      // 表紙がない本：題名入りの表紙を作って見せる（保存はしない）
+      if(!n.cover && (n.episodes || []).some(e => e.charCount > 0)){
+        const url = uxAutoCover(n);
+        if(url){ cv.style.backgroundImage = `url('${url}')`; cv.classList.add('ux-auto-cover'); const ph = cv.querySelector('.lib-card-cover-placeholder'); if(ph) ph.remove(); }
+      }
+      const p = uxProgressOf(n);
+      if(p > 0 && !cv.querySelector('.ux-pbar')) cv.insertAdjacentHTML('beforeend', `<div class="ux-pbar"><i style="width:${Math.round(p * 100)}%"></i></div>`);
+    });
+    // 続きを読む（いちばん最近読んだ本）
+    const old = document.getElementById('ux-continue'); if(old) old.remove();
+    const m = uxReadMap();
+    const cand = (state.library || []).filter(n => n.lastReadId && m[n.id] && (n.episodes || []).some(e => e.id === n.lastReadId)).sort((a, b) => m[b.id] - m[a.id])[0];
+    if(!cand) return;
+    const ep = cand.episodes.find(e => e.id === cand.lastReadId);
+    const eps = uxSortedEps(cand), i = eps.findIndex(e => e.id === ep.id);
+    const cover = cand.cover || uxAutoCover(cand);
+    const box = document.createElement('div');
+    box.id = 'ux-continue';
+    box.innerHTML = `<button class="ux-cont" onclick="uxContinue('${cand.id}')">
+      <span class="ux-cont-cv" style="${cover ? `background-image:url('${cover}')` : ''}"></span>
+      <span class="ux-cont-main"><small>続きを読む</small><b>${uxEsc(cand.title || '無題の小説')}</b>
+        <span class="ux-cont-ep">${uxEsc(ep.title || ('第' + ep.number + '話'))}${eps.length > 1 ? `<em>${i + 1} / ${eps.length}話</em>` : ''}</span>
+        <span class="ux-pbar line"><i style="width:${Math.round(uxProgressOf(cand) * 100)}%"></i></span></span>
+      <span class="ux-cont-go">▶</span></button>`;
+    grid.parentNode.insertBefore(box, document.getElementById('az-banner') || grid);
+  }catch(e){ console.warn('ux lib', e); }
+}
+function uxContinue(nid){
+  const n = (state.library || []).find(x => x.id === nid); if(!n || !n.lastReadId) return;
+  _resumeNovelId = nid; _resumeEpId = n.lastReadId;
+  resumeLastEpisode();
+}
+if(typeof renderLibrary === 'function'){
+  const _uxOrigRL = renderLibrary;
+  renderLibrary = function(){ const r = _uxOrigRL.apply(this, arguments); uxDecorateLibrary(); return r; };
+}
+
+// ── 5. 目次：「続きから読む」「作品を公開」・＋ボタン ──
+function uxDecorateToc(){
+  try{
+    const n = state.novel; if(!n) return;
+    document.body.classList.toggle('ux-ro-book', uxReadOnlyBook(n));
+    const fab = document.getElementById('toc-fab');
+    if(fab && !fab.querySelector('.ux-fab-l')) fab.insertAdjacentHTML('beforeend', '<span class="ux-fab-l">話を追加</span>');
+    const host = document.getElementById('toc-info-text'); if(!host) return;
+    let box = document.getElementById('ux-toc-acts');
+    if(!box){ box = document.createElement('div'); box.id = 'ux-toc-acts'; host.appendChild(box); }
+    const eps = uxSortedEps(n);
+    const last = n.lastReadId && eps.find(e => e.id === n.lastReadId);
+    const first = eps.find(e => !(uxReadOnlyBook(n) && e.draft));
+    const canPub = typeof openPublishModal === 'function' && !uxReadOnlyBook(n) && eps.some(e => e.charCount > 0);
+    const pub = n.publish && n.publish.workId && n.publish.status === 'public';
+    box.innerHTML = (last ? `<button class="ux-ta main" onclick="uxOpenEp('${last.id}')">続きから読む<small>${uxEsc(last.title || ('第' + last.number + '話'))}</small></button>`
+        : first && first.charCount > 0 ? `<button class="ux-ta main" onclick="uxOpenEp('${first.id}')">1話から読む</button>` : '')
+      + (canPub ? `<button class="ux-ta" onclick="openPublishModal()">${pub ? '公開中・更新する' : '作品を公開する'}</button>` : '');
+  }catch(e){ console.warn('ux toc', e); }
+}
+if(typeof renderToc === 'function'){
+  const _uxOrigRT = renderToc;
+  renderToc = function(){ const r = _uxOrigRT.apply(this, arguments); uxDecorateToc(); return r; };
+}
+
+// ── 5. メニューの整理 ──
+function uxTidyMenus(){
+  try{
+    const bm = document.getElementById('backup-menu');
+    if(bm && !bm.dataset.ux){
+      bm.dataset.ux = '1';
+      const head = (t) => { const d = document.createElement('div'); d.className = 'ux-mh'; d.textContent = t; return d; };
+      const st = document.getElementById('gdrive-menu-status');
+      if(st) st.parentNode.insertBefore(head('クラウド同期'), st);
+      const link = [...bm.querySelectorAll('button')].find(b => /openAddByLinkModal|openProfileModal/.test(b.getAttribute('onclick') || ''));
+      if(link) link.parentNode.insertBefore(head('作品・アカウント'), link);
+      const bk = [...bm.querySelectorAll('button')].find(b => /doBackup\(/.test(b.getAttribute('onclick') || ''));
+      if(bk){
+        const note = bk.previousElementSibling;
+        if(note && /Web版のみ/.test(note.textContent || '')){ if(!uxIsNative()) note.style.display = 'none'; }
+        bk.parentNode.insertBefore(head('ファイル'), note && /Web版のみ/.test(note.textContent || '') ? note : bk);
+      }
+      const b2 = document.getElementById('ko-import-beta2');
+      if(b2 && b2.lastChild && b2.lastChild.nodeType === 3) b2.lastChild.textContent = ' β2の単語帳などを引き継ぐ ';
+    }
+    const em = document.getElementById('export-menu');
+    if(em && !em.dataset.ux){
+      em.dataset.ux = '1';
+      const first = em.firstElementChild;
+      if(first && /Web版のみ/.test(first.textContent || '') && !uxIsNative()) first.style.display = 'none';
+      const ren = { 'テキストでエクスポート（ZIP）': 'テキストで書き出す（ZIP）', 'JSONでエクスポート（バックアップ用）': 'この本をバックアップ用に保存', 'JSONからインポート': 'バックアップから本を読み込む',
+        'テキストを一括インポート（.txt）': 'テキストから話を追加（.txt）', 'ZIPから一括インポート（.txt/.html同梱）': 'ZIPから話を追加', '翻訳したページを読み込む（.html）': '訳したページから話を追加（.html）' };
+      em.querySelectorAll('.export-menu-item span').forEach(s => { const t = s.textContent.trim(); if(ren[t]) s.textContent = ren[t]; });
+    }
+  }catch(e){ console.warn('ux menu', e); }
+}
+
+// ── 4. 設定パネル：タブに分ける（編集中は全部出す） ──
+const UX_TABS = [['text', '文字'], ['tts', '読み上げ'], ['look', '見た目'], ['etc', 'その他']];
+function uxPanelSetup(){
+  const body = document.getElementById('panel-body'); if(!body || body.dataset.ux) return;
+  body.dataset.ux = '1';
+  const kind = el => {
+    const t = (el.querySelector('.pl') || {}).textContent || '';
+    const sm = (el.querySelector('summary') || {}).textContent || '';
+    if(el.id === 'ko-panel-row' || /行間|段落の余白|本文の幅|文字サイズ|フォント/.test(t)) return 'text';
+    if(/読み上げ/.test(t) || /読み方/.test(sm)) return 'tts';
+    if(/背景/.test(t)) return 'look';
+    return 'etc';
+  };
+  [...body.children].forEach(el => { el.dataset.uxT = kind(el); });
+  [...body.querySelectorAll('.pl')].forEach(pl => {
+    const t = pl.textContent.trim();
+    if(t === 'この話の文字サイズ') pl.innerHTML = '文字の大きさ<small>この話</small>';
+    else if(t === '全話の文字サイズ') pl.innerHTML = '文字の大きさ<small>全部の話</small>';
+  });
+  const bar = document.createElement('div');
+  bar.id = 'ux-ptabs';
+  bar.innerHTML = UX_TABS.map(([k, l]) => `<button data-k="${k}" onclick="uxPanelTab('${k}')">${l}</button>`).join('');
+  body.insertBefore(bar, body.firstChild);
+  const pv = document.createElement('div');
+  pv.id = 'ux-preview'; pv.dataset.uxT = 'text';
+  bar.after(pv);
+  body.addEventListener('click', () => setTimeout(uxPanelRefresh, 60));
+  uxPanelTab('text');
+}
+function uxPanelTab(k){
+  const body = document.getElementById('panel-body'); if(!body) return;
+  body.dataset.uxTab = k;
+  document.querySelectorAll('#ux-ptabs button').forEach(b => b.classList.toggle('on', b.dataset.k === k));
+  body.scrollTop = 0;
+  uxPanelRefresh();
+}
+function uxCurFontSize(){
+  try{
+    for(const pg of (state.pages || [])) for(const p of (pg.paras || [])) if(p.type === 'text' && (p.text || '').trim() && p.size) return p.size;
+  }catch(_){}
+  return (state.settings && state.settings.fontSize) || 15;
+}
+function uxPanelRefresh(){
+  try{
+    const body = document.getElementById('panel-body'); if(!body) return;
+    const fs = uxCurFontSize();
+    body.querySelectorAll('.stepper-line').forEach(line => {
+      const t = (line.querySelector('.pl') || {}).textContent || '';
+      const v = line.querySelector('.stepper-val');
+      if(v && /文字の大きさ/.test(t)) v.textContent = state.currentEpisodeId || /全部/.test(t) ? fs + 'px' : '—';
+    });
+    // 見本の文：いまの本文と同じ見た目で
+    const pv = document.getElementById('ux-preview'); if(!pv) return;
+    const real = document.querySelector('.page.cur .page-editor p[data-qi]');
+    const cs = real ? getComputedStyle(real) : null;
+    const root = getComputedStyle(document.documentElement);
+    const sp = root.getPropertyValue('--para-spacing').trim() || '24px';
+    const style = cs ? `font-family:${cs.fontFamily};font-size:${fs}px;line-height:${cs.lineHeight === 'normal' ? 2 : (parseFloat(cs.lineHeight) / parseFloat(cs.fontSize)).toFixed(2)};letter-spacing:${cs.letterSpacing};`
+      : `font-size:${fs}px;line-height:${root.getPropertyValue('--para-line-height').trim() || 2};`;
+    pv.innerHTML = `<div class="ux-pv-k">見本</div><p style="${style}margin:0 0 ${sp};">　山路を登りながら、こう考えた。智に働けば角が立つ。情に棹させば流される。</p><p style="${style}margin:0;">「おかえり」と、だれかの声がした。</p>`;
+  }catch(_){}
+}
+if(typeof togglePanel === 'function'){
+  const _uxOrigTP = togglePanel;
+  togglePanel = function(){
+    try{ uxPanelSetup(); }catch(e){ console.warn('ux panel', e); }
+    const r = _uxOrigTP.apply(this, arguments);
+    try{
+      const body = document.getElementById('panel-body');
+      if(body){ body.classList.toggle('ux-all', !!state.editMode); if(!state.editMode && !body.dataset.uxTab) uxPanelTab('text'); uxPanelRefresh(); }
+    }catch(_){}
+    return r;
+  };
+}
+// パネルの中の場所へ飛ぶとき（置換ルールなど）は、その場所のタブを開く
+(function(){
+  const orig = Element.prototype.scrollIntoView;
+  Element.prototype.scrollIntoView = function(){
+    try{
+      const sec = this.closest && this.closest('#panel-body > [data-ux-t]');
+      if(sec && sec.dataset.uxT && document.getElementById('panel-body').dataset.uxTab !== sec.dataset.uxT) uxPanelTab(sec.dataset.uxT);
+    }catch(_){}
+    return orig.apply(this, arguments);
+  };
+})();
+['adjustAllFontSize', 'adjustAllEpisodesFontSize'].forEach(fn => {
+  if(typeof window[fn] !== 'function') return;
+  const orig = window[fn];
+  window[fn] = function(){ const r = orig.apply(this, arguments); setTimeout(uxPanelRefresh, 60); return r; };
+});
+// 起動したら、メニューを整える
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(uxTidyMenus, 0));
+else setTimeout(uxTidyMenus, 0);
+/* ══════ 使いやすさここまで ══════ */
+
 function setupDoubleTap(){
   let lastTap=0;
   const vp=$.viewport;
   vp.addEventListener('touchend',e=>{
-    if(state.readingMode)return;
+    if(state.readingMode||isSharedNovel())return;
     if(e.target.closest && e.target.closest('.ko-tr'))return;
     if(state.editMode)return;
     const now=Date.now();
@@ -13473,7 +15591,7 @@ function setupDoubleTap(){
     lastTap=now;
   },{passive:false});
   vp.addEventListener('dblclick',e=>{
-    if(state.readingMode)return;
+    if(state.readingMode||isSharedNovel())return;
     if(e.target.closest && e.target.closest('.ko-tr'))return;
     if(isPcPointer() && edgeZoneAt(e.clientX)!==0) return; // 端の連打はページ送り
     if(state.editMode)return;
@@ -17952,8 +20070,13 @@ function showModal(title,onOk){
     }
   };
 }
-function closeModal(){$.modal_ov.classList.remove('show');}
+function closeModal(){
+  $.modal_ov.classList.remove('show');
+  $.modal_ok.textContent='OK';
+  const c=document.querySelector('#modal .mb.secondary'); if(c) c.textContent='キャンセル';
+}
 function openTitleModal() {
+  if(isSharedNovel()) return;
   const cur = $.topbar_title.textContent;
   const targetEpisodeId = state.currentEpisodeId; // ← 開いた時点のエピソードIDを固定
   const targetNovelId = state.currentNovelId;
@@ -18157,6 +20280,8 @@ function getCurrentView(){
 }
 
 function hasOpenOverlay(){
+  { const ws=document.getElementById('work-screen'); if(ws && ws.classList.contains('show')) return true; }
+  { const bs=document.getElementById('browse-screen'); if(bs && bs.classList.contains('show')) return true; }
   for(const id of ['resume-popup','sleep-timer-popup','eb-furigana-popup']){
     const el=document.getElementById(id); if(el && el.classList.contains('show')) return true;
   }
@@ -18184,6 +20309,8 @@ function hasOpenOverlay(){
 }
 
 function handleBackNavigation(){
+  { const ws=document.getElementById('work-screen'); if(ws && ws.classList.contains('show') && !($.modal_ov && $.modal_ov.classList.contains('show'))){ closeWorkDetail(); return true; } }
+  { const bs=document.getElementById('browse-screen'); if(bs && bs.classList.contains('show') && !($.modal_ov && $.modal_ov.classList.contains('show'))){ browseBack(); return true; } }
   const _rp=document.getElementById('resume-popup');
   if(_rp && _rp.classList.contains('show')){ hideResumePopup(); return true; }
   const _sp=document.getElementById('sleep-timer-popup');
@@ -18448,7 +20575,7 @@ async function doRestore(input){
 /* ══════════════════════════════════════
    PWA: Service Worker 登録 + 自動更新検知
 ══════════════════════════════════════ */
-if('serviceWorker' in navigator){
+if(!IS_BETA && 'serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
     navigator.serviceWorker.register('service-worker.js')
       .then(reg=>{
@@ -18547,6 +20674,11 @@ init();
   <div style="padding:8px 12px;font-size:11px;color:#999;border-bottom:1px solid #eee;">
     ※ エクスポート機能はWeb版のみ対応です
   </div>
+  <button class="export-menu-item own-only" onclick="closeExportMenu();openPublishModal();" style="color:#008080;font-weight:600;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#008080" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+    <span>作品を公開・更新</span>
+  </button>
+  <div class="export-menu-divider own-only"></div>
   <button class="export-menu-item" onclick="closeExportMenu();exportAsZip();">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
     <span>テキストでエクスポート（ZIP）</span>
@@ -18561,17 +20693,17 @@ init();
     <span>JSONからインポート</span>
   </button>
   <div class="export-menu-divider"></div>
-  <button class="export-menu-item" onclick="closeExportMenu();document.getElementById('txt-bulk-input').click();">
+  <button class="export-menu-item own-only" onclick="closeExportMenu();document.getElementById('txt-bulk-input').click();">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
     <span>テキストを一括インポート（.txt）</span>
   </button>
   <div class="export-menu-divider"></div>
-  <button class="export-menu-item" onclick="closeExportMenu();document.getElementById('zip-bulk-input').click();">
+  <button class="export-menu-item own-only" onclick="closeExportMenu();document.getElementById('zip-bulk-input').click();">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
     <span>ZIPから一括インポート（.txt/.html同梱）</span>
   </button>
   <div class="export-menu-divider"></div>
-  <button class="export-menu-item" onclick="closeExportMenu();document.getElementById('html-import-input').click();">
+  <button class="export-menu-item own-only" onclick="closeExportMenu();document.getElementById('html-import-input').click();">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
     <span>翻訳したページを読み込む（.html）</span>
   </button>
@@ -18664,7 +20796,7 @@ init();
           const res = await SocialLogin.login({
             provider: 'google',
             options: {
-              scopes: ['email', GDRIVE_SCOPE],
+              scopes: ['email', GDRIVE_PUBLISH_SCOPE],
               forceRefreshToken: true // 毎回リフレッシュトークンを確実にもらう
             }
           });
