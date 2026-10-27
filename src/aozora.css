@@ -42,4 +42,6 @@ body.theme-dark #az-banner{background:#24302f;}
 body.theme-dark .az-b-txt b{color:#ddd;}
 body.theme-dark .az-close{background:#333;color:#ddd;}
 body:has(#az-sheet.show) #library-fab{visibility:hidden;}
+body.az-book .page-editor rt{line-height:1;}
+body.az-book .page-editor ruby{line-height:inherit;}
 /* ══════ 青空文庫ここまで ══════ */

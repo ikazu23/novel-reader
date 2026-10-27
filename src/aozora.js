@@ -255,7 +255,10 @@ function azMakeCover(title, author){
 async function azAddNovel(parsed, meta){
   const novel = makeNovel(parsed.title + (parsed.subtitle ? '　' + parsed.subtitle : ''));
   novel.author = parsed.author || '';
-  if(parsed.aozora) novel.cover = azMakeCover(parsed.title, parsed.author);
+  if(parsed.aozora){
+    novel.cover = azMakeCover(parsed.title, parsed.author);
+    Object.assign(novel, AZ_LOOK);   // 段落の間に少し余白・行間は広め（この本だけ）
+  }
   novel.sortMode = 'oldest';
   const base = Date.now();
   novel.episodes = parsed.eps.map((e, i) => {
@@ -265,13 +268,22 @@ async function azAddNovel(parsed, meta){
     ep.charCount = countChars(e.pages);
     return ep;
   });
-  novel.ext = Object.assign({ kind: parsed.aozora ? 'aozora' : 'file', at: new Date().toISOString() }, meta || {});
+  novel.ext = Object.assign({ kind: parsed.aozora ? 'aozora' : 'file', at: new Date().toISOString(), look: parsed.aozora ? 1 : undefined }, meta || {});
   await libDbPut(novel);
   state.library.push(novel);
   try{ renderLibrary(); }catch(_){}
   return novel;
 }
 function azIsExternal(n){ return !!(n && n.ext); }
+// 青空文庫は段落の間に空行がないので、この本だけ読みやすい見た目にする（設定で変えられる）
+const AZ_LOOK = { lineHeight: 2.0, paraSpacing: 10 };
+async function azFixLook(n){
+  if(!n || !n.ext || n.ext.kind !== 'aozora' || n.ext.look) return;
+  n.ext.look = 1;
+  if(n.lineHeight == null) n.lineHeight = AZ_LOOK.lineHeight;
+  if(n.paraSpacing == null) n.paraSpacing = AZ_LOOK.paraSpacing;
+  try{ await libDbPut(n); }catch(_){}
+}
 
 // ── 画面：ひとつのシート ──
 function azSheet(html){
@@ -405,6 +417,7 @@ function azDecorateLibrary(){
   try{
     const grid = document.getElementById('library-grid');
     if(!grid) return;
+    (state.library || []).forEach(n => { if(n.ext && n.ext.kind === 'aozora' && !n.ext.look) azFixLook(n); });
     grid.querySelectorAll('.lib-card[data-novel-id]').forEach(card => {
       const n = (state.library || []).find(x => x.id === card.dataset.novelId);
       if(n && n.ext && !card.querySelector('.az-flag')){
@@ -430,6 +443,58 @@ function azBannerOff(){ try{ localStorage.setItem(AZ_BANNER_LS, '1'); }catch(_){
 if(typeof renderLibrary === 'function'){
   const _azOrigRender = renderLibrary;
   renderLibrary = function(){ const r = _azOrigRender.apply(this, arguments); azDecorateLibrary(); return r; };
+}
+// 青空文庫の本を開いているときは、ふりがなで行の間がガタガタしないようにする
+function azBodyClass(){ try{ document.body.classList.toggle('az-book', !!(state.currentNovelId && state.novel && state.novel.ext && state.novel.ext.kind === 'aozora')); }catch(_){} }
+if(typeof openNovel === 'function'){
+  const _azOrigOpenNovel = openNovel;
+  openNovel = async function(){
+    const r = await _azOrigOpenNovel.apply(this, arguments);
+    azBodyClass();
+    return r;
+  };
+}
+// 作品をさがす：ホームの最後に「名作（青空文庫）」の棚
+const _azCoverCache = {};
+async function azBrowseShelf(){
+  const body = document.getElementById('browse-body');
+  if(!body || document.getElementById('bh-aozora')) return;
+  const terms = body.querySelector('.browse-terms');
+  const sec = document.createElement('section');
+  sec.className = 'bh-shelf'; sec.id = 'bh-aozora';
+  sec.innerHTML = `<div class="bh-head"><h2>名作（青空文庫）</h2><button onclick="azOpenCatalog()" aria-label="名作をもっと見る">すべて<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg></button></div>
+    <div class="bh-row"><div class="bh-msg">読み込み中...</div></div>`;
+  if(terms) body.insertBefore(sec, terms); else body.appendChild(sec);
+  try{ _azCatalog = _azCatalog || await azFetch('catalog.json?d=' + new Date().toISOString().slice(0, 10).replace(/-/g, ''), 'json'); }
+  catch(_){ sec.remove(); return; }
+  const row = sec.querySelector('.bh-row'); if(!row) return;
+  const have = new Set((state.library || []).filter(n => n.ext && n.ext.id).map(n => n.ext.id));
+  row.innerHTML = (_azCatalog.works || []).map((w, i) => {
+    const cv = _azCoverCache[w.id] = _azCoverCache[w.id] || azMakeCover(w.title, w.author);
+    return `<button class="bw-card" onclick="azShelfTap(${i})">
+      <span class="wc" style="background-image:url('${cv}')">${have.has(w.id) ? '<span class="wc-own">本棚</span>' : ''}</span>
+      <span class="bw-title">${azEsc(w.title)}</span><span class="bw-author">${azEsc(w.author)}</span></button>`;
+  }).join('');
+}
+async function azShelfTap(i){
+  const w = _azCatalog && _azCatalog.works[i]; if(!w) return;
+  let n = (state.library || []).find(x => x.ext && x.ext.id === w.id);
+  if(!n){
+    showToast('本棚に入れています…');
+    try{ n = await azAddNovel(azParse(await azFetch(w.file, 'text'), w.title), { id: w.id, card: w.card || '', src: 'aozora' }); }
+    catch(e){ showToast('読み込めませんでした。ネットにつながっているか確認してね'); return; }
+    showToast(`「${w.title}」を本棚に入れたよ`);
+  }
+  try{ closeBrowse(); }catch(_){}
+  openNovel(n.id);
+}
+if(typeof renderBrowseHome === 'function'){
+  const _azOrigBH = renderBrowseHome;
+  renderBrowseHome = function(){
+    const r = _azOrigBH.apply(this, arguments);
+    try{ azBrowseShelf(); }catch(_){}
+    return r;
+  };
 }
 // 取り込んだ作品は公開できないようにする
 if(typeof openPublishModal === 'function'){
