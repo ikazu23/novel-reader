@@ -7,6 +7,7 @@
 - ux.js / ux.css … 使いやすさ（続きを読む・バーを隠す・設定のタブ・メニュー整理）
 - tts_cache.js / tts_cache.css … Googleの高音質読み上げの音声を端末に保存（同じ文は2回目から無料）
 - sync_fix.js … クラウド同期の直し（同期中に押したとき・止まったとき・最終同期の時刻）
+- sync_merge.js … 本棚の同期を「混ぜ合わせ」に（消した本が戻らない・足した話が消えない・復元も混ぜ合わせ）
 - make_prod.py … β1（beta/index.html）から本番 index.html を作る（試験版の印を外す・IS_BETA=false など）
 - build.py … 上をまとめて、beta2/・beta/・本番 index.html を作り直す
 - worker.js … Cloudflare Worker の最新版の控え（秘密の値は入っていません）

@@ -30,6 +30,9 @@ async function gdUploadOnce(){
   let size = 0;
   try{
     await gdriveEnsureToken();
+    let existing = await gdriveFindFile();
+    // ほかの端末でクラウドが変わっていたら、先に混ぜ合わせる（消した本が戻る・足した話が消えるのを防ぐ）
+    if(typeof gdBeforeUpload === 'function') await gdBeforeUpload(existing);
     const payload = {
       app: 'novel-reader',
       version: 1,
@@ -37,9 +40,9 @@ async function gdUploadOnce(){
       library: state.library || [],
       settings: Object.assign({}, state.settings || {}, { ttsApiKey: undefined }), // APIキーは上げない
     };
+    if(typeof gdPayloadExtra === 'function') Object.assign(payload, gdPayloadExtra());
     const json = JSON.stringify(payload);
     size = new Blob([json]).size;   // バイト数（日本語は1文字で3バイトくらい）
-    const existing = await gdriveFindFile();
     const boundary = '-------novel-boundary-' + Date.now();
     const meta = { name: GDRIVE_FILE_NAME, mimeType: 'application/json' };
     if(!existing) meta.parents = ['appDataFolder'];
@@ -58,6 +61,7 @@ async function gdUploadOnce(){
       }catch(e){ if(e && e.name === 'AbortError') throw e; console.warn('multipart failed, try resumable', e); }
     }
     if(!done) await gdResumable(existing, meta, json, ac ? ac.signal : undefined);
+    if(typeof gdAfterUpload === 'function') await gdAfterUpload();
     // 本のデータが送れた時点で「最終同期」を更新
     localStorage.setItem(LS_LAST_SYNC, payload.syncedAt);
     localStorage.removeItem(LS_LAST_ERR);

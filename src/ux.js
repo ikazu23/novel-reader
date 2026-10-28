@@ -384,3 +384,75 @@ if(typeof renderBrowseList === 'function'){
     return r;
   };
 }
+
+/* ══════ 消した本が戻ってこないように ══════ */
+// イカ墨翻訳から訳が届く本を消したとき：その作品は「今後は入れない」にする（また届いて本が作り直されるのを防ぐ）
+// 消したあとはクラウドにも反映する。あとで欲しくなったら、︙メニューの「イカ墨翻訳で入れない作品」から戻せる
+const KZ_SKIPINFO_LS = LS_PREFIX + 'kz-skip-info';   // { 作品のキー: { t: 題名, at } }
+function kzSkipInfo(){ try{ return JSON.parse(localStorage.getItem(KZ_SKIPINFO_LS) || '{}') || {}; }catch(_){ return {}; } }
+function kzSaveSkipInfo(m){ try{ localStorage.setItem(KZ_SKIPINFO_LS, JSON.stringify(m)); }catch(_){} }
+function kzMarkDeleted(ids, titles){
+  try{
+    if(typeof kzLinkMap !== 'function') return;
+    const map = kzLinkMap(), info = kzSkipInfo();
+    let ch = false;
+    Object.entries(map).forEach(([wk, v]) => { if(ids.includes(v)){ map[wk] = 'skip'; info[wk] = { t: titles[v] || '', at: Date.now() }; ch = true; } });
+    if(ch){ kzSaveLinkMap(map); kzSaveSkipInfo(info); try{ kzHello(); }catch(_){} }
+  }catch(e){ console.warn('kzMarkDeleted', e); }
+}
+function uxAfterDelete(before){
+  const gone = before.filter(n => !(state.library || []).some(x => x.id === n.id));
+  if(!gone.length) return;
+  const titles = {}; gone.forEach(n => { titles[n.id] = n.title || ''; });
+  kzMarkDeleted(gone.map(n => n.id), titles);
+  try{ if(typeof scheduleGdriveAutoSync === 'function') scheduleGdriveAutoSync(); }catch(_){}
+}
+['deleteNovel', 'deleteSelectedNovels'].forEach(fn => {
+  if(typeof window[fn] !== 'function') return;
+  const orig = window[fn];
+  window[fn] = async function(){
+    const before = (state.library || []).map(n => ({ id: n.id, title: n.title }));
+    const r = await orig.apply(this, arguments);
+    uxAfterDelete(before);
+    return r;
+  };
+});
+// 「入れない」の一覧と、また入れる
+function kzOpenSkipList(){
+  const map = typeof kzLinkMap === 'function' ? kzLinkMap() : {};
+  const info = kzSkipInfo();
+  const keys = Object.keys(map).filter(k => map[k] === 'skip');
+  azSheet(`<div class="az-grab"></div>
+    <div class="az-head"><span>イカ墨翻訳で入れない作品</span><button class="az-x" onclick="azClose()" aria-label="閉じる">${AZ_IC.x}</button></div>
+    ${keys.length ? `<div class="az-rows">${keys.map(k => `<div class="az-row" style="cursor:default"><span class="az-r-t"><b>${uxEsc((info[k] && info[k].t) || '（題名なし）')}</b><small>${uxEsc(k.length > 40 ? k.slice(0, 40) + '…' : k)}</small></span><button class="az-w-btn" onclick='kzUnskip(${uxEsc(JSON.stringify(k))})'>また入れる</button></div>`).join('')}</div>`
+      : '<div class="az-msg">ないよ</div>'}
+    <div class="az-foot">${AZ_IC.info}<span>「また入れる」にすると、次にイカ墨翻訳から届いたとき、入れる本を聞きます</span></div>`);
+}
+function kzUnskip(k){
+  const map = kzLinkMap(); delete map[k]; kzSaveLinkMap(map);
+  const info = kzSkipInfo(); delete info[k]; kzSaveSkipInfo(info);
+  try{ kzHello(); }catch(_){}
+  showToast('次に届いたとき、入れる本を聞くね');
+  kzOpenSkipList();
+}
+function uxSkipMenuItem(){
+  try{
+    const bm = document.getElementById('backup-menu'); if(!bm || typeof kzLinkMap !== 'function') return;
+    const n = Object.values(kzLinkMap()).filter(v => v === 'skip').length;
+    let it = document.getElementById('ux-kz-skip');
+    if(!n){ if(it) it.remove(); return; }
+    if(!it){
+      const link = [...bm.querySelectorAll('button')].find(b => /openMyWorksModal|openProfileModal/.test(b.getAttribute('onclick') || ''));
+      it = document.createElement('button');
+      it.id = 'ux-kz-skip';
+      it.setAttribute('onclick', 'closeBackupMenu();kzOpenSkipList()');
+      it.style.cssText = 'display:flex;align-items:center;gap:10px;width:100%;border:none;background:none;padding:10px 16px;font-size:13px;color:#3a6d8c;cursor:pointer;text-align:left;font-family:inherit;';
+      (link ? link.parentNode : bm).insertBefore(it, link ? link.nextSibling : null);
+    }
+    it.innerHTML = `<span style="width:18px;text-align:center;font-weight:700;color:#007070">訳</span>イカ墨翻訳で入れない作品<span style="margin-left:auto;color:#aaa;font-size:11px">${n}</span>`;
+  }catch(_){}
+}
+if(typeof openBackupMenu === 'function'){
+  const _uxOrigOBM = openBackupMenu;
+  openBackupMenu = function(){ const r = _uxOrigOBM.apply(this, arguments); uxSkipMenuItem(); return r; };
+}
