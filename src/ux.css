@@ -81,3 +81,11 @@ body.theme-dark .bl-fan button.on{background:#3a3a3a;color:#5cc8c0;}
 .lib-empty b{font-size:15px;font-weight:600;color:#444}
 /* 文字の標準：変える範囲 */
 #fs-scope-row .fs-hint{font-size:11px;color:#999;margin-top:6px;line-height:1.5}
+/* iPhone：編集バーを上に出すとき */
+.ios-bar-top #botbar{border-top:none;border-bottom:1px solid #e6e6e6;box-shadow:0 3px 8px rgba(0,0,0,.06);transition:none}
+#ios-bar-row .ios-hint{font-size:11px;color:#999;margin-top:6px;line-height:1.5}
+#ios-bar-row .ios-adj{margin-top:12px;padding-top:10px;border-top:1px dashed #e3e3e3}
+#ios-bar-row .ios-adj-k{font-size:11px;color:#999;margin-bottom:4px}
+#ios-bar-row .ios-adj .stepper-line{margin:6px 0}
+#ios-bar-row .ios-adj-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;font-size:11px;color:#999}
+#ios-bar-row .ios-adj-reset{border:1px solid #ccc;background:none;color:#666;border-radius:14px;padding:4px 12px;font-size:12px;font-family:inherit}
