@@ -6,7 +6,7 @@ const pg=await ctx.newPage();const errs=[];pg.on('pageerror',e=>errs.push(e.mess
 await pg.goto('http://localhost:8765/'+(process.argv[2]||'index.html'));await pg.waitForTimeout(2000);
 await pg.exposeFunction('_t',t=>toasts.push(t));
 await pg.evaluate(()=>{const o=showToast;showToast=function(t){window._t(t);return o.apply(this,arguments);};
-  gdriveIsSignedIn=()=>true;gdriveEnsureToken=async()=>{};gdriveFindFile=async()=>({id:'f1'});window._gdriveAccessToken='x';
+  gdriveIsSignedIn=()=>true;gdriveEnsureToken=async()=>{};gdriveFindFile=async()=>({id:'f1',modifiedTime:'m'});localStorage.setItem(GD_SEEN_LS,'m');window._gdriveAccessToken='x';
   // 挿絵が1枚ある
   imgDbGet=async()=>'data:image/png;base64,AAAA';collectLibraryImageNames=()=>new Set(['a.png']);localStorage.removeItem(LS_UPLOADED_IMAGES);localStorage.removeItem(LS_LAST_SYNC);});
 const t0=Date.now();
