@@ -4,7 +4,24 @@
 // ・最終同期の時刻は、本のデータを送れた時点で更新する（挿絵はそのあと裏で送る）
 // ・通信が止まったまま戻ってこないときは、3分で打ち切ってエラーにする（次の同期ができなくなるのを防ぐ）
 let _gdUpP = null, _gdUpAt = 0, _gdNext = null, _gdImgP = null;
-const GD_TIMEOUT = 180000;
+const GD_TIMEOUT = 600000;              // 大きいデータもあるので10分まで待つ
+const GD_SMALL = 4 * 1024 * 1024;       // これより大きいデータは「再開できるアップロード」で送る
+// 再開できるアップロード：まず送る場所をもらってから、中身を送る（大きいデータ向け）
+async function gdResumable(existing, meta, json, signal){
+  const init = existing
+    ? 'https://www.googleapis.com/upload/drive/v3/files/' + existing.id + '?uploadType=resumable'
+    : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable';
+  const blob = new Blob([json], { type: 'application/json' });
+  const res = await gdriveFetch(init, Object.assign({
+    method: existing ? 'PATCH' : 'POST',
+    headers: { 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': 'application/json', 'X-Upload-Content-Length': String(blob.size) },
+    body: JSON.stringify(existing ? { mimeType: 'application/json' } : meta),
+  }, signal ? { signal } : {}));
+  const loc = res.headers.get('Location') || res.headers.get('location');
+  if(!loc) throw new Error('アップロード先をもらえませんでした');
+  const r2 = await fetch(loc, Object.assign({ method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: blob }, signal ? { signal } : {}));
+  if(!r2.ok) throw new Error('Drive API ' + r2.status);
+}
 function gdFmtSize(n){ return n >= 1024 * 1024 ? (n / 1024 / 1024).toFixed(1) + 'MB' : Math.round(n / 1024) + 'KB'; }
 async function gdUploadOnce(){
   _gdriveUploading = true;
@@ -21,7 +38,7 @@ async function gdUploadOnce(){
       settings: Object.assign({}, state.settings || {}, { ttsApiKey: undefined }), // APIキーは上げない
     };
     const json = JSON.stringify(payload);
-    size = json.length;
+    size = new Blob([json]).size;   // バイト数（日本語は1文字で3バイトくらい）
     const existing = await gdriveFindFile();
     const boundary = '-------novel-boundary-' + Date.now();
     const meta = { name: GDRIVE_FILE_NAME, mimeType: 'application/json' };
@@ -31,7 +48,16 @@ async function gdUploadOnce(){
     const url = existing
       ? 'https://www.googleapis.com/upload/drive/v3/files/' + existing.id + '?uploadType=multipart'
       : 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
-    await gdriveFetch(url, Object.assign({ method: existing ? 'PATCH' : 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + boundary }, body }, ac ? { signal: ac.signal } : {}));
+    // 小さいときは今までどおり1回で。大きいとき（または1回で送れなかったとき）は「再開できるアップロード」で送る
+    const big = size > GD_SMALL;
+    let done = false;
+    if(!big){
+      try{
+        await gdriveFetch(url, Object.assign({ method: existing ? 'PATCH' : 'POST', headers: { 'Content-Type': 'multipart/related; boundary=' + boundary }, body }, ac ? { signal: ac.signal } : {}));
+        done = true;
+      }catch(e){ if(e && e.name === 'AbortError') throw e; console.warn('multipart failed, try resumable', e); }
+    }
+    if(!done) await gdResumable(existing, meta, json, ac ? ac.signal : undefined);
     // 本のデータが送れた時点で「最終同期」を更新
     localStorage.setItem(LS_LAST_SYNC, payload.syncedAt);
     localStorage.removeItem(LS_LAST_ERR);
@@ -39,7 +65,7 @@ async function gdUploadOnce(){
     if(!_gdImgP) _gdImgP = gdriveUploadImages().catch(e => console.warn('gdriveUploadImages:', e)).finally(() => { _gdImgP = null; });
   }catch(e){
     let msg = e && e.name === 'AbortError' ? '通信が止まったので打ち切りました' : (e && e.message) || '不明';
-    if(/Drive API 413/.test(msg) || (size > 5 * 1024 * 1024 && /Drive API 4\d\d/.test(msg))) msg += `（データが大きすぎるかも：${gdFmtSize(size)}）`;
+    if(size) msg += `（データ ${gdFmtSize(size)}）`;
     try{ localStorage.setItem(LS_LAST_ERR, msg); }catch(_){}
     const err = new Error(msg); err.cause = e;
     throw err;
