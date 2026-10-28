@@ -11,7 +11,7 @@ await pg.evaluate(async()=>{state.settings.ttsVoice='ja-JP-Neural2-C';await synt
 await pg.waitForTimeout(500);
 await pg.reload();await pg.waitForTimeout(2000);
 await pg.evaluate(async()=>{state.settings.ttsApiKey='dummy';state.settings.ttsVoice='ja-JP-Neural2-B';await synthesizeChirp('こんにちは');});o.afterReload=calls;
-await pg.evaluate(async()=>{const n=state.library[0];await openNovel(n.id);openEpisode(n.episodes[0].id);togglePanel();uxPanelTab('tts');});await pg.waitForTimeout(800);
+await pg.evaluate(async()=>{if(!state.library.length)await createNewNovel();showLibrary();const n=state.library[0];await openNovel(n.id);openEpisode(n.episodes[0].id);togglePanel();uxPanelTab('tts');});await pg.waitForTimeout(800);
 o.size=await pg.evaluate(()=>document.getElementById('ttsc-size').textContent);o.rowVisible=await pg.evaluate(()=>getComputedStyle(document.getElementById('ttsc-row')).display);
 await pg.screenshot({path:'/tmp/claude-0/ttsc_panel.png'});
 await pg.evaluate(()=>uxPanelTab('text'));o.hiddenInText=await pg.evaluate(()=>getComputedStyle(document.getElementById('ttsc-row')).display);
