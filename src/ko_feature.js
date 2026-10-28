@@ -309,7 +309,7 @@ function koDecorateHtml(html, para){
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
   const ph = koHash(plain), senses = (state.novel && state.novel.koSense) || {}, occ = {};
-  const fpx = (para && para.size) || (state.settings && state.settings.fontSize) || 15;
+  const fpx = (para && para.size) || stdFont() || 15;
   const mkSpan = (key, text, rest, prevRun) => {
     const rb = document.createElement('span');
     const learned = koHideLearned() && koIsLearned(words[key]);

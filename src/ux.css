@@ -76,3 +76,8 @@ body.theme-dark .bl-fan{background:#2a2a2a;}
 body.theme-dark .bl-fan button{color:#aaa;}
 body.theme-dark .bl-fan button.on{background:#3a3a3a;color:#5cc8c0;}
 /* ══════ 使いやすさここまで ══════ */
+/* 本棚が空のときの一言 */
+.lib-empty{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:56px 16px;text-align:center;color:#999;font-size:13px;line-height:1.7}
+.lib-empty b{font-size:15px;font-weight:600;color:#444}
+/* 文字の標準：変える範囲 */
+#fs-scope-row .fs-hint{font-size:11px;color:#999;margin-top:6px;line-height:1.5}

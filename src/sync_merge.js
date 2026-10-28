@@ -72,8 +72,13 @@ async function gdMergeLibrary(remote, opt){
     let n = l && r ? gdMergeNovel(l, r, id === curId ? state.currentEpisodeId : null) : (l || r);
     const t = del[id];
     // 消した本は、ほかの端末で読まれていても消す（バックアップから戻した本＝rv が消した時刻より後、だけは残す）
-    if(t && !((n.rv || '') > t) && id !== curId){
-      if(l){ removed++; try{ await libDbDelete(id); }catch(_){} }
+    if(t && !((n.rv || '') > t)){
+      if(id !== curId){
+        if(l){ removed++; try{ await libDbDelete(id); }catch(_){} }
+        return;
+      }
+      // いま開いている本：開いている間は消さない（閉じたあとの同期・次に開いたときに消える）
+      if(l) out.push(l);
       return;
     }
     if(t && (n.rv || '') > t) delete del[id];
@@ -96,6 +101,7 @@ async function gdMergeLibrary(remote, opt){
     if(!r || !r.id || seen.has(r.id)) continue;
     // 新しい同期になって初めての同期：この端末にない本は「前にこの端末で消した本」かもしれないので入れない（今までどおり）
     if(opt.noRemoteOnly && !local.has(r.id)) continue;
+    if(!local.has(r.id) && typeof gdIsBlank === 'function' && gdIsBlank(r)) continue; // ほかの端末の空っぽの無題の本は入れない
     seen.add(r.id); await handle(r.id, local.get(r.id), r);
   }
   for(const [id, l] of local){ if(seen.has(id)) continue; seen.add(id); await handle(id, l, null); }

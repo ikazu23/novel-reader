@@ -37,7 +37,7 @@ async function gdUploadOnce(){
       app: 'novel-reader',
       version: 1,
       syncedAt: new Date().toISOString(),
-      library: state.library || [],
+      library: (state.library || []).filter(n => !(typeof gdIsBlank === 'function' && gdIsBlank(n))), // 空っぽの無題の本は送らない
       settings: Object.assign({}, state.settings || {}, { ttsApiKey: undefined }), // APIキーは上げない
     };
     if(typeof gdPayloadExtra === 'function') Object.assign(payload, gdPayloadExtra());

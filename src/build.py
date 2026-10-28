@@ -5,7 +5,7 @@ import os, subprocess
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 here = os.path.join(root, 'src')
 rd = lambda n: open(os.path.join(here, n), encoding='utf-8').read()
-js = rd('ko_feature.js') + '\n\n' + rd('aozora.js').rstrip('\n') + '\n\n' + rd('ux.js').rstrip('\n') + '\n\n' + rd('tts_cache.js').rstrip('\n') + '\n\n' + rd('sync_fix.js').rstrip('\n') + '\n\n' + rd('sync_merge.js').rstrip('\n')
+js = rd('ko_feature.js') + '\n\n' + rd('aozora.js').rstrip('\n') + '\n\n' + rd('ux.js').rstrip('\n') + '\n\n' + rd('tts_cache.js').rstrip('\n') + '\n\n' + rd('sync_fix.js').rstrip('\n') + '\n\n' + rd('sync_merge.js').rstrip('\n') + '\n\n' + rd('db_fix.js').rstrip('\n') + '\n\n' + rd('font_std.js').rstrip('\n')
 css = rd('ko_feature.css').rstrip('\n') + '\n' + rd('aozora.css').rstrip('\n') + '\n' + rd('ux.css').rstrip('\n') + '\n' + rd('tts_cache.css').rstrip('\n')
 for f in ['beta2/index.html', 'beta/index.html']:
     p = os.path.join(root, f)

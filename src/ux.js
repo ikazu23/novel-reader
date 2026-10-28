@@ -241,7 +241,7 @@ function uxPanelSetup(){
   const kind = el => {
     const t = (el.querySelector('.pl') || {}).textContent || '';
     const sm = (el.querySelector('summary') || {}).textContent || '';
-    if(el.id === 'ko-panel-row' || /行間|段落の余白|本文の幅|文字サイズ|フォント/.test(t)) return 'text';
+    if(el.id === 'ko-panel-row' || el.id === 'fs-scope-row' || el.id === 'fs-std-row' || /行間|段落の余白|本文の幅|文字サイズ|フォント/.test(t)) return 'text';
     if(/読み上げ/.test(t) || /読み方/.test(sm)) return 'tts';
     if(/背景/.test(t)) return 'look';
     return 'etc';
@@ -271,9 +271,10 @@ function uxPanelTab(k){
 }
 function uxCurFontSize(){
   try{
-    for(const pg of (state.pages || [])) for(const p of (pg.paras || [])) if(p.type === 'text' && (p.text || '').trim() && p.size) return p.size;
+    const m = typeof fsModeOf === 'function' && state.currentEpisodeId ? fsModeOf([{ pages: state.pages }]) : 0;
+    if(m) return m;
   }catch(_){}
-  return (state.settings && state.settings.fontSize) || 15;
+  return stdFont() || 15;
 }
 function uxPanelRefresh(){
   try{
@@ -282,7 +283,11 @@ function uxPanelRefresh(){
     body.querySelectorAll('.stepper-line').forEach(line => {
       const t = (line.querySelector('.pl') || {}).textContent || '';
       const v = line.querySelector('.stepper-val');
-      if(v && /文字の大きさ/.test(t)) v.textContent = state.currentEpisodeId || /全部/.test(t) ? fs + 'px' : '—';
+      if(v && /文字の大きさ/.test(t)){
+        // この話：この話でいちばん多い大きさ／全部の話：この本の標準
+        const val = /全部/.test(t) ? (typeof stdFont === 'function' ? stdFont() : fs) : ((typeof fsModeOf === 'function' && fsModeOf([{ pages: state.pages }])) || fs);
+        v.textContent = state.currentEpisodeId || /全部/.test(t) ? val + 'px' : '—';
+      }
     });
     // 見本の文：いまの本文と同じ見た目で
     const pv = document.getElementById('ux-preview'); if(!pv) return;

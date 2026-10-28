@@ -159,7 +159,7 @@ function azParse(raw, fallbackTitle){
   const ci = lines.findIndex(l => /^底本：/.test(l));
   if(ci >= 0){ credit = lines.slice(ci).map(l => l.trim()).filter(Boolean); lines = lines.slice(0, ci); }
 
-  const fs = (state.settings && state.settings.fontSize) || 15, col = (state.settings && state.settings.lastColor) || '#1a1208';
+  const fs = stdFont() || 15, col = (state.settings && state.settings.lastColor) || '#1a1208';
   const P = (o) => Object.assign({ type: 'text', align: 'left', size: fs, color: col }, o);
   const blank = () => P({ text: '', html: '<br>' });
   const eps = [];
