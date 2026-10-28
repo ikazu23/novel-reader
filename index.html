@@ -2879,6 +2879,11 @@ body.theme-dark .bl-fan{background:#2a2a2a;}
 body.theme-dark .bl-fan button{color:#aaa;}
 body.theme-dark .bl-fan button.on{background:#3a3a3a;color:#5cc8c0;}
 /* ══════ 使いやすさここまで ══════ */
+/* 本棚が空のときの一言 */
+.lib-empty{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:56px 16px;text-align:center;color:#999;font-size:13px;line-height:1.7}
+.lib-empty b{font-size:15px;font-weight:600;color:#444}
+/* 文字の標準：変える範囲 */
+#fs-scope-row .fs-hint{font-size:11px;color:#999;margin-top:6px;line-height:1.5}
 /* ══════ 読み上げ音声の保存 ══════ */
 .ttsc-line{display:flex;align-items:center;justify-content:space-between;gap:10px;font-family:'Noto Sans JP',sans-serif;}
 #ttsc-size{font-size:14px;color:#444;}
@@ -5041,13 +5046,7 @@ async function loadLibrary(){
     console.warn('loadLibrary failed',e);
     state.library=[];
   }
-  // ライブラリが空なら1件作成
-  if(state.library.length===0){
-    const novel=makeNovel('無題の小説');
-    novel.episodes=[makeEpisode(1,'第1話',getDefaultPages())];
-    await libDbPut(novel);
-    state.library=[novel];
-  }
+  // 本棚が空でも、無題の本は作らない（空の本棚と「＋」を出す）
 }
 
 // 見た目の設定：本を開いていればその本に、開いていなければ全体の既定に保存
@@ -5285,7 +5284,7 @@ function makeEpisode(num,title,initialPages){
 }
 function getDefaultPages(){
   return[{paras:[
-    {type:'text',text:'',html:'<br>',align:'left',size:15,color:'#1a1208'},
+    {type:'text',text:'',html:'<br>',align:'left',size:stdFont(),color:'#1a1208'},
   ]}];
 }
 function countChars(pgs){
@@ -5540,13 +5539,6 @@ async function deleteSelectedNovels(){
     state.library = state.library.filter(n=>n.id!==id); // 先に本棚から外す（書き戻し防止）
     await libDbDelete(id).catch(()=>{});
   }
-  // 全削除されたら新規本を作る
-  if(state.library.length === 0){
-    const novel = makeNovel('無題の小説');
-    novel.episodes = [makeEpisode(1,'第1話',getDefaultPages())];
-    await libDbPut(novel);
-    state.library = [novel];
-  }
   exitSelectionMode();
   renderLibrary();
   showToast(`${n}冊を削除しました`);
@@ -5604,12 +5596,6 @@ async function deleteNovel(novelId){
   if(publishedIn([state.library.find(n=>n.id===novelId)]).length){ alert(PUBLISHED_NO_DELETE); return; }
   state.library=state.library.filter(n=>n.id!==novelId); // 先に本棚から外す（書き戻し防止）
   await libDbDelete(novelId);
-  if(state.library.length===0){
-    const novel=makeNovel('無題の小説');
-    novel.episodes=[makeEpisode(1,'第1話',getDefaultPages())];
-    await libDbPut(novel);
-    state.library=[novel];
-  }
   renderLibrary();
 }
 
@@ -6143,9 +6129,9 @@ async function importParsedEpisodes(parsedRaw){
     const paras = lines.length > 0
       ? lines.map(line => ({
           type:'text', text:line,
-          align:'left', size:state.settings.fontSize, color:state.settings.lastColor
+          align:'left', size:stdFont(), color:state.settings.lastColor
         }))
-      : [{type:'text', text:'', html:'<br>', align:'left', size:state.settings.fontSize, color:state.settings.lastColor}];
+      : [{type:'text', text:'', html:'<br>', align:'left', size:stdFont(), color:state.settings.lastColor}];
     const pages = [{ paras }];
 
     const existingIdx = state.novel.episodes.findIndex(e=>e.number===p.num);
@@ -6292,8 +6278,8 @@ function kzParseHtml(htmlText, fileName){
   if(num == null){ const m = title.match(/(\d+)(?!.*\d)/) || base.match(/^0*(\d+)/); if(m) num = parseInt(m[1],10); }
   return { title, items, num, fileName };
 }
-function kzItemsToParas(items){
-  const fs = state.settings.fontSize, col = state.settings.lastColor;
+function kzItemsToParas(items, base){
+  const fs = base || stdFont(), col = state.settings.lastColor;
   const paras = items.map(it => {
     if(!it || it.blank) return {type:'text', text:'', html:'<br>', align:'left', size:fs, color:col, ...(it && boxValid(it.box) ? { box: boxValid(it.box) } : {})};
     const html = kzSanitizeInline(it.html != null ? it.html : String(it.text||'').replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])));
@@ -6576,7 +6562,7 @@ function kzImportInto(novelId, list, overwriteOthers, overwriteEdited){
   list.slice().sort((a, b) => (kzEpNum(a) ?? 1e9) - (kzEpNum(b) ?? 1e9)).forEach(p => {
     let num = kzEpNum(p);
     if(num == null) num = novel.episodes.reduce((m, e) => Math.max(m, e.number), 0) + 1;
-    const pages = [{ paras: kzItemsToParas(kzItemsFromData(p.data || {})) }];
+    const pages = [{ paras: kzItemsToParas(kzItemsFromData(p.data || {}), stdFont(novel)) }];
     const cc = countChars(pages);
     const mark = { key: p.key, n: p.n || 0, cc, h: kzPagesHash2(pages), hv: 2, ...(p.sig ? { sig: String(p.sig), sv: 2 } : {}) };
     const ep = novel.episodes.find(e => e.number === num);
@@ -6677,7 +6663,7 @@ async function kzReceive(eps){
       g.eps.forEach(p => {
         const e = nv.episodes.find(x => x.number === kzEpNum(p));
         if(!e || !e.kzImport || e.kzImport.key !== p.key || e.id === state.currentEpisodeId || kzUntouched(e)) return;
-        const np = [{ paras: kzItemsToParas(kzItemsFromData(p.data || {})) }];
+        const np = [{ paras: kzItemsToParas(kzItemsFromData(p.data || {}), stdFont(nv)) }];
         if(kzSameAsImported(e, np, p.sig) || (p.sig && e.kzImport.dv === 2 && e.kzImport.dec === String(p.sig))) return; // 前に入れた版と同じ・前に「残す」にした版：聞かない
         editedNums.push(e.number); editedNovels.add(nv);
       });
@@ -7458,7 +7444,7 @@ function createPageElBase(pi,pg){
     if(slice.qiList.length === 0){
       // 空のグループ（新規エピソード等）：状態にも空段落を1つ追加して描画
       const newPara = {type:'text', text:'', html:'<br>', align:'left',
-        size:state.settings.fontSize, color:state.settings.lastColor};
+        size:stdFont(), color:state.settings.lastColor};
       // qiは現在の paras 末尾に挿入
       const newQi = paras.length;
       paras.push(newPara);
@@ -7574,7 +7560,7 @@ function buildParaEl(pi,qi,para){
       p.innerHTML='<br>';
     }
     p.style.textAlign=para.align||'left';
-    p.style.fontSize=(para.size||state.settings.fontSize)+'px';
+    p.style.fontSize=(para.size||stdFont())+'px';
     const _c = para.color || state.settings.color;
     p.style.color = (!_c || isNearBlack(_c)) ? 'var(--ink)' : _c;
     if(_c && isNearBlack(_c)) p.dataset.origColor = _c;
@@ -7632,7 +7618,7 @@ function setupEditorEvents(editor,pi,groupIdx=0,qiOffset=0){
           p.dataset.type = 'text';
           p.innerHTML = '<br>';
           p.style.textAlign = 'left';
-          p.style.fontSize = state.settings.fontSize + 'px';
+          p.style.fontSize = stdFont() + 'px';
           p.style.color = state.settings.lastColor;
           editor.appendChild(p);
         }
@@ -7675,7 +7661,7 @@ function setupEditorEvents(editor,pi,groupIdx=0,qiOffset=0){
         p.dataset.type = 'text';
         p.innerHTML = '<br>';
         p.style.textAlign = 'left';
-        p.style.fontSize = state.settings.fontSize + 'px';
+        p.style.fontSize = stdFont() + 'px';
         p.style.color = state.settings.lastColor;
         editor.appendChild(p);
       }
@@ -7845,7 +7831,7 @@ function normalizeLooseNodes(editor, pi){
     const p = document.createElement('p');
     p.dataset.pi = pi; p.dataset.type = 'text';
     p.style.textAlign = 'left';
-    p.style.fontSize = (state.settings.fontSize || 15) + 'px';
+    p.style.fontSize = (stdFont() || 15) + 'px';
     group[0].parentNode.insertBefore(p, group[0]);
     group.forEach(n=>p.appendChild(n));
     // 焼き付いた書式もここで外す
@@ -7936,7 +7922,7 @@ function syncEditorToState(pi){
         const origByIdx = state.pages[pi] ? state.pages[pi].paras[globalQi] : null;
         const orig = origByQi || origByIdx;
         let nodeSize = parseFloat(node.style.fontSize);
-        if (isNaN(nodeSize) || !nodeSize) nodeSize = (orig && orig.size) || state.settings.fontSize;
+        if (isNaN(nodeSize) || !nodeSize) nodeSize = (orig && orig.size) || stdFont();
         let nodeColor = node.style.color || (orig && orig.color) || state.settings.color;
         if (/var\(--ink\)/.test(nodeColor)) nodeColor = (node.dataset && node.dataset.origColor) || (orig && orig.color) || '#1a1208';
         const builtPara = {
@@ -8101,7 +8087,7 @@ function splitAtCaret(pi){
   newP.dataset.qi=qi+1; // will be renumbered by syncEditorToState
   newP.dataset.type='text';
   newP.style.textAlign=paraEl.style.textAlign||'left';
-  newP.style.fontSize=paraEl.style.fontSize||(state.settings.fontSize+'px');
+  newP.style.fontSize=paraEl.style.fontSize||(stdFont()+'px');
   newP.style.color=paraEl.style.color||state.settings.color;
   const _bx=boxFromEl(paraEl); if(_bx) boxApplyEl(newP,_bx);
   newP.appendChild(frag);
@@ -10176,7 +10162,7 @@ function koDecorateHtml(html, para){
   const tmp = document.createElement('div');
   tmp.innerHTML = html;
   const ph = koHash(plain), senses = (state.novel && state.novel.koSense) || {}, occ = {};
-  const fpx = (para && para.size) || (state.settings && state.settings.fontSize) || 15;
+  const fpx = (para && para.size) || stdFont() || 15;
   const mkSpan = (key, text, rest, prevRun) => {
     const rb = document.createElement('span');
     const learned = koHideLearned() && koIsLearned(words[key]);
@@ -14979,7 +14965,7 @@ function azParse(raw, fallbackTitle){
   const ci = lines.findIndex(l => /^底本：/.test(l));
   if(ci >= 0){ credit = lines.slice(ci).map(l => l.trim()).filter(Boolean); lines = lines.slice(0, ci); }
 
-  const fs = (state.settings && state.settings.fontSize) || 15, col = (state.settings && state.settings.lastColor) || '#1a1208';
+  const fs = stdFont() || 15, col = (state.settings && state.settings.lastColor) || '#1a1208';
   const P = (o) => Object.assign({ type: 'text', align: 'left', size: fs, color: col }, o);
   const blank = () => P({ text: '', html: '<br>' });
   const eps = [];
@@ -15596,7 +15582,7 @@ function uxPanelSetup(){
   const kind = el => {
     const t = (el.querySelector('.pl') || {}).textContent || '';
     const sm = (el.querySelector('summary') || {}).textContent || '';
-    if(el.id === 'ko-panel-row' || /行間|段落の余白|本文の幅|文字サイズ|フォント/.test(t)) return 'text';
+    if(el.id === 'ko-panel-row' || el.id === 'fs-scope-row' || el.id === 'fs-std-row' || /行間|段落の余白|本文の幅|文字サイズ|フォント/.test(t)) return 'text';
     if(/読み上げ/.test(t) || /読み方/.test(sm)) return 'tts';
     if(/背景/.test(t)) return 'look';
     return 'etc';
@@ -15626,9 +15612,10 @@ function uxPanelTab(k){
 }
 function uxCurFontSize(){
   try{
-    for(const pg of (state.pages || [])) for(const p of (pg.paras || [])) if(p.type === 'text' && (p.text || '').trim() && p.size) return p.size;
+    const m = typeof fsModeOf === 'function' && state.currentEpisodeId ? fsModeOf([{ pages: state.pages }]) : 0;
+    if(m) return m;
   }catch(_){}
-  return (state.settings && state.settings.fontSize) || 15;
+  return stdFont() || 15;
 }
 function uxPanelRefresh(){
   try{
@@ -15637,7 +15624,11 @@ function uxPanelRefresh(){
     body.querySelectorAll('.stepper-line').forEach(line => {
       const t = (line.querySelector('.pl') || {}).textContent || '';
       const v = line.querySelector('.stepper-val');
-      if(v && /文字の大きさ/.test(t)) v.textContent = state.currentEpisodeId || /全部/.test(t) ? fs + 'px' : '—';
+      if(v && /文字の大きさ/.test(t)){
+        // この話：この話でいちばん多い大きさ／全部の話：この本の標準
+        const val = /全部/.test(t) ? (typeof stdFont === 'function' ? stdFont() : fs) : ((typeof fsModeOf === 'function' && fsModeOf([{ pages: state.pages }])) || fs);
+        v.textContent = state.currentEpisodeId || /全部/.test(t) ? val + 'px' : '—';
+      }
     });
     // 見本の文：いまの本文と同じ見た目で
     const pv = document.getElementById('ux-preview'); if(!pv) return;
@@ -15947,7 +15938,7 @@ async function gdUploadOnce(){
       app: 'novel-reader',
       version: 1,
       syncedAt: new Date().toISOString(),
-      library: state.library || [],
+      library: (state.library || []).filter(n => !(typeof gdIsBlank === 'function' && gdIsBlank(n))), // 空っぽの無題の本は送らない
       settings: Object.assign({}, state.settings || {}, { ttsApiKey: undefined }), // APIキーは上げない
     };
     if(typeof gdPayloadExtra === 'function') Object.assign(payload, gdPayloadExtra());
@@ -16099,8 +16090,13 @@ async function gdMergeLibrary(remote, opt){
     let n = l && r ? gdMergeNovel(l, r, id === curId ? state.currentEpisodeId : null) : (l || r);
     const t = del[id];
     // 消した本は、ほかの端末で読まれていても消す（バックアップから戻した本＝rv が消した時刻より後、だけは残す）
-    if(t && !((n.rv || '') > t) && id !== curId){
-      if(l){ removed++; try{ await libDbDelete(id); }catch(_){} }
+    if(t && !((n.rv || '') > t)){
+      if(id !== curId){
+        if(l){ removed++; try{ await libDbDelete(id); }catch(_){} }
+        return;
+      }
+      // いま開いている本：開いている間は消さない（閉じたあとの同期・次に開いたときに消える）
+      if(l) out.push(l);
       return;
     }
     if(t && (n.rv || '') > t) delete del[id];
@@ -16123,6 +16119,7 @@ async function gdMergeLibrary(remote, opt){
     if(!r || !r.id || seen.has(r.id)) continue;
     // 新しい同期になって初めての同期：この端末にない本は「前にこの端末で消した本」かもしれないので入れない（今までどおり）
     if(opt.noRemoteOnly && !local.has(r.id)) continue;
+    if(!local.has(r.id) && typeof gdIsBlank === 'function' && gdIsBlank(r)) continue; // ほかの端末の空っぽの無題の本は入れない
     seen.add(r.id); await handle(r.id, local.get(r.id), r);
   }
   for(const [id, l] of local){ if(seen.has(id)) continue; seen.add(id); await handle(id, l, null); }
@@ -16260,6 +16257,488 @@ if(typeof gdriveRestoreFromCloud === 'function'){
   };
 }
 /* ══════ 本棚の同期：混ぜ合わせるここまで ══════ */
+
+/* ══════ 端末の保存場所（IndexedDB）の直し ══════ */
+// iPhone（Safari）は、アプリを裏に回していると保存場所とのつながりが切れることがある。
+// 今までは最初のつながりをずっと使っていたので、切れたあとは保存・削除がこっそり失敗していた
+// （画面からは消えているのに端末には残っていて、開き直すと本が戻る）。
+// ・つながりが切れたら、つなぎ直してもう一度やる
+// ・途中で止まった（abort）・返事がないときも、失敗として扱う
+// ・本を消すときは「消した記録」を残す。消しきれなかった本は、次に開いたときに消す
+const DB_OP_TIMEOUT = 20000;
+let _dbHadSet = false;
+function dbResetConn(){ try{ if(_db) _db.close(); }catch(_){} _db = null; }
+if(typeof openDB === 'function'){
+  const _dbOrigOpen = openDB;
+  openDB = function(){
+    return _dbOrigOpen.apply(this, arguments).then(db => {
+      if(db && !db._fx){
+        db._fx = 1;
+        db.onclose = () => { if(_db === db) _db = null; };
+        db.onversionchange = () => { try{ db.close(); }catch(_){} if(_db === db) _db = null; };
+      }
+      return db;
+    });
+  };
+}
+// 1回分の読み書き。終わった（complete）ときだけ成功。エラー・中断・返事なしは失敗
+function dbTx(store, mode, fn, timeout){
+  return openDB().then(db => new Promise((resolve, reject) => {
+    let done = false, req;
+    const tm = setTimeout(() => fin(false, new Error('保存場所から返事がありません')), timeout || DB_OP_TIMEOUT);
+    function fin(ok, v){ if(done) return; done = true; clearTimeout(tm); ok ? resolve(v) : reject(v); }
+    let tx;
+    try{ tx = db.transaction(store, mode); req = fn(tx.objectStore(store)); }
+    catch(e){ fin(false, e); return; }
+    tx.oncomplete = () => fin(true, req ? req.result : undefined);
+    tx.onerror = () => fin(false, tx.error || new Error('保存場所のエラー'));
+    tx.onabort = () => fin(false, tx.error || new Error('途中で止まりました'));
+  }));
+}
+// 失敗したら、つなぎ直してもう1回
+async function dbRetry(op){
+  try{ return await op(); }
+  catch(e){
+    console.warn('IndexedDB: retry after', e);
+    dbResetConn();
+    return await op();
+  }
+}
+if(typeof libDbPut === 'function'){
+  libDbPut = function(novel){
+    if(novel && novel.trial) return Promise.resolve(); // 試し読みは本棚に保存しない
+    return dbRetry(() => dbTx(DB_LIBRARY_STORE, 'readwrite', s => { s.put(novel, novel.id); })).then(() => { if(!_dbHadSet){ _dbHadSet = true; dbMarkHad(true); } });
+  };
+}
+// 前に本があった端末で、本棚が空に見えたとき（iPhoneの起動直後など）は、つなぎ直して読み直す
+const DB_HAD_LS = LS_PREFIX + 'had-books';
+function dbMarkHad(on){ try{ if(on) localStorage.setItem(DB_HAD_LS, '1'); else localStorage.removeItem(DB_HAD_LS); }catch(_){} }
+if(typeof libDbGetAll === 'function'){
+  libDbGetAll = async function(){
+    const get = () => dbRetry(() => dbTx(DB_LIBRARY_STORE, 'readonly', s => s.getAll(), 60000)).then(r => r || []);
+    let r = await get();
+    let had = false; try{ had = localStorage.getItem(DB_HAD_LS) === '1'; }catch(_){}
+    for(let i = 0; !r.length && had && i < 2; i++){
+      await new Promise(res => setTimeout(res, 300 + i * 500));
+      dbResetConn();
+      r = await get();
+    }
+    if(r.length) dbMarkHad(true);
+    return r;
+  };
+}
+if(typeof libDbDelete === 'function'){
+  libDbDelete = async function(novelId){
+    // 先に「消した記録」（すでにあれば、前の時刻のまま）
+    try{ const m = gdDelMap(); if(novelId && !m[novelId]){ m[novelId] = gdNow(); gdSaveDel(m); } }catch(_){}
+    try{
+      await dbRetry(() => dbTx(DB_LIBRARY_STORE, 'readwrite', s => { s.delete(novelId); }));
+      if(state && Array.isArray(state.library) && !state.library.some(n => n && n.id !== novelId)) dbMarkHad(false);
+    }catch(e){
+      console.warn('libDbDelete failed', e);
+      try{ showToast('この端末からうまく消せませんでした。次に開いたときにもう一度消します'); }catch(_){}
+    }
+  };
+}
+// 起動したとき：「消した記録」があるのに端末に残っている本を消す
+if(typeof loadLibrary === 'function'){
+  const _dbOrigLoad = loadLibrary;
+  loadLibrary = async function(){
+    const r = await _dbOrigLoad.apply(this, arguments);
+    try{
+      const m = gdDelMap();
+      const gone = (state.library || []).filter(n => n && m[n.id] && !((n.rv || '') > m[n.id]));
+      if(gone.length){
+        for(const n of gone) await libDbDelete(n.id);
+        state.library = state.library.filter(n => !gone.includes(n));
+        console.info('消した本を片づけました:', gone.map(n => n.title));
+      }
+    }catch(e){ console.warn('cleanup deleted', e); }
+    // 前に勝手に作られた、空っぽの「無題の小説」：ほかに本があれば、1日たったものから片づける
+    try{
+      const old = new Date(Date.now() - 864e5).toISOString();
+      if((state.library || []).some(n => !gdIsBlank(n))){
+        const blank = state.library.filter(n => gdIsBlank(n) && (n.updatedAt || '') < old);
+        for(const n of blank) await libDbDelete(n.id);
+        if(blank.length) state.library = state.library.filter(n => !blank.includes(n));
+      }
+    }catch(e){ console.warn('cleanup blank', e); }
+    // 端末に「このデータは消さないで」とお願いする（iPhoneなどで、しばらく開かないと消されるのを防ぐ）
+    try{
+      if(navigator.storage && navigator.storage.persist && !/Firefox/i.test(navigator.userAgent)){
+        navigator.storage.persisted().then(p => { if(!p) return navigator.storage.persist(); }).catch(() => {});
+      }
+    }catch(_){}
+    return r;
+  };
+}
+// 共有作品は、消してから追加し直しても同じIDになる → 追加し直したら「消した記録」を取り消す
+if(typeof addWorkToLibrary === 'function'){
+  const _dbOrigAddWork = addWorkToLibrary;
+  addWorkToLibrary = async function(workId){
+    const nid = 'shared_' + workId;
+    const had = (state.library || []).some(n => n.id === nid);
+    const r = await _dbOrigAddWork.apply(this, arguments);
+    try{
+      const m = gdDelMap();
+      const n = (state.library || []).find(x => x.id === nid);
+      if(!had && n && m[nid]){
+        delete m[nid]; gdSaveDel(m);
+        n.rv = gdNow();
+        const cur = state.novel && state.novel.id === nid;
+        if(cur) state.novel.rv = n.rv;
+        await libDbPut(cur ? state.novel : n);
+        try{ scheduleGdriveAutoSync(); }catch(_){}
+      }
+    }catch(_){}
+    return r;
+  };
+}
+// 中身が空っぽの「無題の小説」か（書いた文字・挿絵・表紙・作者・訳が何もない）
+function gdIsBlank(n){
+  if(!n || (n.title || '無題の小説') !== '無題の小説' || n.author || n.cover || n.ext || n.shared || n.publish || n.trial) return false;
+  if(['koTr', 'koNotes', 'koSense'].some(f => n[f] && Object.keys(n[f]).length)) return false;
+  const eps = n.episodes || [];
+  if(eps.length > 1) return false;
+  return eps.every(e => !e.charCount && !e.kzImport && (e.pages || []).every(pg => (pg.paras || []).every(pa =>
+    (!pa.type || pa.type === 'text') && !String(pa.text || '').trim() && !String(pa.html || '').replace(/<[^>]*>|&nbsp;/g, '').trim())));
+}
+// 本棚が空のときの一言
+if(typeof renderLibrary === 'function'){
+  const _dbOrigRender = renderLibrary;
+  renderLibrary = function(){
+    const r = _dbOrigRender.apply(this, arguments);
+    try{
+      const grid = document.getElementById('library-grid');
+      if(grid && !(state.library || []).length && !grid.querySelector('.lib-empty')){
+        const d = document.createElement('div');
+        d.className = 'lib-empty';
+        d.innerHTML = '<b>本棚はからっぽだよ</b><span>右下の ＋ から、名作を読んだり<br>新しい本を書いたりできるよ</span>';
+        grid.appendChild(d);
+      }
+    }catch(_){}
+    return r;
+  };
+}
+/* ══════ 端末の保存場所の直しここまで ══════ */
+
+/* ══════ 文字の標準の大きさ ══════ */
+// 文字の大きさは段落ごとに px で持っている（古い版の端末や、公開作品を読む人のアプリでも同じに見えるように、形は変えない）。
+// そこに「標準」を足して、標準に対する比率で考える：
+// ・全部の本の標準（設定の fontSize）と、この本だけの標準（本の fontStd）。この本だけの標準がない本は、その本でいちばん多く使っている大きさ
+// ・新しい話・新しい段落・貼り付け・取り込み・イカ墨翻訳から届いた話・みんなの作品は、その本の標準に合わせる
+// ・標準を変えると、その本の全部の話を同じ比率で拡大・縮小する（大きくした見出しなども比率はそのまま）
+// ・行間・段落の余白・本文の幅も「この本／全部の本」を選んで変えられる
+const FS_MIN = 8, FS_MAX = 72;
+const FS_SCOPE_LS = LS_PREFIX + 'fs-scope';
+const _fsModeCache = new WeakMap();
+function fsGlobal(){ const g = parseFloat(state.settings && state.settings['fontSize']); return g > 0 ? g : 15; }
+// その本でいちばん多く使っている文字の大きさ（文字数で数える）
+function fsModeOf(eps){
+  const cnt = new Map();
+  (eps || []).forEach(e => (e && e.pages || []).forEach(pg => (pg.paras || []).forEach(pa => {
+    if(pa.type && pa.type !== 'text') return;
+    const s = parseFloat(pa.size); if(!(s > 0)) return;
+    const n = String(pa.text || '').replace(/\s/g, '').length; if(!n) return;
+    const k = Math.round(s * 2) / 2;
+    cnt.set(k, (cnt.get(k) || 0) + n);
+  })));
+  let best = 0, bn = 0;
+  cnt.forEach((n, k) => { if(n > bn){ bn = n; best = k; } });
+  return best || 0;
+}
+function fsNovelMode(n){
+  if(!n || !n.episodes) return 0;
+  const sig = n.episodes.length + '|' + (n.updatedAt || '');
+  const c = _fsModeCache.get(n);
+  if(c && c.sig === sig) return c.v;
+  const v = fsModeOf(n.episodes);
+  _fsModeCache.set(n, { sig, v });
+  return v;
+}
+// 本の標準（n を省くと、いま開いている本。開いていなければ全部の本の標準）
+function stdFont(n){
+  if(n === undefined) n = (state.currentNovelId && state.novel) ? state.novel : null;
+  const own = n && parseFloat(n.fontStd);
+  if(own > 0) return own;
+  const m = n ? fsNovelMode(n) : 0;
+  return m || fsGlobal();
+}
+function fsRound(v){ return Math.min(FS_MAX, Math.max(FS_MIN, Math.round(v * 10) / 10)); }
+// 段落の大きさを、同じ比率で拡大・縮小する（文の中の px 指定も。em 指定は比率なのでそのまま）
+function fsScaleParas(paras, f, base){
+  let n = 0;
+  (paras || []).forEach(pa => {
+    if(pa.type && pa.type !== 'text') return;
+    const s = parseFloat(pa.size) > 0 ? parseFloat(pa.size) : base;
+    const ns = fsRound(s * f);
+    if(ns !== pa.size){ pa.size = ns; n++; }
+    if(pa.html && /font-size:\s*[\d.]+px/.test(pa.html)) pa.html = String(pa.html).replace(/font-size:\s*([\d.]+)px/g, (m, v) => 'font-size:' + fsRound(parseFloat(v) * f) + 'px');
+  });
+  return n;
+}
+function fsScaleEpisode(ep, pages, f, base){
+  const wasUntouched = typeof kzUntouched === 'function' && ep && ep.kzImport && kzUntouched(ep);
+  let n = 0;
+  (pages || []).forEach(pg => { n += fsScaleParas(pg.paras, f, base); });
+  // イカ墨翻訳から入れたままの話は「手で直した」にならないように、指紋も取り直す
+  if(wasUntouched && pages === ep.pages && typeof kzPagesHash2 === 'function'){ ep.kzImport.h = kzPagesHash2(ep.pages); ep.kzImport.hv = 2; }
+  return n;
+}
+// 本1冊を、標準 from → to に拡大・縮小
+function fsScaleNovel(n, from, to){
+  if(!n || !(from > 0) || !(to > 0) || Math.abs(from - to) < 0.05) return 0;
+  const f = to / from;
+  const isCur = state.novel && n === state.novel;
+  let cnt = 0;
+  (n.episodes || []).forEach(ep => {
+    if(isCur && ep.id === state.currentEpisodeId && state.pages){
+      try{ syncCurrentEpisode(); }catch(_){}
+      const wasUntouched = typeof kzUntouched === 'function' && ep.kzImport && kzUntouched(ep);
+      state.pages.forEach(pg => { cnt += fsScaleParas(pg.paras, f, from); });
+      try{ syncCurrentEpisode(); }catch(_){}
+      if(wasUntouched && typeof kzPagesHash2 === 'function'){ ep.kzImport.h = kzPagesHash2(ep.pages); ep.kzImport.hv = 2; }
+    } else cnt += fsScaleEpisode(ep, ep.pages, f, from);
+  });
+  return cnt;
+}
+function fsSaveNovel(n){
+  n.updatedAt = new Date().toISOString();
+  if(state.novel && n === state.novel){
+    const i = state.library.findIndex(x => x.id === n.id);
+    if(i >= 0) state.library[i] = novelSnapshot(state.novel);
+  }
+  return libDbPut(n).catch(e => console.warn('fs save', e));
+}
+function fsRerender(){
+  try{
+    if(state.currentEpisodeId && state.pages){
+      const cp = state.curPage;
+      renderAllPages();
+      if(cp != null && state.curPage !== cp && typeof goToPage === 'function') try{ goToPage(cp); }catch(_){}
+    }
+  }catch(e){ console.warn('fs rerender', e); }
+  try{ uxPanelRefresh(); }catch(_){}
+  try{ fsPanelRefresh(); }catch(_){}
+}
+
+// ── 変える範囲：この本／全部の本 ──
+function fsScope(){
+  if(!(state.currentNovelId && state.novel)) return 'all';
+  try{ return localStorage.getItem(FS_SCOPE_LS) === 'all' ? 'all' : 'book'; }catch(_){ return 'book'; }
+}
+function fsSetScope(s){
+  try{ localStorage.setItem(FS_SCOPE_LS, s === 'all' ? 'all' : 'book'); }catch(_){}
+  fsPanelRefresh();
+}
+let _fsForceAll = false;
+const FS_LOOK_KEYS = ['lineHeight', 'paraSpacing', 'textWidth'];
+if(typeof lookSetting === 'function'){
+  const _fsOrigLook = lookSetting;
+  lookSetting = function(key, fallback){
+    if(_fsForceAll && FS_LOOK_KEYS.includes(key)) return state.settings[key] != null ? state.settings[key] : fallback;
+    return _fsOrigLook.apply(this, arguments);
+  };
+}
+// 全部の本：設定に保存して、本ごとの値は消す（全部の本がこの値になる）
+function fsClearOverride(key){
+  const changed = new Set();
+  (state.library || []).forEach(n => { if(n && n[key] != null){ delete n[key]; changed.add(n.id); } });
+  if(state.novel && state.novel[key] != null){ delete state.novel[key]; changed.add(state.novel.id); }
+  changed.forEach(id => {
+    const n = (state.novel && state.novel.id === id) ? state.novel : state.library.find(x => x.id === id);
+    if(n) fsSaveNovel(n);
+  });
+  if(changed.size){ try{ scheduleGdriveAutoSync(); }catch(_){} }
+}
+if(typeof storeLookSetting === 'function'){
+  const _fsOrigStore = storeLookSetting;
+  storeLookSetting = function(key, val){
+    if(_fsForceAll && FS_LOOK_KEYS.includes(key)){
+      state.settings[key] = val;
+      try{ debouncedSaveSettings(); }catch(_){}
+      fsClearOverride(key);
+      return;
+    }
+    return _fsOrigStore.apply(this, arguments);
+  };
+}
+['adjustLineHeight', 'adjustParaSpacing', 'adjustTextWidth'].forEach(fn => {
+  if(typeof window[fn] !== 'function') return;
+  const orig = window[fn];
+  window[fn] = function(){
+    if(fsScope() !== 'all') return orig.apply(this, arguments);
+    _fsForceAll = true;
+    try{ return orig.apply(this, arguments); }finally{ _fsForceAll = false; }
+  };
+});
+
+// ── 標準を変える ──
+let _fsAllTimer = null, _fsAllPending = null;
+function fsAdjustStd(delta){
+  if(fsScope() === 'book'){
+    const n = state.novel; if(!n) return;
+    if(state.editMode && state.curPage != null){ try{ syncEditorToState(state.curPage); }catch(_){} }
+    const from = stdFont(n), to = fsRound(from + delta);
+    if(to === from) return;
+    const cnt = fsScaleNovel(n, from, to);
+    n.fontStd = to;
+    fsSaveNovel(n);
+    try{ scheduleGdriveAutoSync(); }catch(_){}
+    fsRerender();
+    showToast(`この本の文字の大きさを ${to}px にしました${cnt ? '（全部の話）' : ''}`);
+    return;
+  }
+  // 全部の本：押し終わってから、まとめてそろえる
+  const base = _fsAllPending != null ? _fsAllPending : fsGlobal();
+  _fsAllPending = fsRound(base + delta);
+  fsPanelRefresh();
+  clearTimeout(_fsAllTimer);
+  _fsAllTimer = setTimeout(fsApplyAll, 900);
+}
+async function fsApplyAll(){
+  const to = _fsAllPending; _fsAllPending = null;
+  if(!(to > 0)) return;
+  if(state.editMode && state.curPage != null){ try{ syncEditorToState(state.curPage); }catch(_){} }
+  state.settings['fontSize'] = to;
+  try{ debouncedSaveSettings(); }catch(_){}
+  let books = 0;
+  for(const lib of (state.library || []).slice()){
+    const n = (state.novel && state.novel.id === lib.id) ? state.novel : lib;
+    const from = stdFont(n);
+    const cnt = fsScaleNovel(n, from, to);
+    const had = n.fontStd != null;
+    delete n.fontStd;
+    if(cnt || had){ books++; await fsSaveNovel(n); }
+  }
+  if(books){ try{ scheduleGdriveAutoSync(); }catch(_){} }
+  fsRerender();
+  showToast(`全部の本の文字の大きさを ${to}px にそろえました`);
+}
+
+// ── 設定パネル ──
+function fsPanelInstall(){
+  const body = document.getElementById('panel-body'); if(!body || document.getElementById('fs-std-row')) return;
+  const lh = document.getElementById('global-lineheight-val');
+  const lhRow = lh && lh.closest('#panel-body > .ps'); if(!lhRow) return;
+  const scope = document.createElement('div');
+  scope.className = 'ps'; scope.id = 'fs-scope-row';
+  scope.innerHTML = `<div class="pl">変える範囲</div><div class="pr"><button class="ob" data-s="book" onclick="fsSetScope('book')">この本</button><button class="ob" data-s="all" onclick="fsSetScope('all')">全部の本</button></div><div class="fs-hint"></div>`;
+  const std = document.createElement('div');
+  std.className = 'ps'; std.id = 'fs-std-row';
+  std.innerHTML = `<div class="stepper-line"><div class="pl">文字の標準</div><div class="stepper-row"><button class="stepper-btn" onclick="fsAdjustStd(-1)">－</button><span class="stepper-val" id="fs-std-val">15px</span><button class="stepper-btn" onclick="fsAdjustStd(1)">＋</button></div></div>`;
+  body.insertBefore(scope, lhRow);
+  body.insertBefore(std, lhRow);
+}
+function fsPanelRefresh(){
+  try{
+    fsPanelInstall();
+    const s = fsScope(), open = !!(state.currentNovelId && state.novel);
+    const row = document.getElementById('fs-scope-row');
+    if(row){
+      row.style.display = open ? '' : 'none';
+      row.querySelectorAll('.ob').forEach(b => b.classList.toggle('active', b.dataset.s === s));
+      const h = row.querySelector('.fs-hint');
+      if(h) h.textContent = s === 'all' ? '下の「文字の標準・行間・段落の余白・本文の幅」を、全部の本にそろえます' : '下の「文字の標準・行間・段落の余白・本文の幅」を、この本だけ変えます';
+    }
+    const v = document.getElementById('fs-std-val');
+    if(v) v.textContent = (s === 'all' ? (_fsAllPending != null ? _fsAllPending : fsGlobal()) : stdFont()) + 'px';
+    const fmt = { lineHeight: x => (+x).toFixed(1), paraSpacing: x => x + 'px', textWidth: x => x + '%' };
+    const def = { lineHeight: 2.0, paraSpacing: 24, textWidth: 100 };
+    const ids = { lineHeight: 'global-lineheight-val', paraSpacing: 'global-paraspacing-val', textWidth: 'global-textwidth-val' };
+    FS_LOOK_KEYS.forEach(k => {
+      const el = document.getElementById(ids[k]); if(!el) return;
+      const val = s === 'all' ? (state.settings[k] != null ? state.settings[k] : def[k]) : lookSetting(k, def[k]);
+      el.textContent = fmt[k](val);
+    });
+  }catch(e){ console.warn('fs panel', e); }
+}
+if(typeof togglePanel === 'function'){
+  const _fsOrigTP = togglePanel;
+  togglePanel = function(){
+    try{ fsPanelInstall(); }catch(_){}
+    const r = _fsOrigTP.apply(this, arguments);
+    try{ fsPanelRefresh(); }catch(_){}
+    return r;
+  };
+}
+
+// ── 貼り付け：コピー元の文字の大きさは使わず、貼った場所の段落の大きさにそろえる ──
+document.addEventListener('paste', e => {
+  try{
+    if(!state.editMode) return;
+    const t = e.target && e.target.nodeType === 1 ? e.target : (e.target && e.target.parentElement);
+    const editor = t && t.closest && t.closest('.page-editor');
+    if(!editor || t.closest('.ko-tr, textarea, input')) return;
+    const cd = e.clipboardData; if(!cd) return;
+    const sel = window.getSelection(); if(!sel || !sel.rangeCount) return;
+    let blk = sel.anchorNode; while(blk && blk.parentNode !== editor) blk = blk.parentNode;
+    const size = (blk && blk.nodeType === 1 && parseFloat(blk.style.fontSize)) || stdFont();
+    const html = cd.getData('text/html'), text = cd.getData('text/plain');
+    if(!html && !text) return;
+    const before = new Set([...editor.children]);
+    e.preventDefault();
+    if(html){
+      const tpl = document.createElement('template');
+      tpl.innerHTML = html.replace(/<!--[\s\S]*?-->/g, '');
+      tpl.content.querySelectorAll('meta,style,script,title,link').forEach(x => x.remove());
+      // 文の中だけ大きい・小さい文字は、まわりの段落との比率（em）にして残す
+      const pxOf = el => { const m = /([\d.]+)px/.exec(el.style && el.style.fontSize || ''); return m ? parseFloat(m[1]) : 0; };
+      const ratios = [];
+      tpl.content.querySelectorAll('[style*="font-size"]').forEach(x => {
+        const v = pxOf(x); if(!v) return;
+        let a = x.parentElement;
+        while(a && !pxOf(a)) a = a.parentElement;
+        if(a) ratios.push([x, Math.round(v / pxOf(a) * 100) / 100]);
+      });
+      tpl.content.querySelectorAll('[style]').forEach(x => {
+        x.style.removeProperty('font-size'); x.style.removeProperty('line-height'); x.style.removeProperty('font-family');
+      });
+      ratios.forEach(([x, r]) => { if(Math.abs(r - 1) > 0.04) x.style.fontSize = r + 'em'; });
+      tpl.content.querySelectorAll('[style]').forEach(x => { if(!x.getAttribute('style').trim()) x.removeAttribute('style'); });
+      tpl.content.querySelectorAll('font[size]').forEach(x => x.removeAttribute('size'));
+      const div = document.createElement('div'); div.appendChild(tpl.content);
+      document.execCommand('insertHTML', false, div.innerHTML);
+    } else {
+      document.execCommand('insertText', false, text);
+    }
+    // 新しくできた段落は、貼った場所の段落と同じ大きさに
+    [...editor.children].forEach(c => {
+      if(before.has(c) || c.dataset.type === 'image') return;
+      c.style.fontSize = size + 'px';
+      c.querySelectorAll('[style*="font-size"]').forEach(x => { if(/px/.test(x.style.fontSize)) x.style.removeProperty('font-size'); });
+    });
+    try{ editor.dispatchEvent(new Event('input', { bubbles: true })); }catch(_){}
+  }catch(err){ console.warn('paste', err); }
+}, true);
+
+function fsFitShared(workId, eps){
+  const book = (state.library || []).find(n => n.id === 'shared_' + workId);
+  const to = book ? stdFont(book) : fsGlobal();
+  const from = fsModeOf(eps);
+  if(from > 0 && Math.abs(from - to) >= 0.05) (eps || []).forEach(ep => fsScaleEpisode(ep, ep.pages, to / from, from));
+  return eps;
+}
+// ── みんなの作品：届いた話を、その本（新しい本なら全部の本）の標準に合わせる ──
+if(typeof downloadWorkEpisodes === 'function'){
+  const _fsOrigDl = downloadWorkEpisodes;
+  downloadWorkEpisodes = async function(workId){
+    const eps = await _fsOrigDl.apply(this, arguments);
+    try{ fsFitShared(workId, eps); }catch(e){ console.warn('fs shared', e); }
+    return eps;
+  };
+}
+// 「文字の大きさ（全部の話）」の ± で全部の話を変えたら、この本の標準も同じだけ動かす
+if(typeof adjustAllEpisodesFontSize === 'function'){
+  const _fsOrigAllEp = adjustAllEpisodesFontSize;
+  adjustAllEpisodesFontSize = function(delta){
+    const n = state.novel, had = n && parseFloat(n.fontStd) > 0;
+    const r = _fsOrigAllEp.apply(this, arguments);
+    try{ if(had && n === state.novel){ n.fontStd = fsRound(parseFloat(n.fontStd) + delta); fsSaveNovel(n); } fsPanelRefresh(); }catch(_){}
+    return r;
+  };
+}
+/* ══════ 文字の標準の大きさここまで ══════ */
 
 function setupDoubleTap(){
   let lastTap=0;
@@ -17132,7 +17611,7 @@ function syncEB(para){
   if(!para)return;
   const align=para.align||'left';
   document.querySelectorAll('#eb-scroll .eb-abtn').forEach(b=>b.classList.toggle('active',b.dataset.align===align));
-  const size = para.size != null ? para.size : state.settings.fontSize;
+  const size = para.size != null ? para.size : stdFont();
   $.eb_size_val.textContent = size;
   updateEbColorBtn(para.color||state.settings.lastColor);
   // 装飾ボタンの状態同期
@@ -17211,7 +17690,7 @@ function ebSizeDelta(d){
   } else if(el){
     baseSize = parseFloat(getComputedStyle(el).fontSize); baseSrc='cs';
   }
-  if(isNaN(baseSize) || !baseSize){ baseSize = state.settings.fontSize || 15; baseSrc='def'; }
+  if(isNaN(baseSize) || !baseSize){ baseSize = stdFont() || 15; baseSrc='def'; }
   // 1pxずつクランプ
   const newSize = Math.min(40, Math.max(10, Math.round(baseSize) + d));
   // undoスナップショット
@@ -17257,7 +17736,7 @@ function adjustAllFontSize(delta) {
     pg.paras.forEach((para, qi) => {
       if (para.type !== 'text') return;
       const baseSize = (typeof para.size === 'number' && !isNaN(para.size)) ?
-        para.size : state.settings.fontSize;
+        para.size : stdFont();
       const newSize = Math.min(40, Math.max(10, Math.round(baseSize) + delta));
       if (newSize === baseSize) return;
       para.size = newSize;
@@ -17311,7 +17790,7 @@ function adjustAllEpisodesFontSize(delta) {
       pg.paras.forEach((para, qi) => {
         if (para.type !== 'text') return;
         const baseSize = (typeof para.size === 'number' && !isNaN(para.size)) ?
-          para.size : state.settings.fontSize;
+          para.size : stdFont();
         const newSize = Math.min(40, Math.max(10, Math.round(baseSize) + delta));
         if (newSize === baseSize) return;
         para.size = newSize;
@@ -19676,7 +20155,7 @@ function autoAddGroup(pi) {
   // 新グループの先頭に空段落を追加（<br>を入れてカーソルが立つようにする）
   state.pages[pi].paras.splice(insertAt+1, 0, {
     type:'text', text:'', html:'<br>', align:'left',
-    size:state.settings.fontSize, color:state.settings.lastColor
+    size:stdFont(), color:state.settings.lastColor
   });
 
   // 挿入後のグループ番号を計算
@@ -20038,7 +20517,7 @@ async function pickAndInsertImage(input){
     paras.splice(afterImgIdx, 0, {
       type:'text', text:'', html:'<br>',
       align:'left',
-      size: state.settings.fontSize,
+      size: stdFont(),
       color: state.settings.lastColor,
     });
   }
