@@ -14098,10 +14098,13 @@ function kzOpenSkipList(){
   const info = kzSkipInfo();
   const keys = Object.keys(map).filter(k => map[k] === 'skip');
   azSheet(`<div class="az-grab"></div>
-    <div class="az-head"><span>イカ墨翻訳で入れない作品</span><button class="az-x" onclick="azClose()" aria-label="閉じる">${AZ_IC.x}</button></div>
+    <div class="az-head"><span>イカ墨翻訳で入れない作品・話</span><button class="az-x" onclick="azClose()" aria-label="閉じる">${AZ_IC.x}</button></div>
+    <div class="az-sec-t" style="padding:4px 4px 6px;font-size:12px;color:#888">入れない作品</div>
     ${keys.length ? `<div class="az-rows">${keys.map(k => `<div class="az-row" style="cursor:default"><span class="az-r-t"><b>${uxEsc((info[k] && info[k].t) || '（題名なし）')}</b><small>${uxEsc(k.length > 40 ? k.slice(0, 40) + '…' : k)}</small></span><button class="az-w-btn" onclick='kzUnskip(${uxEsc(JSON.stringify(k))})'>また入れる</button></div>`).join('')}</div>`
       : '<div class="az-msg">ないよ</div>'}
-    <div class="az-foot">${AZ_IC.info}<span>「また入れる」にすると、次にイカ墨翻訳から届いたとき、入れる本を聞きます</span></div>`);
+    <div class="az-sec-t" style="padding:12px 4px 6px;font-size:12px;color:#888">消した話（もう入れない）</div>
+    ${(() => { const rows = typeof kzDelListHtml === 'function' ? kzDelListHtml() : []; return rows.length ? `<div class="az-rows">${rows.join('')}</div>` : '<div class="az-msg">ないよ</div>'; })()}
+    <div class="az-foot">${AZ_IC.info}<span>「また入れる」にすると、次にイカ墨翻訳から届いたとき、入れる本を聞きます。「戻す」にした話は、次に届いたときにまた入ります（ムンピアくんの話は、ムンピアくんのメニューの「イカ墨ノベルに全部送り直す」で届きます）</span></div>`);
 }
 function kzUnskip(k){
   const map = kzLinkMap(); delete map[k]; kzSaveLinkMap(map);
@@ -14113,7 +14116,7 @@ function kzUnskip(k){
 function uxSkipMenuItem(){
   try{
     const bm = document.getElementById('backup-menu'); if(!bm || typeof kzLinkMap !== 'function') return;
-    const n = Object.values(kzLinkMap()).filter(v => v === 'skip').length;
+    const n = Object.values(kzLinkMap()).filter(v => v === 'skip').length + (typeof kzDelCount === 'function' ? kzDelCount() : 0);
     let it = document.getElementById('ux-kz-skip');
     if(!n){ if(it) it.remove(); return; }
     if(!it){
@@ -14124,7 +14127,7 @@ function uxSkipMenuItem(){
       it.style.cssText = 'display:flex;align-items:center;gap:10px;width:100%;border:none;background:none;padding:10px 16px;font-size:13px;color:#3a6d8c;cursor:pointer;text-align:left;font-family:inherit;';
       (link ? link.parentNode : bm).insertBefore(it, link ? link.nextSibling : null);
     }
-    it.innerHTML = `<span style="width:18px;text-align:center;font-weight:700;color:#007070">訳</span>イカ墨翻訳で入れない作品<span style="margin-left:auto;color:#aaa;font-size:11px">${n}</span>`;
+    it.innerHTML = `<span style="width:18px;text-align:center;font-weight:700;color:#007070">訳</span>イカ墨翻訳で入れない作品・話<span style="margin-left:auto;color:#aaa;font-size:11px">${n}</span>`;
   }catch(_){}
 }
 if(typeof openBackupMenu === 'function'){
@@ -14390,7 +14393,7 @@ function gdMergeNovel(l, r, keepEpId){
   m.episodes = [...byId.values()].filter(e => e.id === keepEpId || !(del[e.id] && del[e.id] >= gdEpVer(e)));
   if(Object.keys(del).length) m.delEps = del; else delete m.delEps;
   // 韓国語メモの訳・メモは、両方を合わせる（同じ段落は新しいほうの本のもの）
-  ['koTr', 'koNotes', 'koSense'].forEach(f => { if(l[f] || r[f]) m[f] = Object.assign({}, other[f] || {}, base[f] || {}); });
+  ['koTr', 'koNotes', 'koSense', 'kzDel'].forEach(f => { if(l[f] || r[f]) m[f] = Object.assign({}, other[f] || {}, base[f] || {}); });
   if(m.lastReadId && !m.episodes.some(e => e.id === m.lastReadId)) m.lastReadId = (other.lastReadId && m.episodes.some(e => e.id === other.lastReadId)) ? other.lastReadId : null;
   m.updatedAt = gdMax(l.updatedAt, r.updatedAt);
   if(l.rv || r.rv) m.rv = gdMax(l.rv, r.rv);
@@ -14416,6 +14419,8 @@ async function gdMergeLibrary(remote, opt){
   let added = 0, updated = 0, removed = 0;
   const seen = new Set();
   const handle = async (id, l, r) => {
+    // いま開いている本は、本棚の写しではなく、その瞬間の本と混ぜる（同期の途中で消した話・直した内容が戻らないように）
+    if(l && id === curId && state.novel && state.novel.id === id){ try{ syncCurrentEpisode(); }catch(_){} l = state.novel; }
     let n = l && r ? gdMergeNovel(l, r, id === curId ? state.currentEpisodeId : null) : (l || r);
     const t = del[id];
     // 消した本は、ほかの端末で読まれていても消す（バックアップから戻した本＝rv が消した時刻より後、だけは残す）
@@ -14425,7 +14430,7 @@ async function gdMergeLibrary(remote, opt){
         return;
       }
       // いま開いている本：開いている間は消さない（閉じたあとの同期・次に開いたときに消える）
-      if(l) out.push(l);
+      if(l) out.push(l === state.novel && typeof novelSnapshot === 'function' ? novelSnapshot(state.novel) : l);
       return;
     }
     if(t && (n.rv || '') > t) delete del[id];
@@ -14442,7 +14447,7 @@ async function gdMergeLibrary(remote, opt){
         await libDbPut(state.novel);
       }else await libDbPut(n);
     }
-    out.push(n);
+    out.push(n === state.novel && typeof novelSnapshot === 'function' ? novelSnapshot(state.novel) : n);
   };
   for(const r of rlib){
     if(!r || !r.id || seen.has(r.id)) continue;
@@ -15203,6 +15208,91 @@ if(typeof togglePanel === 'function'){
   };
 }
 /* ══════ iPhone：編集バーの位置ここまで ══════ */
+
+/* ══════ イカ墨翻訳・ムンピアくんから入れた話を消したとき ══════ */
+// スクリプトは「イカ墨ノベルに無い話」を送ってくるので、消した話がすぐ送り直されて戻っていた
+// （iPhoneでは、確認のOKを押すと画面に戻った合図で送り直されるので、消えないように見えた）。
+// ・消した話を本に覚えておき（kzDel：{ 話のキー: { sig, t, num, at } }）、スクリプトには「持っている」と答える
+// ・それでも届いたら、入れずに「受け取った」とだけ返す
+// ・︙メニューの「イカ墨翻訳で入れない作品・話」から、もとに戻せる
+function kzDelBooks(){
+  return (state.library || []).map(n => (state.novel && n.id === state.currentNovelId) ? state.novel : n);
+}
+function kzDelCount(){ return kzDelBooks().reduce((a, n) => a + Object.keys(n.kzDel || {}).length, 0); }
+function kzDelSave(n){
+  if(state.novel && n === state.novel){
+    const i = state.library.findIndex(x => x.id === n.id);
+    if(i >= 0) state.library[i] = novelSnapshot(state.novel);
+  }
+  return libDbPut(n).catch(e => console.warn('kzDel save', e));
+}
+if(typeof deleteEpisode === 'function'){
+  const _kzdOrigDel = deleteEpisode;
+  deleteEpisode = function(id){
+    try{
+      const n = state.novel, ep = n && (n.episodes || []).find(e => e.id === id);
+      const k = ep && ep.kzImport && ep.kzImport.key;
+      if(k){
+        n.kzDel = Object.assign({}, n.kzDel || {});
+        n.kzDel[k] = { sig: ep.kzImport.sv === 2 ? String(ep.kzImport.sig || '') : '', t: ep.title || '', num: ep.number, at: new Date().toISOString() };
+      }
+    }catch(_){}
+    return _kzdOrigDel.apply(this, arguments);
+  };
+}
+// スクリプトに教える「持っている話」に、消した話も入れる（指紋がわからない話は、一度届いたときに覚える）
+if(typeof kzHave === 'function'){
+  const _kzdOrigHave = kzHave;
+  kzHave = function(){
+    const r = _kzdOrigHave.apply(this, arguments);
+    try{
+      kzDelBooks().forEach(n => Object.entries(n.kzDel || {}).forEach(([k, v]) => { if(r.have && !r.have[k]) r.have[k] = [(v && v.sig) || '?', '']; }));
+    }catch(_){}
+    return r;
+  };
+}
+// 届いた話のうち、消した話は入れない（受け取ったことだけ返す）
+if(typeof kzReceive === 'function'){
+  const _kzdOrigRecv = kzReceive;
+  kzReceive = async function(eps){
+    try{
+      const acks = [], keep = [], changed = new Set();
+      (eps || []).forEach(p => {
+        const n = p && p.key && kzDelBooks().find(b => b.kzDel && b.kzDel[p.key]);
+        if(!n){ keep.push(p); return; }
+        const d = n.kzDel[p.key];
+        if(p.sig && d.sig !== String(p.sig)){ d.sig = String(p.sig); changed.add(n); }
+        acks.push({ key: p.key, n: p.n || 0, h: p.h || '', sig: p.sig || '' });
+      });
+      changed.forEach(n => kzDelSave(n));
+      if(acks.length) kzLinkPost({ type: 'ack', items: acks });
+      if(!keep.length) return;
+      eps = keep;
+    }catch(e){ console.warn('kzDel recv', e); }
+    return _kzdOrigRecv.call(this, eps);
+  };
+}
+// もとに戻す：次にスクリプトから届いたとき、また入る
+function kzDelRestore(bookId, key){
+  const n = kzDelBooks().find(b => b.id === bookId);
+  if(!n || !n.kzDel || !n.kzDel[key]) return;
+  delete n.kzDel[key];
+  if(!Object.keys(n.kzDel).length) delete n.kzDel;
+  n.updatedAt = new Date().toISOString();
+  kzDelSave(n);
+  try{ scheduleGdriveAutoSync(); }catch(_){}
+  try{ kzHello(); }catch(_){}
+  showToast('次にスクリプトから届いたとき、この話をまた入れるね');
+  try{ kzOpenSkipList(); }catch(_){}
+}
+function kzDelListHtml(){
+  const rows = [];
+  kzDelBooks().forEach(n => Object.entries(n.kzDel || {}).forEach(([k, v]) => {
+    rows.push(`<div class="az-row" style="cursor:default"><span class="az-r-t"><b>${uxEsc((v.num != null ? v.num + '話 ' : '') + (v.t || '（題名なし）'))}</b><small>${uxEsc(n.title || '')}</small></span><button class="az-w-btn" onclick='kzDelRestore(${uxEsc(JSON.stringify(n.id))},${uxEsc(JSON.stringify(k))})'>戻す</button></div>`);
+  }));
+  return rows;
+}
+/* ══════ 消した話ここまで ══════ */
 
 function setupDoubleTap(){
   let lastTap=0;
