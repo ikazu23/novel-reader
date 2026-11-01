@@ -428,10 +428,13 @@ function kzOpenSkipList(){
   const info = kzSkipInfo();
   const keys = Object.keys(map).filter(k => map[k] === 'skip');
   azSheet(`<div class="az-grab"></div>
-    <div class="az-head"><span>イカ墨翻訳で入れない作品</span><button class="az-x" onclick="azClose()" aria-label="閉じる">${AZ_IC.x}</button></div>
+    <div class="az-head"><span>イカ墨翻訳で入れない作品・話</span><button class="az-x" onclick="azClose()" aria-label="閉じる">${AZ_IC.x}</button></div>
+    <div class="az-sec-t" style="padding:4px 4px 6px;font-size:12px;color:#888">入れない作品</div>
     ${keys.length ? `<div class="az-rows">${keys.map(k => `<div class="az-row" style="cursor:default"><span class="az-r-t"><b>${uxEsc((info[k] && info[k].t) || '（題名なし）')}</b><small>${uxEsc(k.length > 40 ? k.slice(0, 40) + '…' : k)}</small></span><button class="az-w-btn" onclick='kzUnskip(${uxEsc(JSON.stringify(k))})'>また入れる</button></div>`).join('')}</div>`
       : '<div class="az-msg">ないよ</div>'}
-    <div class="az-foot">${AZ_IC.info}<span>「また入れる」にすると、次にイカ墨翻訳から届いたとき、入れる本を聞きます</span></div>`);
+    <div class="az-sec-t" style="padding:12px 4px 6px;font-size:12px;color:#888">消した話（もう入れない）</div>
+    ${(() => { const rows = typeof kzDelListHtml === 'function' ? kzDelListHtml() : []; return rows.length ? `<div class="az-rows">${rows.join('')}</div>` : '<div class="az-msg">ないよ</div>'; })()}
+    <div class="az-foot">${AZ_IC.info}<span>「また入れる」にすると、次にイカ墨翻訳から届いたとき、入れる本を聞きます。「戻す」にした話は、次に届いたときにまた入ります（ムンピアくんの話は、ムンピアくんのメニューの「イカ墨ノベルに全部送り直す」で届きます）</span></div>`);
 }
 function kzUnskip(k){
   const map = kzLinkMap(); delete map[k]; kzSaveLinkMap(map);
@@ -443,7 +446,7 @@ function kzUnskip(k){
 function uxSkipMenuItem(){
   try{
     const bm = document.getElementById('backup-menu'); if(!bm || typeof kzLinkMap !== 'function') return;
-    const n = Object.values(kzLinkMap()).filter(v => v === 'skip').length;
+    const n = Object.values(kzLinkMap()).filter(v => v === 'skip').length + (typeof kzDelCount === 'function' ? kzDelCount() : 0);
     let it = document.getElementById('ux-kz-skip');
     if(!n){ if(it) it.remove(); return; }
     if(!it){
@@ -454,7 +457,7 @@ function uxSkipMenuItem(){
       it.style.cssText = 'display:flex;align-items:center;gap:10px;width:100%;border:none;background:none;padding:10px 16px;font-size:13px;color:#3a6d8c;cursor:pointer;text-align:left;font-family:inherit;';
       (link ? link.parentNode : bm).insertBefore(it, link ? link.nextSibling : null);
     }
-    it.innerHTML = `<span style="width:18px;text-align:center;font-weight:700;color:#007070">訳</span>イカ墨翻訳で入れない作品<span style="margin-left:auto;color:#aaa;font-size:11px">${n}</span>`;
+    it.innerHTML = `<span style="width:18px;text-align:center;font-weight:700;color:#007070">訳</span>イカ墨翻訳で入れない作品・話<span style="margin-left:auto;color:#aaa;font-size:11px">${n}</span>`;
   }catch(_){}
 }
 if(typeof openBackupMenu === 'function'){

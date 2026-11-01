@@ -4,7 +4,7 @@
 //   POST /token   { code, redirect_uri }  → 認可コードをアクセス＋リフレッシュトークンに交換
 //   POST /refresh { refresh_token }       → 新しいアクセストークンを発行
 //   【利用者数】
-//   GET  /stats?key=…                     → 利用者数を見る（自分用）
+//   GET  /stats?key=…                     → 利用者数を見る（自分用）。Googleアカウントごとに1人（元に戻せない形で数える）
 //   【作品公開】
 //   POST /publish   { access_token, workId?, indexFileId, meta }  → 作品を登録・更新（作者）
 //   POST /unpublish { access_token, workId }                      → 公開をやめる（作者）
@@ -126,7 +126,7 @@ async function handleToken(path, body, env, ctx, json) {
       data.error === 'invalid_grant' ? 401 : 502);
   }
   const rt = path === '/refresh' ? body.refresh_token : data.refresh_token;
-  if (rt && env.STATS) ctx.waitUntil(recordUser(env, rt).catch(() => {}));
+  if (rt && env.STATS) ctx.waitUntil(recordUser(env, rt, data.access_token).catch(() => {}));
   return json({ access_token: data.access_token, expires_in: data.expires_in, refresh_token: data.refresh_token || null });
 }
 
@@ -138,13 +138,38 @@ async function sha(prefix, s, bytes = 12) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(prefix + s));
   return [...new Uint8Array(buf)].slice(0, bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 }
-async function recordUser(env, refreshToken) {
-  const h = await sha('ikasumi:', refreshToken);
-  const dayKey = `d:${jstDate()}:${h}`;
+// 利用者数：Googleアカウントごとに1人と数える（PCとスマホ、ログインし直しも同じ人）
+// ・アカウントの内部ID（permissionId）を、運営者だけが持つ鍵（GOOGLE_CLIENT_SECRET）で元に戻せない形（HMAC）にして数える
+// ・作品の作者を見分けるID（owner）とは別の作り方なので、結びつけられない
+// ・名前・メールアドレスは見ない・保存しない
+// ・同じログインの鍵（リフレッシュトークン）では、ドライブに聞き直さない（ハッシュだけ60日覚える）
+async function hmacHex(key, s, bytes = 12) {
+  const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(s));
+  return [...new Uint8Array(sig)].slice(0, bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function accountUserId(env, refreshToken, accessToken) {
+  const rk = 'rt:' + await sha('ikasumi:', refreshToken);
+  const cached = await env.STATS.get(rk);
+  if (cached) return cached;
+  if (!accessToken || !env.GOOGLE_CLIENT_SECRET) return null;
+  const r = await fetch('https://www.googleapis.com/drive/v3/about?fields=user(permissionId)', { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (!r.ok) return null;
+  const d = await r.json();
+  const pid = d.user && d.user.permissionId;
+  if (!pid) return null;
+  const uid = await hmacHex(env.GOOGLE_CLIENT_SECRET, 'user:' + pid);
+  await env.STATS.put(rk, uid, { expirationTtl: 60 * 60 * 24 * 60 });
+  return uid;
+}
+async function recordUser(env, refreshToken, accessToken) {
+  const uid = await accountUserId(env, refreshToken, accessToken);
+  if (!uid) return;
+  const dayKey = `da:${jstDate()}:${uid}`;
   if (await env.STATS.get(dayKey) !== null) return;
   await env.STATS.put(dayKey, '1', { expirationTtl: DAY_TTL });
-  const allKey = `u:${h}`;
-  if (await env.STATS.get(allKey) === null) await env.STATS.put(allKey, jstDate());
+  const allKey = `ua:${uid}`;
+  if (await env.STATS.get(allKey) === null) await env.STATS.put(allKey, jstDate(), { metadata: { d: jstDate() } });
 }
 async function listAll(env, prefix, withMeta = false) {
   const out = []; let cursor;
@@ -158,21 +183,30 @@ async function listAll(env, prefix, withMeta = false) {
 async function handleStats(url, env) {
   if (!env.STATS_KEY || url.searchParams.get('key') !== env.STATS_KEY) return new Response('forbidden', { status: 403 });
   if (!env.STATS) return new Response('KV（STATS）が未設定です', { status: 500 });
-  const days = []; const week = new Set();
-  for (let i = 0; i < 7; i++) {
+  const days = []; const week = new Set(); const month = new Set();
+  for (let i = 0; i < 30; i++) {
     const d = jstDate(i);
-    const keys = await listAll(env, `d:${d}:`);
-    keys.forEach(k => week.add(k.split(':')[2]));
-    days.push({ date: d, users: keys.length });
+    const keys = await listAll(env, `da:${d}:`);
+    keys.forEach(k => { const id = k.split(':')[2]; month.add(id); if (i < 7) week.add(id); });
+    if (i < 14) days.push({ date: d, users: keys.length });
   }
-  const total = (await listAll(env, 'u:')).length;
+  const accounts = await listAll(env, 'ua:', true);
+  const total = accounts.length;
+  // 合計の移り変わり：初めて使った日ごと
+  const since = {};
+  accounts.forEach(k => { const v = k.metadata && k.metadata.d; if (v) since[v] = (since[v] || 0) + 1; });   // 一覧についてくる「初めて使った日」で数える（1件ずつ読まない）
+  const newToday = since[jstDate()] || 0;
+  const oldDevices = (await listAll(env, 'u:')).length;
   const works = (await listAll(env, 'w:')).length;
-  const rows = days.map(d => `<tr><td>${d.date}</td><td>${d.users}人</td></tr>`).join('');
+  const rows = days.map(d => `<tr><td>${d.date}</td><td>${d.users}人</td><td>${since[d.date] || 0}人</td></tr>`).join('');
   return html(`<h2>イカ墨ノベル 利用者数</h2>
-<p>今日：<b>${days[0].users}人</b></p><p>過去7日間：<b>${week.size}人</b></p><p>これまでの合計：<b>${total}人</b></p>
+<p>今日：<b>${days[0].users}人</b>（はじめての人 ${newToday}人）</p>
+<p>過去7日間：<b>${week.size}人</b>　過去30日間：<b>${month.size}人</b></p>
+<p>これまでの合計：<b>${total}人</b></p>
 <p>公開作品：<b>${works}作品</b>（<a href="/admin?key=${encodeURIComponent(env.STATS_KEY)}">管理ページ</a>）</p>
-<table border="1" cellpadding="6" style="border-collapse:collapse;margin-top:12px"><tr><th>日付</th><th>利用者</th></tr>${rows}</table>
-<p style="color:#888;font-size:12px;margin-top:16px">※ Googleドライブ同期にログインしている人の数です（端末ごと）。</p>`, 'イカ墨ノベル 利用者数');
+<table border="1" cellpadding="6" style="border-collapse:collapse;margin-top:12px"><tr><th>日付</th><th>使った人</th><th>はじめての人</th></tr>${rows}</table>
+<p style="color:#888;font-size:12px;margin-top:16px">※ Googleドライブにログインしている人を、アカウントごとに数えています（PCとスマホで同じアカウントなら1人）。ログインしていない人は数に入りません。<br>
+※ アカウントごとに数え始めたのは、この仕組みを入れた日からです。それより前の、端末ごとに数えていた合計：${oldDevices}台</p>`, 'イカ墨ノベル 利用者数');
 }
 
 /* ══════════════ 作品公開 ══════════════ */

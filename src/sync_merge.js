@@ -43,7 +43,7 @@ function gdMergeNovel(l, r, keepEpId){
   m.episodes = [...byId.values()].filter(e => e.id === keepEpId || !(del[e.id] && del[e.id] >= gdEpVer(e)));
   if(Object.keys(del).length) m.delEps = del; else delete m.delEps;
   // 韓国語メモの訳・メモは、両方を合わせる（同じ段落は新しいほうの本のもの）
-  ['koTr', 'koNotes', 'koSense'].forEach(f => { if(l[f] || r[f]) m[f] = Object.assign({}, other[f] || {}, base[f] || {}); });
+  ['koTr', 'koNotes', 'koSense', 'kzDel'].forEach(f => { if(l[f] || r[f]) m[f] = Object.assign({}, other[f] || {}, base[f] || {}); });
   if(m.lastReadId && !m.episodes.some(e => e.id === m.lastReadId)) m.lastReadId = (other.lastReadId && m.episodes.some(e => e.id === other.lastReadId)) ? other.lastReadId : null;
   m.updatedAt = gdMax(l.updatedAt, r.updatedAt);
   if(l.rv || r.rv) m.rv = gdMax(l.rv, r.rv);
@@ -69,6 +69,8 @@ async function gdMergeLibrary(remote, opt){
   let added = 0, updated = 0, removed = 0;
   const seen = new Set();
   const handle = async (id, l, r) => {
+    // いま開いている本は、本棚の写しではなく、その瞬間の本と混ぜる（同期の途中で消した話・直した内容が戻らないように）
+    if(l && id === curId && state.novel && state.novel.id === id){ try{ syncCurrentEpisode(); }catch(_){} l = state.novel; }
     let n = l && r ? gdMergeNovel(l, r, id === curId ? state.currentEpisodeId : null) : (l || r);
     const t = del[id];
     // 消した本は、ほかの端末で読まれていても消す（バックアップから戻した本＝rv が消した時刻より後、だけは残す）
@@ -78,7 +80,7 @@ async function gdMergeLibrary(remote, opt){
         return;
       }
       // いま開いている本：開いている間は消さない（閉じたあとの同期・次に開いたときに消える）
-      if(l) out.push(l);
+      if(l) out.push(l === state.novel && typeof novelSnapshot === 'function' ? novelSnapshot(state.novel) : l);
       return;
     }
     if(t && (n.rv || '') > t) delete del[id];
@@ -95,7 +97,7 @@ async function gdMergeLibrary(remote, opt){
         await libDbPut(state.novel);
       }else await libDbPut(n);
     }
-    out.push(n);
+    out.push(n === state.novel && typeof novelSnapshot === 'function' ? novelSnapshot(state.novel) : n);
   };
   for(const r of rlib){
     if(!r || !r.id || seen.has(r.id)) continue;
