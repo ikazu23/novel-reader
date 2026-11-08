@@ -5848,7 +5848,7 @@ function openEpisode(id, startPos='first'){
       const lep = (state.library[li].episodes||[]).find(e=>e.id===id);
       if(lep){ delete lep.isNew; delete lep.isUpdated; }
     }
-    libDbPut(state.novel).catch(e=>console.warn('save lastReadId failed:',e));
+    perfLastRead(state.currentNovelId, id);
   }
   // タイトル更新
   $.topbar_title.textContent=ep.title;
@@ -16456,7 +16456,8 @@ function fsModeOf(eps){
 }
 function fsNovelMode(n){
   if(!n || !n.episodes) return 0;
-  const sig = n.episodes.length + '|' + (n.updatedAt || '');
+  // 話の数が変わったときだけ数え直す（保存のたびに数え直すと、長い本で止まるため）。標準を変えたときは fsScaleNovel で消す
+  const sig = String(n.episodes.length);
   const c = _fsModeCache.get(n);
   if(c && c.sig === sig) return c.v;
   const v = fsModeOf(n.episodes);
@@ -16495,6 +16496,7 @@ function fsScaleEpisode(ep, pages, f, base){
 // 本1冊を、標準 from → to に拡大・縮小
 function fsScaleNovel(n, from, to){
   if(!n || !(from > 0) || !(to > 0) || Math.abs(from - to) < 0.05) return 0;
+  _fsModeCache.delete(n);
   const f = to / from;
   const isCur = state.novel && n === state.novel;
   let cnt = 0;
@@ -16741,6 +16743,7 @@ if(typeof adjustAllEpisodesFontSize === 'function'){
   adjustAllEpisodesFontSize = function(delta){
     const n = state.novel, had = n && parseFloat(n.fontStd) > 0;
     const r = _fsOrigAllEp.apply(this, arguments);
+    try{ if(n) _fsModeCache.delete(n); }catch(_){}
     try{ if(had && n === state.novel){ n.fontStd = fsRound(parseFloat(n.fontStd) + delta); fsSaveNovel(n); } fsPanelRefresh(); }catch(_){}
     return r;
   };
@@ -17114,6 +17117,61 @@ function rpSwipeOk(dx, dy, startX, scrolled){
   return true;
 }
 /* ══════ 読んでいた場所・横スワイプここまで ══════ */
+
+/* ══════ 読むときに止まらないように ══════ */
+// 長い本（1000話など）を読むと、話を開いた直後や、ときどき画面が止まっていた。
+// ・話を開くたびに「どこまで読んだか」のためだけに本を丸ごと保存していた（約0.5〜1秒止まる）
+//   → 小さい記録（この端末の localStorage）にだけ書く。本の保存は、目次・本棚に戻ったときやアプリから離れたとき（今まで通り）
+// ・何か保存した30秒後の自動同期が、読んでいる最中に走っていた（本棚全部を文字にするので1〜3秒止まる）
+//   → 読んでいる間は待って、目次・本棚に戻ってから同期する（アプリから離れたときは今まで通りすぐ同期）
+const PERF_LR_LS = LS_PREFIX + 'last-read';   // { 本のID: { id: 話のID, at: 時刻 } }
+function perfLastRead(nid, eid){
+  try{
+    const m = JSON.parse(localStorage.getItem(PERF_LR_LS) || '{}') || {};
+    m[nid] = { id: eid, at: Date.now() };
+    const ks = Object.keys(m);
+    if(ks.length > 300) ks.sort((a, b) => (m[a].at || 0) - (m[b].at || 0)).slice(0, ks.length - 300).forEach(k => delete m[k]);
+    localStorage.setItem(PERF_LR_LS, JSON.stringify(m));
+  }catch(_){}
+}
+// 起動したとき：本の保存より新しい「どこまで読んだか」があれば、そちらにする（保存の前にアプリが終わったときのため）
+if(typeof loadLibrary === 'function'){
+  const _perfOrigLoad = loadLibrary;
+  loadLibrary = async function(){
+    const r = await _perfOrigLoad.apply(this, arguments);
+    try{
+      const m = JSON.parse(localStorage.getItem(PERF_LR_LS) || '{}') || {};
+      (state.library || []).forEach(n => {
+        const x = n && m[n.id];
+        if(!x || !x.id || n.lastReadId === x.id) return;
+        const t = Date.parse(n.updatedAt || '') || 0;
+        if(x.at > t && (n.episodes || []).some(e => e.id === x.id)) n.lastReadId = x.id;
+      });
+    }catch(_){}
+    return r;
+  };
+}
+// 自動同期：読んでいる間（話を開いている間）は待つ
+if(typeof scheduleGdriveAutoSync === 'function'){
+  scheduleGdriveAutoSync = function(){
+    if(!gdriveIsSignedIn()) return;
+    if(_gdriveAutoSyncTimer) clearTimeout(_gdriveAutoSyncTimer);
+    const fire = async () => {
+      if(state.currentEpisodeId && document.visibilityState === 'visible'){
+        _gdriveAutoSyncTimer = setTimeout(fire, 30000);   // まだ読んでいる：あとで
+        return;
+      }
+      _gdriveAutoSyncTimer = null;
+      try{ await gdriveUploadData(); console.log('[gdrive] auto sync done'); }
+      catch(e){
+        console.warn('auto sync:', e);
+        try{ showToast('クラウド同期に失敗：' + e.message); }catch(_){}
+      }
+    };
+    _gdriveAutoSyncTimer = setTimeout(fire, 30000);
+  };
+}
+/* ══════ 読むときに止まらないようにここまで ══════ */
 
 function setupDoubleTap(){
   let lastTap=0;
