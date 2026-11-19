@@ -4648,7 +4648,7 @@ async function loadLibrary(){
   }
   // ライブラリを読み込む
   try{
-    const novels=await libDbGetAll();
+    const novels=existingNovels.length ? existingNovels : await libDbGetAll();
     state.library=novels.sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||''));
   }catch(e){
     console.warn('loadLibrary failed',e);
@@ -15496,6 +15496,98 @@ if(typeof scheduleGdriveAutoSync === 'function'){
       }
     };
     _gdriveAutoSyncTimer = setTimeout(fire, 30000);
+  };
+}
+
+// ── 起動時の自動バックアップを軽く・遅くする ──
+// 今までは起動の2秒後に、24時間たった本を全部バックアップしていた（長い本だと数秒止まる）。
+// ・起動から60秒たって、本棚か目次にいて（話を開いていない）、画面が見えているときだけ。1冊ごとに間をあける
+// ・前のバックアップから中身が変わっていない本は飛ばす（読んだだけでは変わらない）
+// ・あとから取り直せる本（青空文庫・みんなの作品）は、自動では飛ばす
+// ・自動のときは、本の二重のコピーをしない（保存するときにブラウザがコピーを作るため）
+// 手動バックアップ・復元や上書きの前のバックアップ（force）は、今まで通り全部とる。バックアップの保存の形も変えない
+const PERF_BK_SIG_LS = LS_PREFIX + 'bk-sig';   // { 本のID: 前にバックアップしたときの中身のしるし }
+const PERF_BK_DELAY = 60000;
+const _perfBootAt = Date.now();
+let _perfBkRunning = false, _perfBkNoCopy = false;
+function perfSleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+function perfHash(str){ let h = 5381; for(let i = 0; i < str.length; i++) h = ((h * 33) ^ str.charCodeAt(i)) >>> 0; return h.toString(36) + '.' + str.length; }
+// 本の中身のしるし：題名・作者・表紙・話（ID・版・文字数・題名）・訳とメモの数と長さ
+function perfBookSig(n){
+  const parts = [n.title || '', n.author || '', String((n.cover || '').length), String((n.episodes || []).length)];
+  (n.episodes || []).forEach(e => parts.push(e.id + '|' + (typeof gdEpVer === 'function' ? gdEpVer(e) : (e.date || '')) + '|' + (e.charCount || 0) + '|' + (e.title || '') + '|' + (e.number != null ? e.number : '')));
+  ['koTr', 'koNotes', 'koSense'].forEach(f => {
+    const o = n[f]; if(!o) return;
+    let len = 0, cnt = 0;
+    for(const k in o){ cnt++; const v = o[k]; len += typeof v === 'string' ? v.length : JSON.stringify(v || '').length; }
+    parts.push(f + cnt + ':' + len);
+  });
+  return perfHash(parts.join('\n'));
+}
+function perfBkSigs(){ try{ return JSON.parse(localStorage.getItem(PERF_BK_SIG_LS) || '{}') || {}; }catch(_){ return {}; } }
+function perfBkIdle(){ return Date.now() - _perfBootAt >= PERF_BK_DELAY && !state.currentEpisodeId && document.visibilityState === 'visible'; }
+async function perfBkWaitIdle(){
+  while(!perfBkIdle()){
+    const wait = Date.now() - _perfBootAt < PERF_BK_DELAY ? Math.max(1000, PERF_BK_DELAY - (Date.now() - _perfBootAt)) : (state.currentEpisodeId ? 30000 : 5000);
+    await perfSleep(wait);
+  }
+}
+if(typeof autoBackup === 'function'){
+  // 本体の autoBackup と同じ動き。自動（force でない）で _perfBkNoCopy のときだけ、二重のコピーをしない
+  autoBackup = async function(novel, force, manual){
+    if(!novel || !novel.id) return;
+    try{
+      const _bkKey = LS_PREFIX + 'bk-last';
+      let _bk = {}; try{ _bk = JSON.parse(localStorage.getItem(_bkKey) || '{}') || {}; }catch(_){}
+      if(!force && _bk[novel.id] && (Date.now() - _bk[novel.id]) < BACKUP_INTERVAL_MS && _bk[novel.id] <= Date.now()) return;
+      const data = await backupGetAll(novel.id);
+      const now = Date.now();
+      const lastTs = (data.generations[0] && data.generations[0].ts) || 0;
+      const _bkSet = (t) => { _bk[novel.id] = t; try{ localStorage.setItem(_bkKey, JSON.stringify(_bk)); }catch(_){} };
+      if(!force && (now - lastTs) < BACKUP_INTERVAL_MS){ if(lastTs) _bkSet(lastTs); return; }
+      const snapshot = {
+        ts: now,
+        iso: new Date(now).toISOString(),
+        title: novel.title || '',
+        manual: !!manual,
+        novel: (!force && _perfBkNoCopy) ? novel : JSON.parse(JSON.stringify(novel))
+      };
+      data.generations.unshift(snapshot);
+      if(data.generations.length > BACKUP_MAX_GENERATIONS){
+        data.generations = data.generations.slice(0, BACKUP_MAX_GENERATIONS);
+      }
+      await backupPutAll(novel.id, data);
+      _bkSet(now);
+    }catch(e){ console.warn('autoBackup failed:', e); }
+  };
+}
+if(typeof autoBackupAllNovels === 'function'){
+  autoBackupAllNovels = async function(){
+    if(_perfBkRunning || !state.library) return;
+    _perfBkRunning = true;
+    try{
+      await perfBkWaitIdle();
+      const ids = state.library.map(n => n.id);
+      for(const id of ids){
+        await perfBkWaitIdle();
+        const n = (state.library || []).find(x => x.id === id);
+        if(!n || n.ext || n.shared || n.trial) continue;
+        const sig = perfBookSig(n);
+        if(perfBkSigs()[id] === sig) continue;            // 前のバックアップから変わっていない
+        const t0 = Date.now();
+        _perfBkNoCopy = true;
+        try{ await autoBackup(n, false); }finally{ _perfBkNoCopy = false; }
+        const after = (() => { try{ return (JSON.parse(localStorage.getItem(LS_PREFIX + 'bk-last') || '{}') || {})[id]; }catch(_){ return null; } })();
+        // 今バックアップしたときだけ、しるしを覚える（24時間以内のバックアップがあって飛ばしたときは覚えない＝次の日にとる）
+        if(after && after >= t0){
+          const m = perfBkSigs(); m[id] = sig;
+          Object.keys(m).forEach(k => { if(!(state.library || []).some(x => x.id === k)) delete m[k]; });
+          try{ localStorage.setItem(PERF_BK_SIG_LS, JSON.stringify(m)); }catch(_){}
+          await perfSleep(1500);
+        }
+      }
+    }catch(e){ console.warn('autoBackupAll', e); }
+    finally{ _perfBkRunning = false; }
   };
 }
 /* ══════ 読むときに止まらないようにここまで ══════ */
