@@ -2566,6 +2566,15 @@ body.theme-dark .bl-fan button.on{background:#3a3a3a;color:#5cc8c0;}
 #ios-bar-row .ios-adj .stepper-line{margin:6px 0}
 #ios-bar-row .ios-adj-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px;font-size:11px;color:#999}
 #ios-bar-row .ios-adj-reset{border:1px solid #ccc;background:none;color:#666;border-radius:14px;padding:4px 12px;font-size:12px;font-family:inherit}
+/* イカ墨ノベルの中で訳したとき */
+.kzia-opt{display:flex;align-items:flex-start;gap:10px;padding:10px 4px;cursor:pointer}
+.kzia-opt input{width:18px;height:18px;margin:2px 0 0;accent-color:#008080;flex-shrink:0}
+.kzia-opt span{display:flex;flex-direction:column;gap:2px}
+.kzia-opt b{font-size:14px;font-weight:600;color:#333}
+.kzia-opt small{font-size:11.5px;color:#999;line-height:1.5}
+.kzia-btn{flex:1;border:1px solid #ddd;background:#fff;color:#555;border-radius:12px;padding:11px 0;font-size:14px;font-family:inherit;cursor:pointer}
+.kzia-btn.main{background:#008080;border-color:#008080;color:#fff;font-weight:600}
+#kzia-row .pl small{margin-left:6px}
 /* ══════ 読み上げ音声の保存 ══════ */
 .ttsc-line{display:flex;align-items:center;justify-content:space-between;gap:10px;font-family:'Noto Sans JP',sans-serif;}
 #ttsc-size{font-size:14px;color:#444;}
@@ -13409,7 +13418,7 @@ async function azAddNovel(parsed, meta){
   try{ renderLibrary(); }catch(_){}
   return novel;
 }
-function azIsExternal(n){ return !!(n && n.ext); }
+function azIsExternal(n){ return !!(n && (n.ext || n.trOf)); }   // 取り込んだ作品・イカ墨ノベルの中で訳した「訳だけの本」は公開できない
 // 青空文庫は段落の間に空行がないので、この本だけ読みやすい見た目にする（設定で変えられる）
 const AZ_LOOK = { lineHeight: 2.0, paraSpacing: 10 };
 async function azFixLook(n){
@@ -14393,7 +14402,7 @@ function gdMergeNovel(l, r, keepEpId){
   m.episodes = [...byId.values()].filter(e => e.id === keepEpId || !(del[e.id] && del[e.id] >= gdEpVer(e)));
   if(Object.keys(del).length) m.delEps = del; else delete m.delEps;
   // 韓国語メモの訳・メモは、両方を合わせる（同じ段落は新しいほうの本のもの）
-  ['koTr', 'koNotes', 'koSense', 'kzDel'].forEach(f => { if(l[f] || r[f]) m[f] = Object.assign({}, other[f] || {}, base[f] || {}); });
+  ['koTr', 'koNotes', 'koSense', 'kzDel', 'koTrAuto'].forEach(f => { if(l[f] || r[f]) m[f] = Object.assign({}, other[f] || {}, base[f] || {}); });
   if(m.lastReadId && !m.episodes.some(e => e.id === m.lastReadId)) m.lastReadId = (other.lastReadId && m.episodes.some(e => e.id === other.lastReadId)) ? other.lastReadId : null;
   m.updatedAt = gdMax(l.updatedAt, r.updatedAt);
   if(l.rv || r.rv) m.rv = gdMax(l.rv, r.rv);
@@ -15591,6 +15600,244 @@ if(typeof autoBackupAllNovels === 'function'){
   };
 }
 /* ══════ 読むときに止まらないようにここまで ══════ */
+
+/* ══════ イカ墨ノベルの中でイカ墨翻訳を使ったとき ══════ */
+// イカ墨翻訳（10.6.18〜）は、イカ墨ノベルの中で訳すと「どの話のどの段落に、どんな訳を表示しているか」を知らせてくる（inapp）。
+// 選んだ形で残す（両方・片方・どちらもなし。最初に一度だけ聞く。設定の「その他」で変えられる）：
+// ・訳だけの本を作る：「〇〇（訳）」の本に、同じ話数・題名で入れる。見た目は原文の段落のまま。まだ訳していない段落は原文のまま
+// ・原文の下の訳に入れる：自分で訳を書く欄（韓国語メモの訳）に段落ごとに入れる。自分で書いた訳は上書きしない
+// 本棚に送る「send」とは別なので、訳した話がまた送られてくる、のくり返しにはならない。
+// 読んでいる間は本を丸ごと保存しない（目次・本棚に戻ったときと、アプリから離れたときにまとめて保存）
+const KZIA_LS = LS_PREFIX + 'kz-inapp';   // { book: bool, tr: bool, asked: bool }
+function kziaCfg(){ try{ return Object.assign({ book: false, tr: false, asked: false }, JSON.parse(localStorage.getItem(KZIA_LS) || '{}') || {}); }catch(_){ return { book: false, tr: false, asked: false }; } }
+function kziaSetCfg(o){ try{ localStorage.setItem(KZIA_LS, JSON.stringify(Object.assign(kziaCfg(), o))); }catch(_){} }
+const _kziaPending = new Map();   // 話のID → 最新の知らせ（続けて届くので、少し待ってまとめる）
+let _kziaTimer = 0, _kziaAsking = false;
+const _kziaDirty = new Set();     // 保存が必要な「訳だけの本」のID
+const _kziaToasted = new Set();   // この起動中に知らせた話（同じ話で何度もお知らせを出さない）
+window.addEventListener('message', e => {
+  try{
+    if(e.origin !== location.origin || typeof e.data !== 'string' || !e.data.startsWith('kztlNovel:')) return;
+    const d = JSON.parse(e.data.slice(10));
+    if(!d || d.type !== 'inapp' || !d.nid || !d.eid || !Array.isArray(d.items)) return;
+    _kziaPending.set(d.eid, d);
+    clearTimeout(_kziaTimer);
+    _kziaTimer = setTimeout(kziaRun, 1200);
+  }catch(err){ console.warn('kz inapp', err); }
+});
+function kziaRun(){
+  const c = kziaCfg();
+  if(!c.asked){ kziaAsk(); return; }
+  const list = [..._kziaPending.values()]; _kziaPending.clear();
+  if(!c.book && !c.tr) return;
+  list.forEach(d => { try{ kziaApply(d, c); }catch(err){ console.warn('kz inapp apply', err); } });
+}
+// 最初の一度だけ聞く
+function kziaAsk(){
+  if(_kziaAsking) return;
+  _kziaAsking = true;
+  azSheet(`
+    <div class="az-head"><span>イカ墨ノベルの中で訳した訳</span><button class="az-x" onclick="kziaAskDone(false)" aria-label="閉じる">${AZ_IC.x}</button></div>
+    <div style="font-size:13px;color:#666;line-height:1.7;padding:2px 4px 10px">イカ墨翻訳で訳した訳を、どう残す？（両方えらべるよ）</div>
+    <label class="kzia-opt"><input type="checkbox" id="kzia-book"><span><b>訳だけの本を作る</b><small>「〇〇（訳）」の本に、同じ話数で入れるよ</small></span></label>
+    <label class="kzia-opt"><input type="checkbox" id="kzia-tr"><span><b>原文の下の訳に入れる</b><small>自分で訳を書く欄に入れるよ。自分で書いた訳はそのまま</small></span></label>
+    <div style="display:flex;gap:8px;margin-top:12px"><button class="kzia-btn" onclick="kziaAskDone(false)">今はしない</button><button class="kzia-btn main" onclick="kziaAskDone(true)">これにする</button></div>
+    <div class="az-foot">${AZ_IC.info}<span>あとから設定の「その他」で変えられるよ</span></div>`);
+}
+function kziaAskDone(ok){
+  const book = ok && !!(document.getElementById('kzia-book') || {}).checked;
+  const tr = ok && !!(document.getElementById('kzia-tr') || {}).checked;
+  kziaSetCfg({ book, tr, asked: true });
+  _kziaAsking = false;
+  try{ azClose(); }catch(_){}
+  showToast(book || tr ? '訳を残すようにしたよ' : 'あとから設定の「その他」で変えられるよ');
+  if(book || tr) setTimeout(kziaRun, 1500); else _kziaPending.clear();
+}
+function kziaNorm(s){ return String(s || '').replace(/\s+/g, ' ').trim(); }
+// 訳文のHTMLは、文字の飾り（太字・斜体・線・色・ルビなど）だけ残す
+function kziaClean(html){
+  const t = document.createElement('template');
+  t.innerHTML = String(html || '');
+  const ALLOW = /^(B|STRONG|I|EM|U|S|DEL|SPAN|BR|RUBY|RT|RP|SUB|SUP|SMALL|MARK)$/;
+  const walk = node => {
+    [...node.childNodes].forEach(c => {
+      if(c.nodeType === 1){
+        walk(c);
+        if(!ALLOW.test(c.tagName)){ c.replaceWith(...c.childNodes); return; }
+        [...c.attributes].forEach(a => { if(a.name !== 'style') c.removeAttribute(a.name); });
+        const st = c.getAttribute('style') || '';
+        if(/url\(|expression|javascript:/i.test(st)) c.removeAttribute('style');
+        else if(c.style){
+          c.style.removeProperty('font-family'); c.style.removeProperty('line-height');
+          if(/px/.test(c.style.fontSize || '')) c.style.removeProperty('font-size');
+          if(!(c.getAttribute('style') || '').trim()) c.removeAttribute('style');
+        }
+      } else if(c.nodeType !== 3) c.remove();
+    });
+  };
+  walk(t.content);
+  const d = document.createElement('div'); d.appendChild(t.content);
+  return d.innerHTML;
+}
+// 届いた知らせの本・話と、原文の段落
+function kziaSource(d){
+  const cur = state.novel && state.currentNovelId === d.nid;
+  const n = cur ? state.novel : (state.library || []).find(x => x.id === d.nid);
+  if(!n || n.trOf) return null;   // 訳だけの本の中で訳したときは何もしない
+  const ep = (n.episodes || []).find(e => e.id === d.eid);
+  if(!ep) return null;
+  const pages = (cur && state.currentEpisodeId === d.eid && state.pages) ? state.pages : ep.pages;
+  if(!Array.isArray(pages)) return null;
+  return { n, ep, pages, cur };
+}
+// 訳になっている段落だけ（原文と同じ・空のものは除く）
+function kziaItems(d, pages){
+  const out = [];
+  (d.items || []).forEach(it => {
+    const pg = pages[it.pi], para = pg && (pg.paras || [])[it.qi];
+    if(!para || (para.type && para.type !== 'text')) return;
+    const plain = typeof koParaPlain === 'function' ? koParaPlain(para) : (para.text || '');
+    const text = kziaNorm(it.text);
+    if(!text || !kziaNorm(plain) || kziaNorm(plain) === text) return;
+    out.push({ pi: it.pi, qi: it.qi, para, plain, text, html: it.html });
+  });
+  return out;
+}
+function kziaApply(d, c){
+  const src = kziaSource(d); if(!src) return;
+  const items = kziaItems(d, src.pages); if(!items.length) return;
+  const msgs = [];
+  if(c.tr){ const r = kziaToKoTr(src, items); if(r.added) msgs.push(`原文の下に訳を${r.added}段落入れた${r.kept ? `（自分で書いた${r.kept}段落はそのまま）` : ''}`); }
+  if(c.book){ const r = kziaToBook(src, items); if(r) msgs.push(`「${r.title}」に${r.num != null ? r.num + '話' : 'この話'}を${r.isNew ? '入れた' : '更新した'}`); }
+  const key = d.eid + '|' + (c.tr ? 't' : '') + (c.book ? 'b' : '');
+  if(msgs.length && !_kziaToasted.has(key)){ _kziaToasted.add(key); showToast(msgs.join('・')); }
+}
+// ── 原文の下の訳（韓国語メモの訳）に入れる ──
+function kziaToKoTr(src, items){
+  const n = src.n;
+  if(!n.koTr || typeof n.koTr !== 'object') n.koTr = {};
+  if(!n.koTrAuto || typeof n.koTrAuto !== 'object') n.koTrAuto = {};
+  let added = 0, kept = 0;
+  items.forEach(it => {
+    const h = koHash(it.plain);
+    const old = n.koTr[h];
+    if(old && !n.koTrAuto[h]){ kept++; return; }   // 自分で書いた訳は上書きしない
+    if(old === it.text) return;
+    n.koTr[h] = it.text; n.koTrAuto[h] = 1; added++;
+  });
+  if(added){
+    // 開いている本は、目次・本棚に戻ったときやアプリから離れたときに保存される。開いていない本は今保存する
+    if(!src.cur){ n.updatedAt = new Date().toISOString(); libDbPut(n).catch(e => console.warn('kz inapp save', e)); }
+    else{ try{ state.novel.updatedAt = new Date().toISOString(); }catch(_){} }
+  }
+  return { added, kept };
+}
+// 自分で訳を書きなおしたら、その段落は「自分で書いた訳」にする
+if(typeof koTrSet === 'function'){
+  const _kziaOrigTrSet = koTrSet;
+  koTrSet = function(h){
+    try{ if(state.novel && state.novel.koTrAuto) delete state.novel.koTrAuto[h]; }catch(_){}
+    return _kziaOrigTrSet.apply(this, arguments);
+  };
+}
+if(typeof koPersistNovel === 'function'){
+  const _kziaOrigPersist = koPersistNovel;
+  koPersistNovel = function(){
+    const r = _kziaOrigPersist.apply(this, arguments);
+    try{
+      const i = (state.library || []).findIndex(x => x.id === state.currentNovelId);
+      if(i >= 0 && state.novel){ if(state.novel.koTrAuto) state.library[i].koTrAuto = Object.assign({}, state.novel.koTrAuto); else delete state.library[i].koTrAuto; }
+    }catch(_){}
+    return r;
+  };
+}
+// ── 訳だけの本を作る ──
+const KZIA_LOOK = ['lineHeight', 'paraSpacing', 'textWidth', 'fontFamily', 'fontStd', 'bgColor', 'theme'];
+function kziaToBook(src, items){
+  const s = src.n, sep = src.ep;
+  let tb = (state.library || []).find(x => x.trOf === s.id);
+  let isNew = false;
+  if(!tb){
+    tb = makeNovel(String(s.title || '無題').replace(/\s*[（(]原文[）)]\s*$/, '') + '（訳）');   // 「〇〇（原文）」なら「〇〇（訳）」
+    tb.author = s.author || '';
+    if(s.cover) tb.cover = s.cover;
+    KZIA_LOOK.forEach(k => { if(s[k] != null) tb[k] = s[k]; });
+    tb.trOf = s.id;
+    tb.episodes = [];
+    state.library.unshift(tb);
+    isNew = true;
+  }
+  const tbLive = (state.novel && state.novel.id === tb.id) ? state.novel : tb;
+  let te = (tbLive.episodes || []).find(e => e.trSrc === sep.id);
+  const sameShape = te && Array.isArray(te.pages) && te.pages.length === src.pages.length && te.pages.every((pg, i) => (pg.paras || []).length === (src.pages[i].paras || []).length);
+  if(!te || !sameShape){
+    const pages = JSON.parse(JSON.stringify(src.pages));
+    if(!te){
+      te = makeEpisode(sep.number, sep.title || '', pages);
+      te.trSrc = sep.id;
+      tbLive.episodes.push(te);
+      tbLive.episodes.sort((a, b) => (a.number || 0) - (b.number || 0));
+      isNew = true;
+    } else te.pages = pages;   // 原文の段落の数が変わっていたら、原文から作り直す
+  }
+  let changed = 0;
+  items.forEach(it => {
+    const pg = te.pages[it.pi], para = pg && (pg.paras || [])[it.qi];
+    if(!para) return;
+    const html = kziaClean(it.html) || escapeHtml(it.text);
+    if(para.html === html && para.text === it.text) return;
+    para.html = html; para.text = it.text; changed++;
+  });
+  if(!changed && !isNew) return null;
+  te.charCount = countChars(te.pages);
+  te.u = new Date().toISOString();
+  tbLive.updatedAt = new Date().toISOString();
+  if(tbLive !== tb){ const i = state.library.findIndex(x => x.id === tb.id); if(i >= 0) state.library[i] = novelSnapshot(tbLive); }
+  _kziaDirty.add(tb.id);
+  if(!state.currentEpisodeId) kziaFlush();   // 読んでいないときはすぐ保存
+  return { title: tb.title, num: sep.number, isNew };
+}
+async function kziaFlush(){
+  const ids = [..._kziaDirty]; _kziaDirty.clear();
+  for(const id of ids){
+    const n = (state.novel && state.novel.id === id) ? state.novel : (state.library || []).find(x => x.id === id);
+    if(n){ try{ await libDbPut(n); }catch(e){ console.warn('kz inapp flush', e); _kziaDirty.add(id); } }
+  }
+  if(ids.length){ try{ scheduleGdriveAutoSync(); }catch(_){} }
+}
+['showToc', 'showLibrary'].forEach(fn => {
+  if(typeof window[fn] !== 'function') return;
+  const orig = window[fn];
+  window[fn] = function(){ const r = orig.apply(this, arguments); if(_kziaDirty.size) kziaFlush(); return r; };
+});
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden' && _kziaDirty.size) kziaFlush(); });
+window.addEventListener('pagehide', () => { if(_kziaDirty.size) kziaFlush(); });
+// ── 設定（その他）に「イカ墨ノベルの中で訳したとき」 ──
+function kziaPanelInstall(){
+  if(document.getElementById('kzia-row')) return;
+  const body = document.getElementById('panel-body'); if(!body) return;
+  const row = document.createElement('div');
+  row.className = 'ps'; row.id = 'kzia-row'; row.dataset.uxT = 'etc';
+  row.innerHTML = `<div class="pl">アプリの中で訳したとき<small>イカ墨翻訳</small></div>
+    <label class="kzia-opt"><input type="checkbox" id="kzia-set-book" onchange="kziaSetCfg({book:this.checked,asked:true})"><span><b>訳だけの本を作る</b><small>「〇〇（訳）」の本に入れる</small></span></label>
+    <label class="kzia-opt"><input type="checkbox" id="kzia-set-tr" onchange="kziaSetCfg({tr:this.checked,asked:true})"><span><b>原文の下の訳に入れる</b><small>自分で書いた訳はそのまま</small></span></label>`;
+  body.appendChild(row);
+}
+function kziaPanelRefresh(){
+  const c = kziaCfg();
+  const b = document.getElementById('kzia-set-book'), t = document.getElementById('kzia-set-tr');
+  if(b) b.checked = !!c.book;
+  if(t) t.checked = !!c.tr;
+}
+if(typeof togglePanel === 'function'){
+  const _kziaOrigTP = togglePanel;
+  togglePanel = function(){
+    const r = _kziaOrigTP.apply(this, arguments);
+    try{ kziaPanelInstall(); kziaPanelRefresh(); }catch(_){}
+    return r;
+  };
+}
+/* ══════ イカ墨ノベルの中で訳したときここまで ══════ */
 
 function setupDoubleTap(){
   let lastTap=0;
