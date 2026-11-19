@@ -17518,6 +17518,153 @@ if(typeof togglePanel === 'function'){
 }
 /* ══════ イカ墨ノベルの中で訳したときここまで ══════ */
 
+/* ══════ イカ墨翻訳の訳を、イカ墨原文の原文の下に入れる ══════ */
+// イカ墨原文（Ridi・カカオ）から入れた原文の本について、イカ墨翻訳（10.6.19〜）が、その話の「原文 → 訳」を渡してくる（trpairs）。
+// ・hello に trWant: { pages: [原文を持っている話のページ] } を付けて知らせる（イカ墨原文の話のキーは「genbun|サイト＋パス」）
+// ・原文の段落の文字がぴったり同じところに、原文の下の訳（韓国語メモの訳）として入れる（見えない透かし文字は無視して比べる）
+// ・自分で書いた訳は上書きしない。自動で入れた訳は、訳し直したら新しい訳になる（koTrAuto で見分ける）
+// ・読んでいる間は本を丸ごと保存しない（目次・本棚に戻ったときと、アプリから離れたときに保存）
+// ・本ごとに「自動で入れた訳を消す」（韓国語メモのメニュー）
+const KZTP_PREFIX = 'genbun|';
+function kztpNorm(s){ return String(s || '').replace(/[​⁠-⁤﻿]/g, '').replace(/\s+/g, ' ').trim(); }
+function kztpBooks(){ return (state.library || []).map(n => (state.novel && n.id === state.currentNovelId) ? state.novel : n); }
+function kztpIsSrcEp(e){ return !!(e && e.kzImport && typeof e.kzImport.key === 'string' && e.kzImport.key.startsWith(KZTP_PREFIX)); }
+function kztpWant(){
+  const pages = new Set();
+  kztpBooks().forEach(n => (n.episodes || []).forEach(e => { if(kztpIsSrcEp(e)) pages.add(e.kzImport.key.slice(KZTP_PREFIX.length).replace(/#.*$/, '')); }));
+  return pages.size ? { pages: [...pages] } : null;
+}
+if(typeof kzHave === 'function'){
+  const _kztpOrigHave = kzHave;
+  kzHave = function(){
+    const r = _kztpOrigHave.apply(this, arguments);
+    try{ const w = kztpWant(); if(w && r && typeof r === 'object') r.trWant = w; }catch(_){}
+    return r;
+  };
+}
+// 原文の段落の索引：ふつうの文字 → [{ 本, 話のID, 段落の印 }]
+function kztpIndex(){
+  const idx = new Map();
+  kztpBooks().forEach(n => {
+    if(n.trOf) return;
+    (n.episodes || []).forEach(e => {
+      if(!kztpIsSrcEp(e)) return;
+      const pages = (state.novel === n && state.currentEpisodeId === e.id && state.pages) ? state.pages : e.pages;
+      (pages || []).forEach(pg => (pg.paras || []).forEach(para => {
+        if(para.type && para.type !== 'text') return;
+        const plain = typeof koParaPlain === 'function' ? koParaPlain(para) : (para.text || '');
+        const k = kztpNorm(plain);
+        if(!k) return;
+        const h = koHash(plain);
+        const list = idx.get(k);
+        const item = { n, eid: e.id, h };
+        if(list){ if(!list.some(x => x.n === n && x.h === h)) list.push(item); } else idx.set(k, [item]);
+      }));
+    });
+  });
+  return idx;
+}
+let _kztpQueue = [], _kztpTimer = 0;
+window.addEventListener('message', e => {
+  try{
+    if(e.origin !== location.origin || typeof e.data !== 'string' || !e.data.startsWith('kztlNovel:')) return;
+    const d = JSON.parse(e.data.slice(10));
+    if(!d || d.type !== 'trpairs' || !Array.isArray(d.pairs)) return;
+    _kztpQueue.push(...d.pairs);
+    clearTimeout(_kztpTimer);
+    _kztpTimer = setTimeout(kztpRun, d.last ? 200 : 1500);
+  }catch(err){ console.warn('kz trpairs', err); }
+});
+const _kztpDirty = new Set();
+function kztpRun(){
+  const pairs = _kztpQueue; _kztpQueue = [];
+  if(!pairs.length) return;
+  try{
+    const idx = kztpIndex();
+    if(!idx.size) return;
+    let added = 0, kept = 0;
+    const eps = new Set();
+    pairs.forEach(p => {
+      if(!Array.isArray(p) || p.length < 2) return;
+      const list = idx.get(kztpNorm(p[0]));
+      const t = String(p[1] || '').trim();
+      if(!list || !t) return;
+      list.forEach(x => {
+        const n = x.n;
+        if(!n.koTr || typeof n.koTr !== 'object') n.koTr = {};
+        if(!n.koTrAuto || typeof n.koTrAuto !== 'object') n.koTrAuto = {};
+        const old = n.koTr[x.h];
+        if(old && !n.koTrAuto[x.h]){ kept++; return; }   // 自分で書いた訳は上書きしない
+        if(old === t) return;
+        n.koTr[x.h] = t; n.koTrAuto[x.h] = 1;
+        added++; eps.add(n.id + '|' + x.eid); _kztpDirty.add(n.id);
+      });
+    });
+    if(added){
+      showToast(`原文の下に訳を入れたよ（${eps.size}話・${added}段落${kept ? `。自分で書いた${kept}段落はそのまま` : ''}）`);
+      if(!state.currentEpisodeId) kztpFlush();   // 読んでいないときはすぐ保存
+    }
+  }catch(err){ console.warn('kz trpairs run', err); }
+}
+async function kztpFlush(){
+  const ids = [..._kztpDirty]; _kztpDirty.clear();
+  const now = new Date().toISOString();
+  for(const id of ids){
+    try{
+      if(state.novel && state.novel.id === id && state.currentNovelId === id){
+        state.novel.updatedAt = now;
+        const i = state.library.findIndex(x => x.id === id);
+        if(i >= 0) state.library[i] = novelSnapshot(state.novel);
+        await libDbPut(state.novel);
+      }else{
+        const n = (state.library || []).find(x => x.id === id);
+        if(n){ n.updatedAt = now; await libDbPut(n); }
+      }
+    }catch(e){ console.warn('kz trpairs save', e); _kztpDirty.add(id); }
+  }
+  if(ids.length){ try{ scheduleGdriveAutoSync(); }catch(_){} }
+}
+['showToc', 'showLibrary'].forEach(fn => {
+  if(typeof window[fn] !== 'function') return;
+  const orig = window[fn];
+  window[fn] = function(){ const r = orig.apply(this, arguments); if(_kztpDirty.size) kztpFlush(); return r; };
+});
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'hidden' && _kztpDirty.size) kztpFlush(); });
+window.addEventListener('pagehide', () => { if(_kztpDirty.size) kztpFlush(); });
+// ── 自動で入れた訳を消す（この本） ──
+function kztpAutoCount(n){ return n && n.koTrAuto ? Object.keys(n.koTrAuto).length : 0; }
+function kztpClearAuto(){
+  const n = state.novel; if(!n) return;
+  const c = kztpAutoCount(n); if(!c) return;
+  if(!confirm(`この本の、自動で入れた訳（${c}段落）を消しますか？\n自分で書いた訳・自分で直した訳は残ります。`)) return;
+  Object.keys(n.koTrAuto).forEach(h => { if(n.koTr) delete n.koTr[h]; });
+  delete n.koTrAuto;
+  try{ koPersistNovel(); }catch(_){}
+  try{ scheduleGdriveAutoSync(); }catch(_){}
+  try{ koCloseSheet(); }catch(_){}
+  try{ koRerender(); }catch(_){}
+  showToast(`自動で入れた訳を消したよ（${c}段落）`);
+}
+if(typeof openKoMenu === 'function'){
+  const _kztpOrigMenu = openKoMenu;
+  openKoMenu = function(){
+    const r = _kztpOrigMenu.apply(this, arguments);
+    try{
+      const c = state.currentEpisodeId && kztpAutoCount(state.novel);
+      const body = document.getElementById('ko-sheet-body');
+      if(c && body && !body.querySelector('.kztp-clear')){
+        const b = document.createElement('button');
+        b.className = 'ko-menu-item kztp-clear';
+        b.onclick = kztpClearAuto;
+        b.innerHTML = `自動で入れた訳を消す<span class="ko-mi-sub">この本 ${c}段落</span>`;
+        body.appendChild(b);
+      }
+    }catch(_){}
+    return r;
+  };
+}
+/* ══════ 原文の下に入れるここまで ══════ */
+
 function setupDoubleTap(){
   let lastTap=0;
   const vp=$.viewport;
